@@ -31,6 +31,21 @@ Storage:
 * SQLite3 (mbtiles)
 * Automatic sharding
 
+Environment
+-----------
+Supports Python2.7, not test on Py3k, yet.  Pypy1.8 is also supported when c extension is not needed.
+Note althrough Python itself is platform indpendent, most geo c-extension (geos, prj, gdal, mapnik) 
+precompied on windows is 32-bit, so you won't be able to handle large data set on Windows.
+Ubuntu 11.04/12.04 or MacOS Homebrew is recommonded enviorments.
+
+Tools
+-----
+* To view or edit geographic data, try QGIS (www.qgis.org).
+* PostGIS (www.postgis.org) is best way to handle large quality of geographic data.
+  Note PostGIS 2.0+ is required to render raster data.
+* To edit mapnik style xml, try TileMill (www.mapbox.com/tilemill/)
+
+
 Dependency
 ----------
 TBD...
