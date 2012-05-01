@@ -16,6 +16,8 @@ class Coordinate(object):
 
     """ Geographic location """
 
+    __slots__ = '_longitude', '_latitude', '_crs'
+
     def __init__(self, longitude=0.0, latitude=0.0, crs=4326):
         self._longitude = longitude
         self._latitude = latitude
@@ -53,6 +55,8 @@ class Envelope(object):
 
     Envelope is not supposed to cross -180/180 longitude
     """
+
+    __slots__ = '_left', '_bottom', '_right', '_top', '_crs'
 
     def __init__(self, left, bottom, right, top, crs=4326):
         self._left = left
@@ -194,6 +198,11 @@ class GoogleMercatorProjection(object):
                         right=right_top.lon, top=right_top.lat)
 
 
+def create_projection(**param):
+    """ Dummy factory function, in case other projection is added later """
+    return GoogleMercatorProjection()
+
+
 #===============================================================================
 # Tile Coordinates
 #===============================================================================
@@ -237,7 +246,6 @@ def tile_coordiante_to_dirname(z, x, y, m=64):
     dim = 2 ** z
     assert x < dim and x >= 0 and y < dim and y >= 0
 
-
     zdiff = int(math.floor(math.log(m) / math.log(2)))
 
     # layer has less than m*m tiles, just use z as pathname
@@ -260,6 +268,7 @@ def tile_coordiante_to_dirname(z, x, y, m=64):
     dirs.insert(0, '%02d' % z)
 
     return dirs
+
 
 def tile_coordinate_to_sharding_index(z, x, y, m=64):
 
