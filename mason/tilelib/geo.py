@@ -91,15 +91,15 @@ class Envelope(object):
 
     @property
     def righttop(self):
-        return Coordinate(self._right, self._top)
+        return Coordinate(self._right, self._top, self._crs)
 
     @property
     def leftbottom(self):
-        return Coordinate(self._left, self._bottom)
+        return Coordinate(self._left, self._bottom, self._crs)
 
     @property
     def rightbottom(self):
-        return Coordinate(self._right, self._bottom)
+        return Coordinate(self._right, self._bottom, self._crs)
 
     def contains(self, coordinate):
         """ Checks whether the envelop contains the given point """
