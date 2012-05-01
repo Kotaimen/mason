@@ -5,31 +5,31 @@ Created on Apr 29, 2012
 '''
 
 from .tile import TileIndex, Tile
+from . import geo
 
 #===============================================================================
 # Exceptions
 #===============================================================================
 
-class TileOutOfEnvelope(Exception):
+
+class TileOutOfRange(Exception):
     pass
 
-class InvalidTileLayer(Exception):
-    pass
 
 class Pyramid(object):
 
     """ Represents a quad-tree structure of tile Pyramid
 
     Hides geography calculations behind this class.  Also being a factory of
-    TileIndex object.
+    TileIndex/Tile object.
     """
 
     def __init__(self,
                  levels=range(0, 11),
                  tile_size=256,
                  envelope=(-180, -85.06, 180, 85.06),
-                 crs='ESPG:4326',
-                 proj='ESPG:909913',
+                 crs=4326,
+                 proj=3857,
                  ):
         """
         Create a new Pyramid object, arguments:
@@ -47,21 +47,24 @@ class Pyramid(object):
 
         crs
             Authority ID of geography coordinate reference system, default is
-            EPSG:4326
+            4326 (WGS84)
 
         proj
-            Authority ID of map projection
+            Authority ID of map projection, default is 3857 (Google Mecartor)
 
         """
         assert levels
         assert (tile_size % 256) == 0
         # Only supports WGS84 lonlat to GoogleMecartor projection
-        assert crs == 'ESPG:4326' and proj == 'ESPG:909913'
+        assert crs == 4326 and proj == 3857
         self._levels = levels
         self._tile_size = tile_size
         self._envelope = envelope
         self._crs = crs
         self._proj = proj
+
+        self._projector = geo.create_projection(input=self._crs,
+                                                output=self._proj)
 
     @property
     def levels(self):
@@ -75,6 +78,36 @@ class Pyramid(object):
     def envelope(self):
         return self._envelope
 
-    @property
-    pass
+    def calculate_tile_envelope(self, z, x, y):
+        return self._projector.tile_envelope(z, x, y)
+
+    def calculate_tile_serial(self, z, x, y):
+        return geo.tile_coordinate_to_serial(z, x, y)
+
+    def create_tile_index(self, z, x, y, bbox_check=True):
+        """ Create TileIndex object using current pyramid projection and range
+        constraints """
+
+        if z not in self._levels:
+            raise TileOutOfRange('Invalid layer "%d"' % z)
+
+        # Adjust tile coordinate if tile is out of cover range
+        dim = 2 ** z
+        if x < 0 or x >= dim:
+            x = x % dim
+        if y < 0 or y >= dim:
+            y = y % dim
+
+        tile_index = TileIndex(self, z, x, y)
+        if bbox_check and not
+            raise TileOutOfRange('Invalid layer %d' % z)
+
+        return TileIndex(self, z, x, y)
+
+    def create_tile(self, z, x, y, data, metadata):
+        assert data is not None
+        assert metadata is not None
+        return Tile(TileIndex(z, x, y),
+                    data,
+                    metadata)
 
