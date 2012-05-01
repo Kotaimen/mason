@@ -25,7 +25,7 @@ class Pyramid(object):
     """
 
     def __init__(self,
-                 levels=range(0, 11),
+                 levels=list(range(0, 11)),
                  tile_size=256,
                  envelope=(-180, -85.06, 180, 85.06),
                  crs=4326,
@@ -59,7 +59,7 @@ class Pyramid(object):
         assert crs == 4326 and proj == 3857
         self._levels = levels
         self._tile_size = tile_size
-        self._envelope = envelope
+        self._envelope = geo.Envelope.from_tuple(envelope)
         self._crs = crs
         self._proj = proj
 
@@ -84,7 +84,7 @@ class Pyramid(object):
     def calculate_tile_serial(self, z, x, y):
         return geo.tile_coordinate_to_serial(z, x, y)
 
-    def create_tile_index(self, z, x, y, bbox_check=True):
+    def create_tile_index(self, z, x, y, range_check=True):
         """ Create TileIndex object using current pyramid projection and range
         constraints """
 
@@ -99,15 +99,15 @@ class Pyramid(object):
             y = y % dim
 
         tile_index = TileIndex(self, z, x, y)
-        if bbox_check and not
-            raise TileOutOfRange('Invalid layer %d' % z)
+        if range_check and not tile_index.envelope.intersects(self._envelope):
+            raise TileOutOfRange('Tile out of range')
 
-        return TileIndex(self, z, x, y)
+        return tile_index
 
     def create_tile(self, z, x, y, data, metadata):
         assert data is not None
         assert metadata is not None
-        return Tile(TileIndex(z, x, y),
+        return Tile(self.create_tile_index(z, x, y),
                     data,
                     metadata)
 

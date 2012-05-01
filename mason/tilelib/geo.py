@@ -42,6 +42,10 @@ class Coordinate(object):
     def make_tuple(self):
         return (self._longitude, self._latitude)
 
+    @staticmethod
+    def from_tuple(t):
+        return Coordinate(*t)
+
     def __repr__(self):
         return repr(self.make_tuple())
 
@@ -115,6 +119,10 @@ class Envelope(object):
 
     def make_tuple(self):
         return (self._left, self._bottom, self._right, self._top)
+
+    @staticmethod
+    def from_tuple(t):
+        return Envelope(*t)
 
     def __repr__(self):
         return repr(self.make_tuple())
@@ -192,8 +200,8 @@ class GoogleMercatorProjection(object):
         return self.unproject(Point(wx, wy))
 
     def tile_envelope(self, z, x, y):
-        left_bottom = self.pixel2coord(z, x, y, 0, 256, 256)
-        right_top = self.pixel2coord(z, x, y, 256, 0, 256)
+        left_bottom = self.pixel2coord(z, x, y, 0., 1., 1.)
+        right_top = self.pixel2coord(z, x, y, 1., 0., 1.)
         return Envelope(left=left_bottom.lon, bottom=left_bottom.lat,
                         right=right_top.lon, top=right_top.lat)
 
