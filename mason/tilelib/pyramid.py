@@ -28,8 +28,8 @@ class Pyramid(object):
                  levels=list(range(0, 11)),
                  tile_size=256,
                  envelope=(-180, -85.06, 180, 85.06),
-                 crs=4326,
-                 proj=3857,
+                 crs='ESPG:4326',
+                 proj='ESPG:3857',
                  ):
         """
         Create a new Pyramid object, arguments:
@@ -55,8 +55,6 @@ class Pyramid(object):
         """
         assert levels
         assert (tile_size % 256) == 0
-        # Only supports WGS84 lonlat to GoogleMecartor projection
-        assert crs == 4326 and proj == 3857
         self._levels = levels
         self._tile_size = tile_size
         self._envelope = geo.Envelope.from_tuple(envelope)

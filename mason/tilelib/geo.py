@@ -18,7 +18,7 @@ class Coordinate(object):
 
     __slots__ = '_longitude', '_latitude', '_crs'
 
-    def __init__(self, longitude=0.0, latitude=0.0, crs=4326):
+    def __init__(self, longitude=0.0, latitude=0.0, crs='ESPG:4326'):
         self._longitude = longitude
         self._latitude = latitude
         self._crs = crs
@@ -47,7 +47,7 @@ class Coordinate(object):
         return Coordinate(*t)
 
     def __repr__(self):
-        return repr(self.make_tuple())
+        return '%s(%s, %s)' % (self.__class__.__name__, self._longitude, self._latitude)
 
     def __eq__(self, other):
         return self.make_tuple() == other.make_tuple()
@@ -62,7 +62,7 @@ class Envelope(object):
 
     __slots__ = '_left', '_bottom', '_right', '_top', '_crs'
 
-    def __init__(self, left, bottom, right, top, crs=4326):
+    def __init__(self, left, bottom, right, top, crs='ESPG:4326'):
         self._left = left
         self._bottom = bottom
         self._right = right
@@ -86,6 +86,10 @@ class Envelope(object):
         return self._top
 
     @property
+    def crs(self):
+        return self._crs
+
+    @property
     def lefttop(self):
         return Coordinate(self._left, self._top, self._crs)
 
@@ -103,11 +107,13 @@ class Envelope(object):
 
     def contains(self, coordinate):
         """ Checks whether the envelop contains the given point """
+        assert self.crs == coordinate.crs
         return coordinate.lon >= self.left and coordinate.lon <= self.right \
             and coordinate.lat >= self.bottom and coordinate.lat <= self.top
 
     def intersects(self, other):
         """ Checks whether the envelop intersects with given one """
+        assert self.crs == other.crs
         # Stupid brute force implement ...don't want depend on a geographic
         # library (eg: django.contrib.geodjango) here
         other_corners = (other.lefttop, other.righttop, other.leftbottom,
@@ -125,7 +131,10 @@ class Envelope(object):
         return Envelope(*t)
 
     def __repr__(self):
-        return repr(self.make_tuple())
+        return 'Envelope(%r)' % (self.make_tuple())
+
+    def __eq__(self, other):
+        return self.make_tuple() == other.make_tuple()
 
 
 class Point(collections.namedtuple('Point', 'x y')):
@@ -153,15 +162,14 @@ class GoogleMercatorProjection(object):
 
     def __init__(self):
         self.name = 'Google Mercator'
-        self.crs = 3857
+        self.crs = 'ESPG:3857'
 
     def project(self, coordinate):
         """ Project a WGS84 coordinate to GoogleMercator
 
         Note the result point is in normalized ((0, 0), (1, 1)) plane.
         """
-
-        assert coordinate.crs == 4326
+        assert coordinate.crs == 'ESPG:4326'
         lon, lat = coordinate.make_tuple()
         x = lon / 360. + 0.5
         y = math.log(math.tan(math.pi / 4. + math.radians(lat) / 2.))
@@ -206,8 +214,10 @@ class GoogleMercatorProjection(object):
                         right=right_top.lon, top=right_top.lat)
 
 
-def create_projection(**param):
+def create_projection(input, output, **args):
     """ Dummy factory function, in case other projection is added later """
+    # Only supports WGS84 lonlat to GoogleMecartor projection
+    assert input == 'ESPG:4326' and output == 'ESPG:3857'
     return GoogleMercatorProjection()
 
 
