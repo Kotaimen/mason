@@ -35,11 +35,15 @@ def _subprocess_call(command_list):
     try:
         return subprocess.check_call(command_list) == 0
     except subprocess.CalledProcessError as e:
-        raise GDALProcessError(repr(e))
+        raise GDALProcessError(str(e))
 
 
 def gdal_hillshade(src, dst, zfactor=1, scale=1, azimuth=315, altitude=45):
     """
+    To generate a hill shade from dem data source.
+    
+    src, dst: 
+        file path
     zfactor:
         vertical exaggeration used to pre-multiply the elevations
     scale:
@@ -70,6 +74,10 @@ def gdal_hillshade(src, dst, zfactor=1, scale=1, azimuth=315, altitude=45):
 
 def gdal_colorrelief(src, dst, color_context):
     """
+    To generate a color relief from dem data source
+
+    src, dst: 
+        file path    
     color_context:
         text file with the following format:
             3500   white
