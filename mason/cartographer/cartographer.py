@@ -15,8 +15,8 @@ class Cartographer(object):
     related to that given area.     
     """
 
-    def make(self, envelop=(-180, -85, 180, 85), size=(256, 256)):
-        """ Make geographic data in the envelop and project to 
+    def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+        """ Make geographic data in the envelope and project to 
         Google Mercator.
            
         bbox: a tuple of left-bottom and right-top lonlat in WGS84
@@ -35,7 +35,7 @@ class Raster(Cartographer):
     
     Different Raster Maker support differnt image type.
     Mapnik: png, png256
-    GDAL: png
+    GDAL: png, tiff
     """
 
     def __init__(self,
@@ -46,24 +46,7 @@ class Raster(Cartographer):
         self._image_parameters = image_parameters
 
 
-class Vector(Cartographer):
-
-    """ Vector map maker
-    
-    Mapnik: svg
-    """
-
-    def __init__(self,
-                 vector_type='svg',
-                 vector_parameters=None,
-                 ):
-        self._vector_type = vector_type
-        self._vector_parameters = vector_parameters
-
-
-
-class Binary(Cartographer):
-    # TBD
+class GeoJson(Cartographer):
     pass
 
 
