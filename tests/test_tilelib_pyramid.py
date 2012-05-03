@@ -19,7 +19,7 @@ class Test(unittest.TestCase):
         pyramid = Pyramid(levels=list(range(0, 10)),
                           envelope=(-180, -70, 0, 0))
 
-        tile = pyramid.create_tile(2, 1, 2, b'data', {'metadata':None})
+        tile = pyramid.create_tile(2, 1, 2, b'data', {'metadata': None})
 
         self.assertEqual(tile.index.coord, (2, 1, 2))
         self.assertAlmostEqual(tile.index.envelope.make_tuple(),
