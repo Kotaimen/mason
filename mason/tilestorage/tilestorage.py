@@ -92,3 +92,18 @@ class TileStorage(object):
         raise NotImplementedError
 
 
+class NullTileStorage(TileStorage):
+
+    """ A do-nothing TileStorage """
+
+    def put(self, tile):
+        pass
+
+    def get(self, tile_index):
+        pass
+
+    def delete(self, tile_index):
+        pass
+
+    def flush_all(self):
+        pass
