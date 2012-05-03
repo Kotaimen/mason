@@ -6,12 +6,14 @@ Created on May 1, 2012
 import os
 import subprocess
 
+
 def _check_executable(executable_name):
     for path in os.environ['PATH'].split(os.pathsep):
         executable_path = os.path.join(path, executable_name)
         if os.path.exists(executable_path):
             return True
     return False
+
 
 def _check_gdal_tools():
     gdal_tools = ['gdalwarp', 'gdaldem']
@@ -25,12 +27,16 @@ _check_gdal_tools()
 #===============================================================================
 # Errors 
 #===============================================================================
+
+
 class GDALProcessError(Exception):
     pass
 
 #===============================================================================
 # Simple Wrapper of GDAL utilities
 #===============================================================================   
+
+
 def _subprocess_call(command_list):
     try:
         return subprocess.check_call(command_list) == 0
@@ -41,20 +47,20 @@ def _subprocess_call(command_list):
 def gdal_hillshade(src, dst, zfactor=1, scale=1, azimuth=315, altitude=45):
     """
     To generate a hill shade from dem data source.
-    
-    src, dst: 
+
+    src, dst:
         file path
     zfactor:
         vertical exaggeration used to pre-multiply the elevations
     scale:
         ratio of vertical units to horizontal.
         Feet:Latlong use scale=370400
-        Meters:LatLong use scale=111120 
+        Meters:LatLong use scale=111120
     azimuth:
         azimuth of the light.
     altitude:
         altitude of the light, in degrees.
-        
+
     -compute_edges
         before gdal 1.8 a rectangle with nodata value will be generated with
         output files. This can be fixed with computed_edges option in gdal 1.8
@@ -76,8 +82,8 @@ def gdal_colorrelief(src, dst, color_context):
     """
     To generate a color relief from dem data source
 
-    src, dst: 
-        file path    
+    src, dst:
+        file path
     color_context:
         text file with the following format:
             3500   white
@@ -87,7 +93,7 @@ def gdal_colorrelief(src, dst, color_context):
             0      50  180  50
             nv     0   0   0
         nv: no data value
-         
+
     """
     command_list = ['gdaldem', 'color-relief', src, color_context, dst, '-q']
     return _subprocess_call(command_list)

@@ -21,13 +21,6 @@ MAPNIK_VERSION = mapnik.mapnik_version() / 100000
 if MAPNIK_VERSION < 2:
     raise MapnikVersionError('Only Mapnik 2.0.0 and later is supported')
 
-try:
-    # XXX: We hack the code of mapnik and enables a svg output.
-    MPANIK_HAS_SVG = mapnik.has_svg()
-except AttributeError:
-    MPANIK_HAS_SVG = False
-
-
 # google mercator projection. alias to 'EPSG:900913'
 _PROJECTIONS = {
 'EPSG:3857': '+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 ' \
@@ -39,6 +32,8 @@ _PROJECTIONS = {
 #===============================================================================
 # Raster Maker in Mapnik
 #===============================================================================
+
+
 class MapnikRaster(Raster):
 
     def __init__(self,
@@ -85,7 +80,6 @@ class MapnikRaster(Raster):
         # projection
         self._proj = mapnik.Projection(_PROJECTIONS['EPSG:3857'])
 
-
     def make(self, envelop=(-180, -85, 180, 85), size=(256, 256)):
 
         if self._map_size != size or self._map is None:
@@ -108,6 +102,8 @@ class MapnikRaster(Raster):
 #===============================================================================
 # Vector Maker of Mapnik 
 #===============================================================================
+
+
 class MapnikVector(Vector):
 
     def __init__(self,
@@ -132,7 +128,6 @@ class MapnikVector(Vector):
 
         # projection
         self._proj = mapnik.Projection(_PROJECTIONS['EPSG:3857'])
-
 
     def make(self, envelop=(-180, -85, 180, 85), size=(256, 256)):
 

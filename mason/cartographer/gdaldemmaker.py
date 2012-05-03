@@ -11,6 +11,7 @@ from .cartographer import Raster
 from .gdalutil import gdal_hillshade, gdal_colorrelief
 from .errors import GDALError, GDALTypeError
 
+
 def get_pool_class(class_name):
     POOLS = {'QueuePool': sqlalchemy.pool.QueuePool,
              'SingletonThreadPool': sqlalchemy.pool.SingletonThreadPool,
@@ -21,10 +22,12 @@ def get_pool_class(class_name):
 #===============================================================================
 # Base class of GDAL DEM Raster Maker
 #===============================================================================
+
+
 class GDALDEMRaster(Raster):
 
     """ GDAL raster maker
-    
+
     Retrieve data from postgresql database with postgis 2.0,
     and render to specified type.
     """
@@ -67,6 +70,8 @@ class GDALDEMRaster(Raster):
 #===============================================================================
 # Hill shade maker
 #===============================================================================
+
+
 class GDALHillShade(GDALDEMRaster):
 
     def __init__(self,
@@ -161,7 +166,6 @@ class GDALColorRelief(GDALDEMRaster):
         self._color_context = color_context
         if image_type != 'png':
             raise GDALTypeError('Color relief Only support PNG output.')
-
 
     def make(self, envelop=(-180, -85, 180, 85), size=(256, 256)):
         dem_data = self._get_dem_data()

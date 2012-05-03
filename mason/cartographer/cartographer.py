@@ -7,32 +7,34 @@ Created on Apr 30, 2012
 #===============================================================================
 # Cartographer Base Class
 #===============================================================================
+
+
 class Cartographer(object):
 
     """ Base class of map cartographer
-    
-    Cartographer takes a bounding box to generate geographic data 
-    related to that given area.     
+
+    Cartographer takes a bounding box to generate geographic data
+    related to that given area.
     """
 
     def make(self, envelop=(-180, -85, 180, 85), size=(256, 256)):
-        """ Make geographic data in the envelop and project to 
+        """ Make geographic data in the envelop and project to
         Google Mercator.
-           
+
         bbox: a tuple of left-bottom and right-top lonlat in WGS84
         size: output map size if necessary
         """
         raise NotImplementedError
 
-
-
 #===============================================================================
 # Derived Types of Cartographer
 #===============================================================================
+
+
 class Raster(Cartographer):
 
     """ Raster map maker
-    
+
     Different Raster Maker support differnt image type.
     Mapnik: png, png256
     GDAL: png
@@ -49,7 +51,7 @@ class Raster(Cartographer):
 class Vector(Cartographer):
 
     """ Vector map maker
-    
+
     Mapnik: svg
     """
 
@@ -59,7 +61,6 @@ class Vector(Cartographer):
                  ):
         self._vector_type = vector_type
         self._vector_parameters = vector_parameters
-
 
 
 class Binary(Cartographer):
