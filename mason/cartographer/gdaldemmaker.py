@@ -58,19 +58,11 @@ class GDALHillShade(GDALDEMRaster):
                  azimuth=315,
                  altitude=45,
                  server='',
-                 pool_class='QueuePool',
-                 pool_size=5,
-                 pool_parameters=None,
-                 dialect_parameters=None,
                  image_type='png',
                  image_parameters=None,
                  ):
         GDALDEMRaster.__init__(self,
                             server,
-                            pool_class,
-                            pool_size,
-                            pool_parameters,
-                            dialect_parameters,
                             image_type,
                             image_parameters)
 
@@ -124,23 +116,16 @@ class GDALColorRelief(GDALDEMRaster):
     def __init__(self,
                  color_context=None,
                  server='',
-                 pool_class='QueuePool',
-                 pool_size=5,
-                 pool_parameters=None,
-                 dialect_parameters=None,
                  image_type='png',
                  image_parameters=None,
                  ):
         GDALDEMRaster.__init__(self,
-                            server,
-                            pool_class,
-                            pool_size,
-                            pool_parameters,
-                            dialect_parameters,
-                            image_type,
-                            image_parameters)
+                               server,
+                               image_type,
+                               image_parameters)
 
         self._color_context = color_context
+
         if image_type != 'png':
             raise GDALTypeError('Color relief Only support PNG output.')
 
