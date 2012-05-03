@@ -9,21 +9,12 @@ import sqlalchemy
 
 from .cartographer import Raster
 from .gdalutil import gdal_hillshade, gdal_colorrelief
-from .errors import GDALError, GDALTypeError
+from .errors import GDALTypeError
 
 
-def get_pool_class(class_name):
-    POOLS = {'QueuePool': sqlalchemy.pool.QueuePool,
-             'SingletonThreadPool': sqlalchemy.pool.SingletonThreadPool,
-             'StaticPool': sqlalchemy.pool.StaticPool}
-    return POOLS[class_name]
-
-
-#===============================================================================
+#==============================================================================
 # Base class of GDAL DEM Raster Maker
-#===============================================================================
-
-
+#==============================================================================
 class GDALDEMRaster(Raster):
 
     """ GDAL raster maker
@@ -34,23 +25,14 @@ class GDALDEMRaster(Raster):
 
     def __init__(self,
                  server='',
-                 pool_class='QueuePool',
-                 pool_size=5,
-                 pool_parameters=None,
-                 dialect_parameters=None,
                  image_type='png',
                  image_parameters=None,
                  ):
         Raster.__init__(self, image_type, image_parameters)
 
-        engine_parameters = dict(poolclass=pool_class,
-                                 pool_size=pool_size,)
-
-        if pool_parameters:
-            engine_parameters.update(pool_parameters)
-
-        if dialect_parameters:
-            engine_parameters.update(dialect_parameters)
+        # Singleton Thread Pool with pool size=1 (For process model)
+        engine_parameters = dict(poolclass=sqlalchemy.pool.SingletonThreadPool,
+                                 pool_size=1,)
 
         self._engine = sqlalchemy.create_engine(server, **engine_parameters)
 
@@ -58,20 +40,16 @@ class GDALDEMRaster(Raster):
         self._metadata = sqlalchemy.MetaData(bind=self._engine)
         self._pool = self._engine
 
-    def make(self, envelop=(-180, -85, 180, 85), size=(256, 256)):
-        # get projected data in the envelop
-        # process data
-        # return 
+    def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
         raise NotImplementedError
 
     def _get_dem_data(self):
         raise NotImplementedError
 
-#===============================================================================
+
+#==============================================================================
 # Hill shade maker
-#===============================================================================
-
-
+#==============================================================================
 class GDALHillShade(GDALDEMRaster):
 
     def __init__(self,
@@ -104,7 +82,7 @@ class GDALHillShade(GDALDEMRaster):
         if image_type != 'png':
             raise GDALTypeError('Hill Shade Only support PNG output.')
 
-    def make(self, envelop=(-180, -85, 180, 85), size=(256, 256)):
+    def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
         dem_data = self._get_dem_data()
 
@@ -138,10 +116,9 @@ class GDALHillShade(GDALDEMRaster):
                 os.remove(dst_file_path)
 
 
-
-#===============================================================================
+#==============================================================================
 # Color relief Maker
-#===============================================================================
+#==============================================================================
 class GDALColorRelief(GDALDEMRaster):
 
     def __init__(self,
@@ -167,7 +144,7 @@ class GDALColorRelief(GDALDEMRaster):
         if image_type != 'png':
             raise GDALTypeError('Color relief Only support PNG output.')
 
-    def make(self, envelop=(-180, -85, 180, 85), size=(256, 256)):
+    def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
         dem_data = self._get_dem_data()
 
         try:
@@ -181,10 +158,10 @@ class GDALColorRelief(GDALDEMRaster):
             src_file_path = temp_file.name
             dst_file_path = src_file_path + '_colorrelief' + '.' + ext
 
-            gdal_hillshade(src_file_path,
-                           dst_file_path,
-                           self._color_context
-                           )
+            gdal_colorrelief(src_file_path,
+                             dst_file_path,
+                             self._color_context
+                            )
 
             with open(dst_file_path, 'r') as fp:
                 data = fp.read()
