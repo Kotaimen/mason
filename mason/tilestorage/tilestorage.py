@@ -13,6 +13,7 @@ class TileStorage(object):
     def __init__(self,
                  tag='tilestorage',
                  ):
+        assert tag
         self._tag = tag
 
     @property
