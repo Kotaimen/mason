@@ -5,7 +5,9 @@ Created on May 2, 2012
 '''
 import os
 import unittest
-from mason.cartographer.gdalutil import gdal_hillshade, gdal_colorrelief
+from mason.cartographer.gdalutil import (gdal_hillshade,
+                                         gdal_colorrelief,
+                                         gdal_warp)
 
 
 class GDALTest(unittest.TestCase):
@@ -17,6 +19,7 @@ class GDALTest(unittest.TestCase):
         self._test_hillshade1 = './output/test_hillshade1'
         self._test_hillshade2 = './output/test_hillshade2'
         self._test_colorrelief = './output/test_colorrelief'
+        self._test_warp = './output/test_warp'
 
     def testHillShade(self):
         if os.path.exists(self._test_hillshade1):
@@ -47,6 +50,13 @@ class GDALTest(unittest.TestCase):
         ret = gdal_colorrelief(self._test_dem,
                                self._test_colorrelief,
                                self._test_color_context)
+        self.assert_(ret)
+
+    def testWarp(self):
+        if os.path.exists(self._test_warp):
+            os.remove(self._test_warp)
+
+        ret = gdal_warp(self._test_dem, self._test_warp, 256, 256)
         self.assert_(ret)
 
 

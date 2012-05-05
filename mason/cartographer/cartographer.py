@@ -42,6 +42,12 @@ class Raster(Cartographer):
                  image_type='png',
                  image_parameters=None,
                  ):
+        if not image_parameters:
+            image_parameters = dict()
+
+        assert isinstance(image_type, str)
+        assert isinstance(image_parameters, dict)
+
         self._image_type = image_type
         self._image_parameters = image_parameters
 

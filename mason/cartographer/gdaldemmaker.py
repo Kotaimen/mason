@@ -6,9 +6,10 @@ Created on May 2, 2012
 import os
 import tempfile
 import sqlalchemy
+from sqlalchemy.orm import sessionmaker
 
 from .cartographer import Raster
-from .gdalutil import gdal_hillshade, gdal_colorrelief
+from .gdalutil import gdal_hillshade, gdal_colorrelief, gdal_warp
 from .errors import GDALTypeError
 
 
@@ -19,32 +20,72 @@ class GDALDEMRaster(Raster):
 
     """ GDAL raster maker
 
-    Retrieve data from postgresql database with postgis 2.0,
-    and render to specified type.
+    GDALDemRaster will get data from postgresql(postgis 2.0)
+    and use gdal utility to generate a specified type of image.
+
+    The dem data stored in database must be in EPSG:4326 and
+    The data retrieved will be projected to EPSG:3857.(GOOGLE MERCATOR)
+
+    server
+        server string of postgresql in sqlalchemy format.
+
+    dem_table
+        table name in postgresql where dem data is stored
+
+    image_type
+        type of output image
+
+    image_parameters
+        a dictionary of parameters of image
+        bit16: True/False
     """
 
     def __init__(self,
                  server='',
-                 image_type='png',
+                 dem_table='',
+                 image_type='gtiff',
                  image_parameters=None,
                  ):
         Raster.__init__(self, image_type, image_parameters)
 
-        # Singleton Thread Pool with pool size=1 (For process model)
-        engine_parameters = dict(poolclass=sqlalchemy.pool.SingletonThreadPool,
-                                 pool_size=1,)
+        # Create session
+        engine = sqlalchemy.create_engine(
+                        server,
+                        poolclass=sqlalchemy.pool.SingletonThreadPool,
+                        pool_size=1)
 
-        self._engine = sqlalchemy.create_engine(server, **engine_parameters)
+        session_maker = sessionmaker(bind=engine)
+        self._session = session_maker()
+        self._table = dem_table
 
-        self._session_maker = sqlalchemy.orm.sessionmaker(bind=self._engine)
-        self._metadata = sqlalchemy.MetaData(bind=self._engine)
-        self._pool = self._engine
+        # check image parameters
+        self._bit16 = self._image_parameters.get('bit16', False)
 
-    def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
-        raise NotImplementedError
+    def get_dem_data(self, envelope):
+        """ Get dem data in the area of envelope from database """
 
-    def _get_dem_data(self):
-        raise NotImplementedError
+        bbox_sql = "ST_MakeEnvelope(%f, %f, %f, %f, 4326)" % envelope
+
+        sql = """ SELECT
+                      ST_ASGDALRASTER(
+                          ST_TRANSFORM(
+                              ST_UNION(
+                                  ST_CLIP(the_rast, %(bbox)s, true)
+                              ),
+                              3857,
+                              'Cubic'
+                          ),
+                          'GTiff'
+                      ) AS dem_data
+                  FROM %(table)s
+                  WHERE ST_INTERSECTS(the_rast, %(bbox)s)
+              """ % {'bbox': bbox_sql,
+                     'table': self._table}
+
+        sql = sql.replace('\n', ' ')
+        row = self._session.query('dem_data').from_statement(sql).one()
+        data = row.dem_data
+        return data
 
     def _get_tmp_file(self, tag):
         suffix = '_%d_%s' % (os.getpid(), tag)
@@ -53,11 +94,38 @@ class GDALDEMRaster(Raster):
                                        text=False)
         return fd, tmpname
 
+    def __del__(self):
+        self._session.close()
+
+    def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+        """ Make raster image of a specified envelope """
+        raise NotImplementedError
+
 
 #==============================================================================
 # Hill shade maker
 #==============================================================================
 class GDALHillShade(GDALDEMRaster):
+
+    """ Make Hill Shade
+
+    zfactor
+        vertical scale factor.
+
+    scale
+        horizontal scale factor:
+            feet:Latlong use scale=370400
+            Meters:LatLong use scale=111120
+
+    azimuth
+        azimuth of the light.
+
+    altitude
+        altitude of the light, in degrees.
+
+    image_type
+        GTIFF is supported ONLY currently
+    """
 
     def __init__(self,
                  zfactor=2,
@@ -65,37 +133,46 @@ class GDALHillShade(GDALDEMRaster):
                  azimuth=315,
                  altitude=45,
                  server='',
-                 image_type='png',
+                 dem_table='',
+                 image_type='gtiff',
                  image_parameters=None,
                  ):
+
         GDALDEMRaster.__init__(self,
-                            server,
-                            image_type,
-                            image_parameters)
+                               server,
+                               dem_table,
+                               image_type,
+                               image_parameters)
 
         self._zfactor = zfactor
         self._scale = scale
         self._azimuth = azimuth
         self._altitude = altitude
 
-        if image_type != 'png':
-            raise GDALTypeError('Hill Shade Only support PNG output.')
+        image_type = self._image_type.lower()
+        if image_type != 'gtiff':
+            raise GDALTypeError('Hill Shade Only support GTIFF output.')
 
     def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
-        dem_data = self._get_dem_data()
+        dem_data = self.get_dem_data(envelope)
 
         try:
-            # write dem data to temporary file
-            # gdal utilities only support file as their input and output.
+            # GDAL only support file as their input and output.
             _fd, src_tempname = self._get_tmp_file('hillshade_src')
+            _fd, wrp_tempname = self._get_tmp_file('hillshade_wrp')
             _fd, dst_tempname = self._get_tmp_file('hillshade_dst')
 
             # write dem data to temp file
             with open(src_tempname, 'wb') as fp:
                 fp.write(dem_data)
 
-            gdal_hillshade(src_tempname,
+            # warp to size
+            width, height = size
+            gdal_warp(src_tempname, wrp_tempname, width, height)
+
+            # create hill shade
+            gdal_hillshade(wrp_tempname,
                            dst_tempname,
                            self._zfactor,
                            self._scale,
@@ -111,44 +188,64 @@ class GDALHillShade(GDALDEMRaster):
         finally:
             os.remove(src_tempname)
             os.remove(dst_tempname)
-
+            os.remove(wrp_tempname)
 
 #==============================================================================
 # Color relief Maker
 #==============================================================================
 class GDALColorRelief(GDALDEMRaster):
 
+    """ Make color relief
+
+    color_context
+        a text file with the following format
+            3500   white
+            2500   235:220:175
+            50%    190 185 35
+            700    240 250 150
+            0      50  180 50
+            nv     0   0   0      #nv: no data value
+
+    """
+
     def __init__(self,
                  color_context=None,
                  server='',
+                 dem_table='',
                  image_type='png',
                  image_parameters=None,
                  ):
         GDALDEMRaster.__init__(self,
                                server,
+                               dem_table,
                                image_type,
                                image_parameters)
 
         self._color_context = color_context
 
-        if image_type != 'png':
+        image_type = self._image_type.lower()
+        if image_type != 'gtiff':
             raise GDALTypeError('Color relief Only support PNG output.')
 
     def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
-        dem_data = self._get_dem_data()
+        dem_data = self.get_dem_data(envelope)
 
         try:
-            # write dem data to temporary file
             # gdal utilities only support file as their input and output.
             _fd, src_tempname = self._get_tmp_file('colorrelief_src')
+            _fd, wrp_tempname = self._get_tmp_file('colorrelief_wrp')
             _fd, dst_tempname = self._get_tmp_file('colorrelief_dst')
 
             # write dem data to temp file
             with open(src_tempname, 'wb') as fp:
                 fp.write(dem_data)
 
-            gdal_colorrelief(src_tempname,
+            # warp to size
+            width, height = size
+            gdal_warp(src_tempname, wrp_tempname, width, height)
+
+            gdal_colorrelief(wrp_tempname,
                              dst_tempname,
                              self._color_context
                             )
@@ -162,3 +259,4 @@ class GDALColorRelief(GDALDEMRaster):
         finally:
             os.remove(src_tempname)
             os.remove(dst_tempname)
+            os.remove(wrp_tempname)

@@ -45,23 +45,28 @@ def gdal_hillshade(src, dst, zfactor=1, scale=1, azimuth=315, altitude=45):
     """
     To generate a hill shade from dem data source.
 
-    src, dst:
+    src, dst
         file path
-    zfactor:
+
+    zfactor
         vertical exaggeration used to pre-multiply the elevations
-    scale:
+
+    scale
         ratio of vertical units to horizontal.
         Feet:Latlong use scale=370400
         Meters:LatLong use scale=111120
-    azimuth:
+
+    azimuth
         azimuth of the light.
-    altitude:
+
+    altitude
         altitude of the light, in degrees.
 
     -compute_edges
         before gdal 1.8 a rectangle with nodata value will be generated with
         output files. This can be fixed with computed_edges option in gdal 1.8
         and later.
+
     """
     z, s, az, alt = map(str, (zfactor, scale, azimuth, altitude))
     command_list = ['gdaldem', 'hillshade', src, dst,
@@ -79,9 +84,10 @@ def gdal_colorrelief(src, dst, color_context):
     """
     To generate a color relief from dem data source
 
-    src, dst:
+    src, dst
         file path
-    color_context:
+
+    color_context
         text file with the following format:
             3500   white
             2500   235:220:175
@@ -93,4 +99,26 @@ def gdal_colorrelief(src, dst, color_context):
 
     """
     command_list = ['gdaldem', 'color-relief', src, color_context, dst, '-q']
+    return _subprocess_call(command_list)
+
+
+def gdal_warp(src, dst, width, height):
+    """
+    To warp the dem data to specified width and height in pixel
+
+    width
+        image width in pixel
+
+    height
+        image height in pixel
+
+    """
+    nodata = '-32768'
+    width, height = str(width), str(height)
+    command_list = ['gdalwarp', '-ts', width, height,
+                    '-srcnodata', nodata,
+                    '-dstnodata', nodata,
+                    '-r', 'cubicspline',
+                    '-q',
+                    src, dst]
     return _subprocess_call(command_list)
