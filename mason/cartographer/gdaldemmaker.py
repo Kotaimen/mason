@@ -46,6 +46,13 @@ class GDALDEMRaster(Raster):
     def _get_dem_data(self):
         raise NotImplementedError
 
+    def _get_tmp_file(self, tag):
+        suffix = '_%d_%s' % (os.getpid(), tag)
+        fd, tmpname = tempfile.mkstemp(suffix=suffix,
+                                       dir=tempfile.gettempdir(),
+                                       text=False)
+        return fd, tmpname
+
 
 #==============================================================================
 # Hill shade maker
@@ -81,31 +88,29 @@ class GDALHillShade(GDALDEMRaster):
         try:
             # write dem data to temporary file
             # gdal utilities only support file as their input and output.
-            temp_file = tempfile.NamedTemporaryFile(delete=False)
-            temp_file.write(dem_data)
-            temp_file.close()
+            _fd, src_tempname = self._get_tmp_file('hillshade_src')
+            _fd, dst_tempname = self._get_tmp_file('hillshade_dst')
 
-            ext = self._image_type
-            src_file_path = temp_file.name
-            dst_file_path = src_file_path + '_hillshade' + '.' + ext
+            # write dem data to temp file
+            with open(src_tempname, 'wb') as fp:
+                fp.write(dem_data)
 
-            gdal_hillshade(src_file_path,
-                           dst_file_path,
+            gdal_hillshade(src_tempname,
+                           dst_tempname,
                            self._zfactor,
                            self._scale,
                            self._azimuth,
                            self._altitude)
 
-            with open(dst_file_path, 'r') as fp:
+            # get result data from temp file
+            with open(dst_tempname, 'rb') as fp:
                 data = fp.read()
 
             return data
 
         finally:
-            if os.path.exists(temp_file.name):
-                os.unlink(temp_file.name)
-            if os.path.exists(dst_file_path):
-                os.remove(dst_file_path)
+            os.remove(src_tempname)
+            os.remove(dst_tempname)
 
 
 #==============================================================================
@@ -130,31 +135,30 @@ class GDALColorRelief(GDALDEMRaster):
             raise GDALTypeError('Color relief Only support PNG output.')
 
     def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+
         dem_data = self._get_dem_data()
 
         try:
             # write dem data to temporary file
             # gdal utilities only support file as their input and output.
-            temp_file = tempfile.NamedTemporaryFile(delete=False)
-            temp_file.write(dem_data)
-            temp_file.close()
+            _fd, src_tempname = self._get_tmp_file('colorrelief_src')
+            _fd, dst_tempname = self._get_tmp_file('colorrelief_dst')
 
-            ext = self._image_type
-            src_file_path = temp_file.name
-            dst_file_path = src_file_path + '_colorrelief' + '.' + ext
+            # write dem data to temp file
+            with open(src_tempname, 'wb') as fp:
+                fp.write(dem_data)
 
-            gdal_colorrelief(src_file_path,
-                             dst_file_path,
+            gdal_colorrelief(src_tempname,
+                             dst_tempname,
                              self._color_context
                             )
 
-            with open(dst_file_path, 'r') as fp:
+            # get result data from temp file
+            with open(dst_tempname, 'rb') as fp:
                 data = fp.read()
 
             return data
 
         finally:
-            if os.path.exists(temp_file.name):
-                os.unlink(temp_file.name)
-            if os.path.exists(dst_file_path):
-                os.remove(dst_file_path)
+            os.remove(src_tempname)
+            os.remove(dst_tempname)
