@@ -13,7 +13,7 @@ import shutil
 import sys
 import tempfile
 
-from .tilelib import Tile, tile_coordiante_to_dirname
+from ..tilelib import Tile, tile_coordiante_to_dirname
 from .tilestorage import TileStorage, TileStorageError
 
 
@@ -57,10 +57,10 @@ class FileSystemTileStorage(TileStorage):
                  mimetype=None,
                  compress=False,
                  ):
-        TileStorage.__init__(tag)
+        TileStorage.__init__(self, tag)
 
         # Create root directory if necessary
-        if root:
+        if not root:
             raise FileSystemTileStorageError('Must specify directory root')
         self._root = root
 
@@ -68,9 +68,12 @@ class FileSystemTileStorage(TileStorage):
             os.mkdir(self._root)
 
         # Guess mimetype from extension
-        self._mimetype, _bar = mimetypes.guess_type('foo.%s' % ext)
-        if self._mimetype is None:
-            raise FileSystemTileStorageError("Can't guess mimetype from .%s" % ext)
+        if mimetype is None:
+            self._mimetype, _bar = mimetypes.guess_type('foo.%s' % ext)
+            if self._mimetype is None:
+                raise FileSystemTileStorageError("Can't guess mimetype from .%s" % ext)
+        else:
+            self._mimetype = mimetype
         self._ext = ext
 
         # Append .gz to extension if compression is on
@@ -79,7 +82,7 @@ class FileSystemTileStorage(TileStorage):
         self._basename = '%d-%d-%d.' + self._ext
 
     def _get_pathname(self, tile_index):
-        dirname = os.path.join(tile_coordiante_to_dirname(*tile_index.coord))
+        dirname = os.path.join(*tile_coordiante_to_dirname(*tile_index.coord))
         basename = self._basename % tile_index.coord
         if self._use_gzip:
             basename += '.gz'
@@ -103,7 +106,7 @@ class FileSystemTileStorage(TileStorage):
 
         # Construct metadata form file status
         metadata = dict(ext=self._ext,
-                        mimetpe=self._mimetype,
+                        mimetype=self._mimetype,
                         mtime=os.stat(pathname).st_mtime,
                         )
         # Create tile object and return it
@@ -162,6 +165,6 @@ class FileSystemTileStorage(TileStorage):
             else:
                 raise
 
-    def purge_all(self):
+    def flush_all(self):
         if os.path.exists(self._root):
             shutil.rmtree(self._root)

@@ -279,7 +279,7 @@ def tile_coordiante_to_dirname(z, x, y, m=64):
     digits = len('%x' % (4 ** mz - 1))
     if digits % 2 != 0:
         digits += 1
-    hex_str = ('%%0%dx' % digits) % mn
+    hex_str = ('%%0%dX' % digits) % mn
 
     # split hex string into 2 char tuple 
     dirs = list((hex_str[i:i + 2] for i in range(0, len(hex_str), 2)))

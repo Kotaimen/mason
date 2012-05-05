@@ -109,7 +109,7 @@ class Tile(object):
         return self._data
 
     @property
-    def metdata(self):
+    def metadata(self):
         return self._metadata
 
     @property
