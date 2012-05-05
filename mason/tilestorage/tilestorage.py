@@ -6,6 +6,11 @@ Created on May 2, 2012
 
 from ..tilelib import Tile  # unused
 
+
+class TileStorageError(Exception):
+    pass
+
+
 class TileStorage(object):
 
     """ Store Tile in persistence storage or a cache backend """
@@ -53,7 +58,7 @@ class TileStorage(object):
         """
         raise NotImplementedError
 
-    def put_many(self, tiles):
+    def put_multi(self, tiles):
         """ Put many tiles into cache in one call
 
         Note the default implement is *not* atomic. Implementation may
