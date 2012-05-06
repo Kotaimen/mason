@@ -155,6 +155,23 @@ class TestMemcacheStorageDefault(TileStorageTestMixin, unittest.TestCase):
     def tearDown(self):
         self.storage.flush_all()
 
+
+class TestMemcacheStorageCompressed(TileStorageTestMixin, unittest.TestCase):
+
+    def setUp(self):
+        warnings.warn('memcache storage test flushes everything in localhost:11211')
+        self.pyramid = Pyramid(levels=list(xrange(0, 21)))
+        self.output_dir = os.path.join('output', 'test_fsstorage2')
+
+        self.storage = create_tilestorage('memcache',
+                                          'teststorage',
+                                          servers=['localhost:11211'],
+                                          compress=True
+                                          )
+
+    def tearDown(self):
+        self.storage.flush_all()
+
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
     unittest.main()

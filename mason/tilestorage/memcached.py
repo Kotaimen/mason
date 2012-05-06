@@ -74,13 +74,48 @@ class MemCachedTileStorage(TileStorage):
     def put(self, tile):
         key = self._make_key(tile.index)
         self._client.set(key, tile,
-                         self._timeout,
-                         self._compress)
+                         time=self._timeout,
+                         min_compress_len=self._compress)
+
+    def has(self, tile_index):
+        key = self._make_key(tile_index)
+        return self._client.get(key) is not None
 
     def delete(self, tile_index):
         key = self._make_key(tile_index)
         self._client.delete(key)
 
+    def get_multi(self, tile_indexes):
+        # Make key->tile_index map
+        key2tile = dict((self._make_key(tile_index), tile_index) for \
+                         tile_index in tile_indexes)
+        # Get key->value map
+        key2value = self._client.get_multi(key2tile.keys())
+        # Replace key with tile_index
+        return dict((key2tile[k], v) for k, v in key2value.iteritems())
+
+    def set_multi(self, tiles):
+        keys = list(self._make_key(tile.index) for tile in tiles)
+        # Key 2 tile mapping
+        key2tile = dict(zip(keys, tiles))
+
+        failed = self._client.set_multi(key2tile,
+                                        time=self._timeout,
+                                        min_compress_len=self._compress)
+
+        if failed:
+            raise MemCachedTileStorageError('%d items not written' % len(failed))
+
+    def del_multi(self, tile_indexes):
+        keys = list(self._make_key(tile_index) for tile_index in tile_indexes)
+        self._client.delete_multi(keys)
+
+    def has_all(self, tile_indexes):
+        keys = list(self._make_key(tile_index) for tile_index in tile_indexes)
+        mapping = self._client.get_multi(keys)
+        if not mapping:
+            return False
+        return set(mapping.keys()) == set(keys)
 
     def flush_all(self):
         self._client.flush_all()
