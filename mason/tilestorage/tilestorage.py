@@ -97,6 +97,10 @@ class TileStorage(object):
         """ Delete all tiles in the storage """
         raise NotImplementedError
 
+    def close(self):
+        """ Close the storage """
+        pass
+
 
 class NullTileStorage(TileStorage):
 

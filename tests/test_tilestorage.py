@@ -90,6 +90,7 @@ class TestFileSystemTileStorageDefault(TileStorageTestMixin, unittest.TestCase):
 
     def tearDown(self):
         self.storage.flush_all()
+        self.storage.close()
 
     def testFilename(self):
         tile1 = self.pyramid.create_tile(0, 0, 0, b'tile1', {})
@@ -124,6 +125,7 @@ class TestFileSystemTileStorageCompressed(TileStorageTestMixin, unittest.TestCas
 
     def tearDown(self):
         self.storage.flush_all()
+        self.storage.close()
 
     def testFilename(self):
         tile1 = self.pyramid.create_tile(0, 0, 0, b'tile1', {})
@@ -154,6 +156,7 @@ class TestMemcacheStorageDefault(TileStorageTestMixin, unittest.TestCase):
 
     def tearDown(self):
         self.storage.flush_all()
+        self.storage.close()
 
 
 class TestMemcacheStorageCompressed(TileStorageTestMixin, unittest.TestCase):
@@ -171,6 +174,7 @@ class TestMemcacheStorageCompressed(TileStorageTestMixin, unittest.TestCase):
 
     def tearDown(self):
         self.storage.flush_all()
+        self.storage.close()
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

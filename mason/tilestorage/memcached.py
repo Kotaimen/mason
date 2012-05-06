@@ -119,3 +119,7 @@ class MemCachedTileStorage(TileStorage):
 
     def flush_all(self):
         self._client.flush_all()
+
+    def close(self):
+        self._client.disconnect_all()
+
