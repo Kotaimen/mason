@@ -5,6 +5,7 @@ Created on May 2, 2012
 '''
 import os
 import unittest
+import shutil
 from mason.cartographer.gdalutil import (gdal_hillshade,
                                          gdal_colorrelief,
                                          gdal_warp)
@@ -13,13 +14,13 @@ from mason.cartographer.gdalutil import (gdal_hillshade,
 class GDALTest(unittest.TestCase):
 
     def setUp(self):
-        self._test_dem = './res/test_dem'
-        self._test_color_context = './res/color_context.txt'
+        self._test_dem = './input/hailey.tiff'
+        self._test_color_context = './input/HypsometricColors(Dark).txt'
 
-        self._test_hillshade1 = './output/test_hillshade1'
-        self._test_hillshade2 = './output/test_hillshade2'
-        self._test_colorrelief = './output/test_colorrelief'
-        self._test_warp = './output/test_warp'
+        self._test_hillshade1 = './output/test_hillshade1.tif'
+        self._test_hillshade2 = './output/test_hillshade2.tif'
+        self._test_colorrelief = './output/test_colorrelief.tif'
+        self._test_warp = './output/test_warp.tif'
 
     def testHillShade(self):
         if os.path.exists(self._test_hillshade1):

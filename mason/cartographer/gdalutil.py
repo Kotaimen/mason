@@ -9,8 +9,6 @@ import subprocess
 
 def _check_executable(executable_name):
     for path in os.environ['PATH'].split(os.pathsep):
-        executable_path = os.path.join(path, executable_name)
-        if os.path.exists(executable_path):
             return True
     return False
 
