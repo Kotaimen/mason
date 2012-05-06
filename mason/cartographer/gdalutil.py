@@ -4,27 +4,29 @@ Created on May 1, 2012
 @author: ray
 '''
 import os
+import re
 import subprocess
 
+try:
+    stdout = subprocess.Popen(['gdalwarp', '--version'],
+                              stdout=subprocess.PIPE).communicate()[0]
+except OSError:
+    raise RuntimeError("Can't find gdalwarp, please install GDAL")
+gdal_version = float(re.search(r'^GDAL (\d\.\d)\.\d', stdout).group(1))
+if gdal_version < 1.9:
+    raise RuntimeError('Requires gdal 1.9 or later')
 
-def _check_executable(executable_name):
-    for path in os.environ['PATH'].split(os.pathsep):
-            return True
-    return False
-
-
-def _check_gdal_tools():
-    gdal_tools = ['gdalwarp', 'gdaldem']
-    for tool in gdal_tools:
-        if not _check_executable(tool):
-            raise ImportError('%s is not available' % tool)
-
-_check_gdal_tools()
-
+try:
+    stdout = subprocess.Popen(['gdaldem'],
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE).communicate()[0]
+except OSError:
+    raise RuntimeError("Can't find dgaldem, please install GDAL")
 
 #==============================================================================
 # Errors
 #==============================================================================
+
 class GDALProcessError(Exception):
     pass
 
@@ -89,7 +91,7 @@ def gdal_colorrelief(src, dst, color_context):
         text file with the following format:
             3500   white
             2500   235:220:175
-            50%   190 185 135
+            50%    190 185 135
             700    240 250 150
             0      50  180  50
             nv     0   0   0
