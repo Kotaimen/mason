@@ -91,7 +91,7 @@ class TileStorage(object):
 
     def has_any(self, tile_indexes):
         """ Check whether storage has any given tiles """
-        return all(self.has(tile_index) for tile_index in tile_indexes)
+        return any(self.has(tile_index) for tile_index in tile_indexes)
 
     def flush_all(self):
         """ Delete all tiles in the storage """

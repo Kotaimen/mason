@@ -7,6 +7,7 @@ import os, os.path
 import shutil
 import time
 import unittest
+import warnings
 
 from mason.tilestorage import create_tilestorage
 from mason.tilelib import Pyramid
@@ -27,12 +28,16 @@ class TileStorageTestMixin(object):
 
         self.assertEqual(tile1.index, tile3.index)
         self.assertEqual(tile1.data, tile3.data)
-        self.assertEqual(tile3.metadata['ext'], 'txt')
-        self.assertEqual(tile3.metadata['mimetype'], 'text/plain')
-        self.assertTrue(time.time() -
-                        tile3.metadata['mtime'] < 1,
-                        "it really should'nt take so long"
-                        )
+#        self.assertEqual(tile3.metadata['ext'], 'txt')
+#        self.assertEqual(tile3.metadata['mimetype'], 'text/plain')
+#        self.assertTrue(time.time() -
+#                        tile3.metadata['mtime'] < 1,
+#                        "it really should'nt take so long"
+#                        )
+
+        self.assertTrue(self.storage.has(tileindex1))
+        self.storage.delete(tileindex1)
+        self.assertFalse(self.storage.has(tileindex1))
 
     def testGetPutMulti(self):
         tile1 = self.pyramid.create_tile(4, 5, 6, b'tile1', {})
@@ -60,8 +65,15 @@ class TileStorageTestMixin(object):
         self.assertSetEqual(set(tiles2.keys()),
                             set([tileindex1, tileindex2]))
 
+        self.assertTrue(self.storage.has_all([tileindex1, tileindex2]))
+        self.assertFalse(self.storage.has_all([tileindex1, tileindex4]))
+        self.assertTrue(self.storage.has_any([tileindex1, tileindex4]))
+        self.storage.delete_multi([tileindex1, tileindex3, tileindex4])
+        self.assertTrue(self.storage.has_any([tileindex1, tileindex2]))
+        self.assertFalse(self.storage.has_any([tileindex1, tileindex3]))
 
-class TestFileSystemTileStorage1(TileStorageTestMixin, unittest.TestCase):
+
+class TestFileSystemTileStorageDefault(TileStorageTestMixin, unittest.TestCase):
 
     def setUp(self):
         self.pyramid = Pyramid(levels=list(xrange(0, 21)))
@@ -94,7 +106,7 @@ class TestFileSystemTileStorage1(TileStorageTestMixin, unittest.TestCase):
                                                     '20-1000-2000.txt')))
 
 
-class TestFileSystemTileStorage2(TileStorageTestMixin, unittest.TestCase):
+class TestFileSystemTileStorageCompressed(TileStorageTestMixin, unittest.TestCase):
 
     def setUp(self):
         self.pyramid = Pyramid(levels=list(xrange(0, 21)))
@@ -111,8 +123,7 @@ class TestFileSystemTileStorage2(TileStorageTestMixin, unittest.TestCase):
                                           )
 
     def tearDown(self):
-        pass
-#        self.storage.flush_all()
+        self.storage.flush_all()
 
     def testFilename(self):
         tile1 = self.pyramid.create_tile(0, 0, 0, b'tile1', {})
@@ -128,6 +139,21 @@ class TestFileSystemTileStorage2(TileStorageTestMixin, unittest.TestCase):
                                                     '00', '07', 'C0', '0F',
                                                     '20-1000-2000.txt.gz')))
 
+
+class TestMemcacheStorageDefault(TileStorageTestMixin, unittest.TestCase):
+
+    def setUp(self):
+        warnings.warn('memcache storage test flushes everything in localhost:11211')
+        self.pyramid = Pyramid(levels=list(xrange(0, 21)))
+        self.output_dir = os.path.join('output', 'test_fsstorage2')
+
+        self.storage = create_tilestorage('memcache',
+                                          'teststorage',
+                                          servers=['localhost:11211'],
+                                          )
+
+    def tearDown(self):
+        self.storage.flush_all()
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

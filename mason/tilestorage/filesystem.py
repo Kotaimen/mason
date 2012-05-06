@@ -81,7 +81,7 @@ class FileSystemTileStorage(TileStorage):
 
         self._basename = '%d-%d-%d.' + self._ext
 
-    def _get_pathname(self, tile_index):
+    def _make_pathname(self, tile_index):
         dirname = os.path.join(*tile_coordiante_to_dirname(*tile_index.coord))
         basename = self._basename % tile_index.coord
         if self._use_gzip:
@@ -89,7 +89,7 @@ class FileSystemTileStorage(TileStorage):
         return os.path.join(self._root, dirname, basename)
 
     def get(self, tile_index):
-        pathname = self._get_pathname(tile_index)
+        pathname = self._make_pathname(tile_index)
 
         if not os.path.exists(pathname):
             # Tile does not exist
@@ -113,7 +113,7 @@ class FileSystemTileStorage(TileStorage):
         return Tile(tile_index, data, metadata)
 
     def put(self, tile):
-        pathname = self._get_pathname(tile.index)
+        pathname = self._make_pathname(tile.index)
 
         # Create directory first
         dirname = os.path.dirname(pathname)
@@ -152,10 +152,10 @@ class FileSystemTileStorage(TileStorage):
         os.rename(tempname, pathname)
 
     def has(self, tile_index):
-        return os.path.exists(self._get_pathname(tile_index))
+        return os.path.exists(self._make_pathname(tile_index))
 
     def delete(self, tile_index):
-        pathname = self._get_pathname(tile_index)
+        pathname = self._make_pathname(tile_index)
         try:
             os.remove(pathname)
         except OSError as e:
