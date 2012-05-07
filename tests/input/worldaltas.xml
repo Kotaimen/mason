@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE Map[]>
+<Map srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over" background-color="#8b8b8b">
+
+<FontSet name="fontset-0">
+  <Font face-name="Ubuntu Regular"/>
+  <Font face-name="Arial Regular"/>
+  <Font face-name="DejaVu Sans Book"/>
+</FontSet>
+<Style name="countries-outline" filter-mode="first">
+  <Rule>
+    <LineSymbolizer stroke="#2a2a29" stroke-width="1" stroke-linejoin="round" />
+  </Rule>
+</Style>
+<Style name="countries" filter-mode="first">
+  <Rule>
+    <PolygonSymbolizer fill="#ffffff" gamma="1.5" />
+  </Rule>
+</Style>
+<Layer name="countries"
+  srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over">
+    <StyleName>countries</StyleName>
+    <StyleName>countries-outline</StyleName>
+    <Datasource>
+       <Parameter name="file"><![CDATA[10m-admin-0-countries.shp]]></Parameter>
+       <Parameter name="type"><![CDATA[shape]]></Parameter>
+       <Parameter name="id"><![CDATA[countries]]></Parameter>
+       <Parameter name="project"><![CDATA[test_project]]></Parameter>
+       <Parameter name="srs"><![CDATA[null]]></Parameter>
+    </Datasource>
+  </Layer>
+
+<Style name="cities" filter-mode="first">
+  <Rule>
+    <TextSymbolizer fontset-name="fontset-0" size="12" halo-radius="1" placement="point" fill="#0c286c" ><![CDATA[[WUP_AGGL]]]></TextSymbolizer>
+  </Rule>
+</Style>
+<Layer name="cities"
+  srs="+proj=longlat +datum=WGS84 +no_defs">
+    <StyleName>cities</StyleName>
+    <Datasource>
+       <Parameter name="file"><![CDATA[world_cities.shp]]></Parameter>
+       <Parameter name="id"><![CDATA[cities]]></Parameter>
+       <Parameter name="project"><![CDATA[test_project]]></Parameter>
+       <Parameter name="srs"><![CDATA[null]]></Parameter>
+       <Parameter name="type"><![CDATA[shape]]></Parameter>
+    </Datasource>
+  </Layer>
+
+</Map>

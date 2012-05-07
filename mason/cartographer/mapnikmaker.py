@@ -72,20 +72,13 @@ class MapnikRaster(Raster):
                 transparency = image_parameters['transparency']
                 self._image_type += (':t=%d' % (1 if transparency else 0))
 
-        # lazy initialize map object
-        self._map = None
-        self._map_size = None
-
         # projection
         self._proj = mapnik.Projection(_PROJECTIONS['EPSG:3857'])
 
     def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
-        if self._map_size != size or self._map is None:
-            self._map_size = size
-            mapnik.load_map(self._map, self._theme)
-
-        map_ = self._map
+        map_ = mapnik.Map(*size)
+        mapnik.load_map(map_, self._theme)
         map_.buffer_size = self._buffer_size
 
         bbox = mapnik.Box2d(*envelope)
