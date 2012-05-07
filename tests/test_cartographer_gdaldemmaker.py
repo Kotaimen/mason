@@ -74,7 +74,7 @@ class GDALHillShadeTest(unittest.TestCase):
 class GDALColorReliefTest(unittest.TestCase):
 
     def setUp(self):
-        color_context = './res/color_context.txt'
+        color_context = './input/HypsometricColors(Light).txt'
         self._maker = GDALColorRelief(color_context=color_context,
                                       server=TEST_SVR,
                                       dem_table='world',
