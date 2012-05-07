@@ -6,6 +6,7 @@ Created on May 7, 2012
 import time
 import sys
 
+
 class Timer(object):
 
     """ A tic-tac clock
@@ -17,7 +18,10 @@ class Timer(object):
 
     """
 
-    def __init__(self, message, writer=sys.stderr.write, newline=True):
+    def __init__(self,
+                message='Time taken: %(time)s',
+                 writer=sys.stderr.write,
+                 newline=True):
         self._message = message
         self._writer = writer
         self._tic = 0.
