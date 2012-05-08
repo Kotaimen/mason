@@ -113,6 +113,9 @@ class FileSystemTileStorage(TileStorage):
         return Tile(tile_index, data, metadata)
 
     def put(self, tile):
+        if 'ext' in tile.metadata:
+            assert tile.metadata['ext'] == self._ext
+
         pathname = self._make_pathname(tile.index)
 
         # Create directory first

@@ -17,6 +17,14 @@ except ImportError as e:
 else:
     CLASS_REGISTRY['memcache'] = MemCachedTileStorage
 
+try:
+    from .mbtiles import MBTilesTileStorage
+except ImportError as e:
+    warnings.warn("Can't import mbtiles, MBTilesTileStorage is not available")
+    CLASS_REGISTRY['mbtiles'] = None
+else:
+    CLASS_REGISTRY['mbtiles'] = MBTilesTileStorage
+
 
 def create_tilestorage(prototype, tag, **params):
     try:

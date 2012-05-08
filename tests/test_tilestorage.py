@@ -176,6 +176,24 @@ class TestMemcacheStorageCompressed(TileStorageTestMixin, unittest.TestCase):
         self.storage.flush_all()
         self.storage.close()
 
+
+class TestMBTilesStorageCompressed(TileStorageTestMixin, unittest.TestCase):
+
+    def setUp(self):
+        self.pyramid = Pyramid(levels=list(xrange(0, 21)))
+        self.output_dir = os.path.join('output', 'test_fsstorage2')
+        database = './output/mbtiles_test.db'
+        os.remove(database)
+        self.storage = create_tilestorage('mbtiles',
+                                          'teststorage',
+                                          database=database,
+                                          ext='txt',
+                                          )
+
+    def tearDown(self):
+        self.storage.flush_all()
+        self.storage.close()
+
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
     unittest.main()
