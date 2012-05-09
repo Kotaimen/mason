@@ -11,7 +11,8 @@ import mapnik
 from .cartographer import Raster
 from .errors import (MapnikVersionError,
                      MapnikThemeNotFound,
-                     MapnikTypeError)
+                     MapnikTypeError,
+                     MapnikParamError)
 
 MAPNIK_AGG_RENDERER = True
 MAPNIK_CAIRO_RENDERER = mapnik.has_cairo()
@@ -34,6 +35,50 @@ _PROJECTIONS = {
 #==============================================================================
 class MapnikRaster(Raster):
 
+    """ Mapnik Raster Renderer
+
+    Mapnik is a Free Toolkit for developing mapping applications.
+    It is written in modern C++ and has Python bindings that support
+    fast-paced agile development.
+
+    Mapnik takes a theme xml file, which defines data source
+    and style for rendering, as its input and output a map data of
+    a specified output format.
+
+
+    theme_root
+        Root directory of Mapnik theme.
+
+    theme_name
+        File name of theme (without xml extension).
+
+    scale_factor
+        Used to increase or decrease font and symbol sizes,
+        line widths, and dash-array spacing.
+
+    buffer_size
+        Data around the specified area will be rendered to enhance
+        connectivity between continuous area(tile).
+
+    image_type
+        output format, PNG is supported now.
+
+    image_parameters
+        palette
+            A file path to a palette file. A palette file format can be
+            a buffer with RGBA values (4 bytes),
+            a buffer with RGB values (3 bytes),
+            an Adobe Photoshop .act file.
+
+        color
+            Number of colors to use a index image.
+            If palette is specified, this option will take no effect.
+
+        transparency
+            A float to represent the transparency of the image.
+
+    """
+
     def __init__(self,
                  theme_root,
                  theme_name,
@@ -46,6 +91,7 @@ class MapnikRaster(Raster):
 
         self._scale_factor = scale_factor
         self._buffer_size = buffer_size
+        self._palette = None
 
         # check theme path
         self._theme = os.path.abspath(os.path.join(theme_root,
@@ -60,7 +106,24 @@ class MapnikRaster(Raster):
 
         # convert image_type and parameters to mapnik format string
         if image_parameters:
-            if 'colors' in image_parameters:
+            if 'palette' in image_parameters:
+                palette_file = image_parameters['palette']
+                if self._palette and not os.path.exists(self._palette):
+                    raise MapnikParamError('Palette File does not exists.')
+                if self._image_type == 'png':
+                    raise MapnikTypeError('Only indexed image support colors')
+
+                palette_type = os.path.splitext(palette_file)[1][1:].lower()
+                if palette_type not in ['rgba', 'rgb', 'act']:
+                    raise MapnikTypeError('Palette file should have ' \
+                                          'rgba/rgb/act to indicate its type')
+
+                with open(palette_file, 'rb') as fp:
+                    palette_data = fp.read()
+                self._palette = mapnik.Palette(palette_data, palette_type)
+
+            # index color option will take effect if palette does not exists.
+            if not self._palette and 'colors' in image_parameters:
                 if image_type == 'png':
                     raise MapnikTypeError('Only indexed image support colors')
                 colors = image_parameters['colors']
@@ -88,4 +151,8 @@ class MapnikRaster(Raster):
 
         image = mapnik.Image(*size)
         mapnik.render(map_, image, self._scale_factor)
-        return image.tostring(self._image_type)
+
+        if self._palette:
+            return image.tostring(self._image_type, self._palette)
+        else:
+            return image.tostring(self._image_type)

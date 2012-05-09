@@ -31,6 +31,10 @@ class MapnikTypeError(MapnikError):
     pass
 
 
+class MapnikParamError(MapnikError):
+    pass
+
+
 #==============================================================================
 # GDAL Errors
 #==============================================================================

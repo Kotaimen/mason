@@ -11,25 +11,82 @@ from mason.cartographer.mapnikmaker import MapnikRaster
 class TestMapnikMaker(unittest.TestCase):
 
     def setUp(self):
-        """ Natural Earth is a public domain world-wide data set
-        available from http://naturalearthdata.com.
-        """
+        pass
 
-        self._maker = MapnikRaster(theme_root='./input/',
-                                   theme_name='worldaltas',
-                                   image_type='png')
+    def testTrueColor(self):
+        maker = MapnikRaster(theme_root='./input/',
+                             theme_name='worldaltas',
+                             image_type='png')
 
-        self._mapnik_result = './output/worldaltas.png'
-        if os.path.exists(self._mapnik_result):
-            os.remove(self._mapnik_result)
-
-    def testMapnikRaster(self):
         size = (256, 256)
         envelope = (-180, -85, 180, 85)
-        data = self._maker.make(envelope, size)
+        data = maker.make(envelope, size)
         self.assert_(data)
 
-        with open(self._mapnik_result, 'wb') as fp:
+        test_result = './output/worldaltas.png'
+        if os.path.exists(test_result):
+            os.remove(test_result)
+
+        with open(test_result, 'wb') as fp:
+            fp.write(data)
+
+    def testIndexColor(self):
+        maker = MapnikRaster(theme_root='./input/',
+                             theme_name='worldaltas',
+                             image_type='png256',
+                             image_parameters={'colors': 5}
+                            )
+
+        size = (256, 256)
+        envelope = (-180, -85, 180, 85)
+        data = maker.make(envelope, size)
+        self.assert_(data)
+
+        test_result = './output/worldaltas_index_color.png'
+        if os.path.exists(test_result):
+            os.remove(test_result)
+
+        with open(test_result, 'wb') as fp:
+            fp.write(data)
+
+    def testTransparency(self):
+        maker = MapnikRaster(theme_root='./input/',
+                             theme_name='worldaltas',
+                             image_type='png256',
+                             image_parameters={'transparency': 1}
+                            )
+
+        size = (256, 256)
+        envelope = (-180, -85, 180, 85)
+        data = maker.make(envelope, size)
+        self.assert_(data)
+
+        test_result = './output/worldaltas_index_color_transparency.png'
+        if os.path.exists(test_result):
+            os.remove(test_result)
+
+        with open(test_result, 'wb') as fp:
+            fp.write(data)
+
+    def testPalette(self):
+        maker = MapnikRaster(theme_root='./input/',
+                             theme_name='worldaltas',
+                             image_type='png256',
+                             image_parameters={
+                                'palette': './input/example-palette.act'
+                             }
+                            )
+
+        size = (256, 256)
+        envelope = (-180, -85, 180, 85)
+        data = maker.make(envelope, size)
+        self.assert_(data)
+
+        test_result = './output/worldaltas_index_color_palette.png'
+        if os.path.exists(test_result):
+            os.remove(test_result)
+
+        with open(test_result, 'wb') as fp:
             fp.write(data)
 
 
