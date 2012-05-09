@@ -8,6 +8,7 @@ import shutil
 import time
 import unittest
 import warnings
+import threading
 
 from mason.tilestorage import create_tilestorage
 from mason.tilelib import Pyramid
@@ -177,9 +178,16 @@ class TestMemcacheStorageCompressed(TileStorageTestMixin, unittest.TestCase):
         self.storage.close()
 
 
-class TestMBTilesStorageCompressed(TileStorageTestMixin, unittest.TestCase):
+class TestMBTilesStorage(TileStorageTestMixin, unittest.TestCase):
 
     def setUp(self):
+        # Create storage in another thread so we can verify whether the
+        # thread safety code works.
+        thread = threading.Thread(target=self._setUp)
+        thread.start()
+        thread.join()
+
+    def _setUp(self):
         self.pyramid = Pyramid(levels=list(xrange(0, 21)))
         self.output_dir = os.path.join('output', 'test_fsstorage2')
         database = './output/mbtiles_test.db'

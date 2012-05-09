@@ -8,6 +8,7 @@ import sqlite3
 import os, os.path
 import json
 import mimetypes
+import itertools
 import threading
 
 from .tilestorage import TileStorage, TileStorageError
@@ -71,8 +72,8 @@ class MBTilesTileStorageError(TileStorageError):
     pass
 
 
-class MBTilesTileStorage(TileStorage,
-                         threading.local  # sqlite3 is not thread safe
+class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
+                         TileStorage
                          ):
 
     """ Using sqlite3 database as tile storage
@@ -144,8 +145,9 @@ class MBTilesTileStorage(TileStorage,
         create_sqlite_database(self._database, tag, ext)
 
         # Connect to database 
+        self._timeout = timeout
         self._conn = sqlite3.connect(self._database,
-                                     timeout=timeout)
+                                     timeout=self._timeout)
 
         # Try determinate whether the database is a standard Mbtiles file 
         # or our custom format (somewhat akward code)
@@ -169,21 +171,39 @@ class MBTilesTileStorage(TileStorage,
         else:
             self._mtime = 0
 
+        # Close and reset the connection 
+        self._conn.close()
+        self._conn = None
+
+    def _get_conn(self):
+        # NOTE: This is necessary because sqlite3 is not thread safe, and
+        #       connection object can only be used in the thread it was
+        #       created.  To solve this we use TLS and write 
+        if self._conn is None:
+            self._conn = sqlite3.connect(self._database, timeout=self._timeout)
+        return self._conn
+
+
     def _make_mbtiles_index(self, tile_index):
         # Mbtiles has reversed y-axis, which differs with every other format...
         z, x, y = tile_index.coord
         return z, x, 2 ** z - y - 1
 
+    def _make_metadata(self, metadata):
+        metadata = dict((k, v) for (k, v) in metadata.iteritems() \
+                        if k not in['ext', 'mimetype'])
+        return json.dumps(metadata)
+
     def get(self, tile_index):
         z, x, y = self._make_mbtiles_index(tile_index)
-
-        with self._conn:
+        conn = self._get_conn()
+        with conn:
             if self._is_mbtiles:
-                cur = self._conn.execute('''
-                SELECT tile_data FROM tiles
-                WHERE zoom_level=? AND tile_column=? AND tile_row=?
-                ''',
-                (z, x, y))
+                cur = conn.execute('''
+                    SELECT tile_data FROM tiles
+                    WHERE zoom_level=? AND tile_column=? AND tile_row=?
+                    ''',
+                    (z, x, y))
                 row = cur.fetchone()
                 if row is None:
                     return None
@@ -194,11 +214,11 @@ class MBTilesTileStorage(TileStorage,
                                 mtime=self._mtime)
 
             else:
-                cur = self._conn.execute('''
-                SELECT tile_data, metadata FROM tiles
-                WHERE zoom_level=? AND tile_column=? AND tile_row=?
-                ''',
-                (z, x, y))
+                cur = conn.execute('''
+                    SELECT tile_data, metadata FROM tiles
+                    WHERE zoom_level=? AND tile_column=? AND tile_row=?
+                    ''',
+                    (z, x, y))
                 row = cur.fetchone()
                 if row is None:
                     return None
@@ -223,51 +243,90 @@ class MBTilesTileStorage(TileStorage,
 
         tile_hash = tile.hash
         data = buffer(tile.data)
-        metadata = dict(tile.metadata)
-        try:
-            del metadata['ext']
-        except KeyError:
-            pass
-        try:
-            del metadata['mimetype']
-        except KeyError:
-            pass
-        metadata = buffer(json.dumps(metadata))
+        metadata = buffer(self._make_metadata(tile.metadata))
 
-        with self._conn:
-            cur = self._conn.cursor()
+        conn = self._get_conn()
+        with conn:
+            cur = conn.cursor()
+            cur.execute('''
+                INSERT OR REPLACE INTO
+                tiledata(hash, data)
+                VALUES (?, ?)''',
+                (tile_hash, data))
 
             cur.execute('''
-            INSERT OR REPLACE INTO
-            tiledata(hash, data)
-            VALUES (?, ?)''',
-            (tile_hash, data))
-
-            cur.execute('''
-            INSERT OR REPLACE INTO
-            tileindex(z, x, y, tilehash, metadata)
-            VALUES (?, ?, ?, ?, ?)''',
-            (z, x, y, tile_hash, metadata))
+                INSERT OR REPLACE INTO
+                tileindex(z, x, y, tilehash, metadata)
+                VALUES (?, ?, ?, ?, ?)''',
+                (z, x, y, tile_hash, metadata))
 
     def has(self, tile_index):
         z, x, y = self._make_mbtiles_index(tile_index)
-        cur = self._conn.execute('''
-        SELECT z FROM tileindex WHERE
-        (z=? AND x=? AND y=?)''',
-        (z, x, y))
-        row = cur.fetchone()
-        return row is not None
+        conn = self._get_conn()
+        with conn:
+            cur = conn.execute('''
+                SELECT z FROM tileindex WHERE
+                (z=? AND x=? AND y=?)''',
+                (z, x, y))
+            row = cur.fetchone()
+            return row is not None
 
     def delete(self, tile_index):
         z, x, y = self._make_mbtiles_index(tile_index)
-        self._conn.execute('''
-            DELETE FROM tileindex
-            WHERE (z=? AND x=? AND y=?)''',
-            (z, x, y))
+        conn = self._get_conn()
+        with conn:
+            conn.execute('''
+                DELETE FROM tileindex
+                WHERE (z=? AND x=? AND y=?)''',
+                (z, x, y))
+
+    def set_multi(self, tiles):
+        hashes = list(tile.hash for tile in tiles)
+
+        def data_gen():
+            for hash, tile in itertools.izip(hashes, tiles):
+                yield hash, buffer(tile.data)
+
+        def index_gen():
+            for hash, tile in itertools.izip(hashes, tiles):
+                z, x, y = self._make_mbtiles_index(tile.index)
+                metadata = self._make_metadata(tile.metadata)
+                yield z, x, y, hash, buffer(tile.data), buffer(metadata)
+
+        conn = self._get_conn()
+        with conn:
+            cur = conn.cursor()
+            cur.executemany('''
+                INSERT OR REPLACE INTO
+                tiledata(hash, data)
+                VALUES (?, ?)''',
+                data_gen())
+
+            cur.executemany('''
+                INSERT OR REPLACE INTO
+                tileindex(z, x, y, tilehash, metadata)
+                VALUES (?, ?, ?, ?, ?)''',
+                index_gen())
+
+    def has_all(self, tile_indexes):
+        conn = self._get_conn()
+        with conn:
+            for tile_index in tile_indexes:
+                z, x, y = self._make_mbtiles_index(tile_index)
+                cur = conn.execute('''
+                SELECT z FROM tileindex WHERE
+                (z=? AND x=? AND y=?)''',
+                (z, x, y))
+                row = cur.fetchone()
+                if row is None:
+                    return False
+            else:
+                return True
 
     def flush_all(self):
         pass
 
     def close(self):
-        if self._conn is not None:
-            self._conn.close()
+        conn = self._get_conn()
+        conn.close()
+        self._conn = None
