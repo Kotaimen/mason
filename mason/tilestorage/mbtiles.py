@@ -178,7 +178,7 @@ class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
     def _get_conn(self):
         # NOTE: This is necessary because sqlite3 is not thread safe, and
         #       connection object can only be used in the thread it was
-        #       created.  To solve this we use TLS and write 
+        #       created.  To solve this we use TLS and lazy creation 
         if self._conn is None:
             self._conn = sqlite3.connect(self._database, timeout=self._timeout)
         return self._conn
