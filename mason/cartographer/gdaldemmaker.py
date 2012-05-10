@@ -37,7 +37,6 @@ class GDALDEMRaster(Raster):
 
     image_parameters
         a dictionary of parameters of image
-        bit16: True/False
     """
 
     def __init__(self,
@@ -57,9 +56,6 @@ class GDALDEMRaster(Raster):
         session_maker = sessionmaker(bind=engine)
         self._session = session_maker()
         self._table = dem_table
-
-        # check image parameters
-        self._bit16 = self._image_parameters.get('bit16', False)
 
     def get_dem_data(self, envelope):
         """ Get dem data in the area of envelope from database """
@@ -149,8 +145,7 @@ class GDALHillShade(GDALDEMRaster):
         self._azimuth = azimuth
         self._altitude = altitude
 
-        image_type = self._image_type.lower()
-        if image_type != 'gtiff':
+        if self._image_type != 'gtiff':
             raise GDALTypeError('Hill Shade Only support GTIFF output.')
 
     def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
@@ -190,6 +185,7 @@ class GDALHillShade(GDALDEMRaster):
             os.remove(dst_tempname)
             os.remove(wrp_tempname)
 
+
 #==============================================================================
 # Color relief Maker
 #==============================================================================
@@ -212,7 +208,7 @@ class GDALColorRelief(GDALDEMRaster):
                  color_context=None,
                  server='',
                  dem_table='',
-                 image_type='png',
+                 image_type='gtiff',
                  image_parameters=None,
                  ):
         GDALDEMRaster.__init__(self,
@@ -223,9 +219,8 @@ class GDALColorRelief(GDALDEMRaster):
 
         self._color_context = color_context
 
-        image_type = self._image_type.lower()
-        if image_type != 'gtiff':
-            raise GDALTypeError('Color relief Only support PNG output.')
+        if self._image_type != 'gtiff':
+            raise GDALTypeError('Color relief Only support GTIFF output.')
 
     def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
