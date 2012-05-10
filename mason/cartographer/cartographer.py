@@ -48,7 +48,7 @@ class Raster(Cartographer):
         assert isinstance(image_type, str)
         assert isinstance(image_parameters, dict)
 
-        self._image_type = image_type
+        self._image_type = image_type.lower()
         self._image_parameters = image_parameters
 
 

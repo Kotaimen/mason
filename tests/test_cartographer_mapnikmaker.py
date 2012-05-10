@@ -53,7 +53,7 @@ class TestMapnikMaker(unittest.TestCase):
         maker = MapnikRaster(theme_root='./input/',
                              theme_name='worldaltas',
                              image_type='png256',
-                             image_parameters={'transparency': 1}
+                             image_parameters={'transparency': 0}
                             )
 
         size = (256, 256)
@@ -73,7 +73,8 @@ class TestMapnikMaker(unittest.TestCase):
                              theme_name='worldaltas',
                              image_type='png256',
                              image_parameters={
-                                'palette': './input/example-palette.act'
+                                'palette': './input/example-palette.act',
+                                'colors': 5,
                              }
                             )
 
@@ -83,6 +84,28 @@ class TestMapnikMaker(unittest.TestCase):
         self.assert_(data)
 
         test_result = './output/worldaltas_index_color_palette.png'
+        if os.path.exists(test_result):
+            os.remove(test_result)
+
+        with open(test_result, 'wb') as fp:
+            fp.write(data)
+
+    def testJPEG(self):
+        jpeg_quality = 50
+        maker = MapnikRaster(theme_root='./input/',
+                             theme_name='worldaltas',
+                             image_type='jpeg',
+                             image_parameters={
+                                'quality': jpeg_quality,
+                             }
+                            )
+
+        size = (256, 256)
+        envelope = (-180, -85, 180, 85)
+        data = maker.make(envelope, size)
+        self.assert_(data)
+
+        test_result = './output/worldaltas_JPEG_%d.jpeg' % jpeg_quality
         if os.path.exists(test_result):
             os.remove(test_result)
 
