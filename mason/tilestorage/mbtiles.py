@@ -241,7 +241,7 @@ class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
         if self._is_mbtiles:
              raise MBTilesTileStorageError("Don't support write to standard Mbtiles")
 
-        tile_hash = tile.hash
+        tile_hash = tile.datahash
         data = buffer(tile.data)
         metadata = buffer(self._make_metadata(tile.metadata))
 
@@ -281,7 +281,7 @@ class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
                 (z, x, y))
 
     def set_multi(self, tiles):
-        hashes = list(tile.hash for tile in tiles)
+        hashes = list(tile.data_hash for tile in tiles)
 
         def data_gen():
             for hash_, tile in itertools.izip(hashes, tiles):

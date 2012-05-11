@@ -6,6 +6,7 @@ Created on Apr 29, 2012
 
 import hashlib
 
+
 class TileIndex(object):
 
     """ Coordinate index of a Tile object """
@@ -117,7 +118,7 @@ class Tile(object):
         return self._metadata
 
     @property
-    def hash(self):
+    def datahash(self):
         return self._hash
 
     @staticmethod
