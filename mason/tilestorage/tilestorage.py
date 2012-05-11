@@ -4,6 +4,7 @@ Created on May 2, 2012
 @author: Kotaimen
 '''
 
+
 from ..tilelib import Tile  # unused
 
 
@@ -101,6 +102,13 @@ class TileStorage(object):
         """ Close the storage """
         pass
 
+#    def get_meta(self):
+#        raise NotImplementedError
+
+#===============================================================================
+# Special Tile Storages
+#===============================================================================
+
 
 class NullTileStorage(TileStorage):
 
@@ -117,3 +125,19 @@ class NullTileStorage(TileStorage):
 
     def flush_all(self):
         pass
+
+
+class ReadOnlyTileStorage(TileStorage):
+
+    """ Base class of read only tile storages """
+
+    def put(self, tile):
+        pass
+
+    def delete(self, tile_index):
+        pass
+
+    def flush_all(self):
+        pass
+
+

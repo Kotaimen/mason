@@ -10,8 +10,13 @@ import unittest
 import warnings
 import threading
 
-from mason.tilestorage import create_tilestorage
+import memcache
+
+from mason.tilestorage import TileStorageFactory
 from mason.tilelib import Pyramid
+
+# Tile storage factory
+factory = TileStorageFactory()
 
 
 class TileStorageTestMixin(object):
@@ -82,7 +87,7 @@ class TestFileSystemTileStorageDefault(TileStorageTestMixin, unittest.TestCase):
         if os.path.exists(self.output_dir):
             shutil.rmtree('test_fsstorage1', ignore_errors=True)
 
-        self.storage = create_tilestorage('filesystem',
+        self.storage = factory('filesystem',
                                           'teststorage',
                                           root=self.output_dir,
                                           ext='txt',
@@ -116,13 +121,13 @@ class TestFileSystemTileStorageCompressed(TileStorageTestMixin, unittest.TestCas
         if os.path.exists(self.output_dir):
             shutil.rmtree('test_fsstorage2', ignore_errors=True)
 
-        self.storage = create_tilestorage('filesystem',
-                                          'teststorage',
-                                          root=self.output_dir,
-                                          ext='txt',
-                                          mimetype='text/plain',
-                                          compress=True
-                                          )
+        self.storage = factory('filesystem',
+                               'teststorage',
+                               root=self.output_dir,
+                               ext='txt',
+                               mimetype='text/plain',
+                               compress=True
+                               )
 
     def tearDown(self):
         self.storage.flush_all()
@@ -150,10 +155,10 @@ class TestMemcacheStorageDefault(TileStorageTestMixin, unittest.TestCase):
         self.pyramid = Pyramid(levels=list(xrange(0, 21)))
         self.output_dir = os.path.join('output', 'test_fsstorage2')
 
-        self.storage = create_tilestorage('memcache',
-                                          'teststorage',
-                                          servers=['localhost:11211'],
-                                          )
+        self.storage = factory('memcache',
+                               'teststorage',
+                               servers=['localhost:11211'],
+                               )
 
     def tearDown(self):
         self.storage.flush_all()
@@ -164,14 +169,16 @@ class TestMemcacheStorageCompressed(TileStorageTestMixin, unittest.TestCase):
 
     def setUp(self):
         warnings.warn('memcache storage test flushes everything in localhost:11211')
+        client = memcache.Client(['localhost:11211'])
+        client.flush_all()
         self.pyramid = Pyramid(levels=list(xrange(0, 21)))
         self.output_dir = os.path.join('output', 'test_fsstorage2')
 
-        self.storage = create_tilestorage('memcache',
-                                          'teststorage',
-                                          servers=['localhost:11211'],
-                                          compress=True
-                                          )
+        self.storage = factory('memcache',
+                               'teststorage',
+                               servers=['localhost:11211'],
+                               compress=True
+                               )
 
     def tearDown(self):
         self.storage.flush_all()
@@ -192,11 +199,68 @@ class TestMBTilesStorage(TileStorageTestMixin, unittest.TestCase):
         self.output_dir = os.path.join('output', 'test_fsstorage2')
         database = './output/mbtiles_test.db'
         os.remove(database)
-        self.storage = create_tilestorage('mbtiles',
-                                          'teststorage',
-                                          database=database,
-                                          ext='txt',
-                                          )
+        self.storage = factory('mbtiles',
+                               'teststorage',
+                               database=database,
+                               ext='txt',
+                               )
+
+    def tearDown(self):
+        self.storage.flush_all()
+        self.storage.close()
+
+
+class CascadeTileStorageDefault(TileStorageTestMixin, unittest.TestCase):
+
+    def setUp(self):
+
+        warnings.warn('memcache storage test flushes everything in localhost:11211')
+        client = memcache.Client(['localhost:11211'])
+        client.flush_all()
+        self.pyramid = Pyramid(levels=list(xrange(0, 21)))
+        self.output_dir = os.path.join('output', 'test_fsstorage2')
+
+        self.storage = factory('cascade',
+                               'testcascade1',
+                               storages=[dict(tag='testcascade1_level_1',
+                                              prototype='memcache',
+                                              servers=['localhost:11211']),
+                                         dict(tag='testcascade_level_2',
+                                              prototype='mbtiles',
+                                              database=r'./output/test_cascade_level_2.mbtiles',
+                                              ext='txt'),
+                                         ],
+                               )
+
+    def tearDown(self):
+        self.storage.flush_all()
+        self.storage.close()
+
+
+class CascadeTileStorageTop(TileStorageTestMixin, unittest.TestCase):
+
+    def setUp(self):
+
+        warnings.warn('memcache storage test flushes everything in localhost:11211')
+        client = memcache.Client(['localhost:11211'])
+        client.flush_all()
+        self.pyramid = Pyramid(levels=list(xrange(0, 21)))
+        self.output_dir = os.path.join('output', 'test_fsstorage2')
+
+        self.storage = factory('cascade',
+                               'testcascade1',
+                               storages=[dict(tag='testcascade1_level_1',
+                                              prototype='memcache',
+                                              servers=['localhost:11211']),
+                                         dict(tag='testcascade_level_2',
+                                              prototype='mbtiles',
+                                              database=r'./output/test_cascade_level_2.mbtiles',
+                                              ext='txt'),
+                                         ],
+                               read_mode='top',
+                               write_mode='sync',
+
+                               )
 
     def tearDown(self):
         self.storage.flush_all()

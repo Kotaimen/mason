@@ -18,6 +18,7 @@ from ..tilelib import Tile
 # SQLite Helper Functions
 #===============================================================================
 
+
 def create_sqlite_database(filename, tag, ext):
     if os.path.exists(filename):
         return
@@ -144,12 +145,12 @@ class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
         # Create the database when necessary
         create_sqlite_database(self._database, tag, ext)
 
-        # Connect to database 
+        # Connect to database
         self._timeout = timeout
         self._conn = sqlite3.connect(self._database,
                                      timeout=self._timeout)
 
-        # Try determinate whether the database is a standard Mbtiles file 
+        # Try determinate whether the database is a standard Mbtiles file
         # or our custom format (somewhat akward code)
         try:
             self._conn.execute('SELECT metadata FROM tiles LIMIT 1',
@@ -171,18 +172,17 @@ class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
         else:
             self._mtime = 0
 
-        # Close and reset the connection 
+        # Close and reset the connection
         self._conn.close()
         self._conn = None
 
     def _get_conn(self):
         # NOTE: This is necessary because sqlite3 is not thread safe, and
         #       connection object can only be used in the thread it was
-        #       created.  To solve this we use TLS and lazy creation 
+        #       created.  To solve this we use TLS and lazy creation
         if self._conn is None:
             self._conn = sqlite3.connect(self._database, timeout=self._timeout)
         return self._conn
-
 
     def _make_mbtiles_index(self, tile_index):
         # Mbtiles has reversed y-axis, which differs with every other format...
@@ -284,11 +284,11 @@ class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
         hashes = list(tile.hash for tile in tiles)
 
         def data_gen():
-            for hash, tile in itertools.izip(hashes, tiles):
-                yield hash, buffer(tile.data)
+            for hash_, tile in itertools.izip(hashes, tiles):
+                yield hash_, buffer(tile.data)
 
         def index_gen():
-            for hash, tile in itertools.izip(hashes, tiles):
+            for hash_, tile in itertools.izip(hashes, tiles):
                 z, x, y = self._make_mbtiles_index(tile.index)
                 metadata = self._make_metadata(tile.metadata)
                 yield z, x, y, hash, buffer(tile.data), buffer(metadata)

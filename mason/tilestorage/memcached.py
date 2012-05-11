@@ -50,9 +50,9 @@ class MemCachedTileStorage(TileStorage):
                  ):
         TileStorage.__init__(self, tag)
 
-        # Create memcached client
+        # Create memcached client, use highest pickle protocol
         self._client = memcache.Client(servers,
-                                       pickleProtocol= -1, # use highest protocal
+                                       pickleProtocol= -1,
                                        server_max_value_length=max_size,
                                        )
 
