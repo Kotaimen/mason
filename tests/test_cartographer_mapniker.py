@@ -5,7 +5,7 @@ Created on May 2, 2012
 '''
 import os
 import unittest
-from mason.cartographer.mapnikmaker import MapnikRaster
+from mason.cartographer.mapniker import MapnikRaster
 
 
 class TestMapnikMaker(unittest.TestCase):
@@ -20,7 +20,7 @@ class TestMapnikMaker(unittest.TestCase):
 
         size = (256, 256)
         envelope = (-180, -85, 180, 85)
-        data = maker.make(envelope, size)
+        data = maker.doodle(envelope, size)
         self.assert_(data)
 
         test_result = './output/worldaltas.png'
@@ -39,7 +39,7 @@ class TestMapnikMaker(unittest.TestCase):
 
         size = (256, 256)
         envelope = (-180, -85, 180, 85)
-        data = maker.make(envelope, size)
+        data = maker.doodle(envelope, size)
         self.assert_(data)
 
         test_result = './output/worldaltas_index_color.png'
@@ -58,7 +58,7 @@ class TestMapnikMaker(unittest.TestCase):
 
         size = (256, 256)
         envelope = (-180, -85, 180, 85)
-        data = maker.make(envelope, size)
+        data = maker.doodle(envelope, size)
         self.assert_(data)
 
         test_result = './output/worldaltas_index_color_transparency.png'
@@ -80,7 +80,7 @@ class TestMapnikMaker(unittest.TestCase):
 
         size = (256, 256)
         envelope = (-180, -85, 180, 85)
-        data = maker.make(envelope, size)
+        data = maker.doodle(envelope, size)
         self.assert_(data)
 
         test_result = './output/worldaltas_index_color_palette.png'
@@ -102,7 +102,7 @@ class TestMapnikMaker(unittest.TestCase):
 
         size = (256, 256)
         envelope = (-180, -85, 180, 85)
-        data = maker.make(envelope, size)
+        data = maker.doodle(envelope, size)
         self.assert_(data)
 
         test_result = './output/worldaltas_JPEG_%d.jpeg' % jpeg_quality

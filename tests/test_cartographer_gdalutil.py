@@ -5,7 +5,6 @@ Created on May 2, 2012
 '''
 import os
 import unittest
-import shutil
 from mason.cartographer.gdalutil import (gdal_hillshade,
                                          gdal_colorrelief,
                                          gdal_warp)

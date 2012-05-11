@@ -93,7 +93,7 @@ class GDALDEMRaster(Raster):
     def __del__(self):
         self._session.close()
 
-    def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+    def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
         """ Make raster image of a specified envelope """
         raise NotImplementedError
 
@@ -148,7 +148,7 @@ class GDALHillShade(GDALDEMRaster):
         if self._image_type != 'gtiff':
             raise GDALTypeError('Hill Shade Only support GTIFF output.')
 
-    def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+    def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
         dem_data = self.get_dem_data(envelope)
 
@@ -222,7 +222,7 @@ class GDALColorRelief(GDALDEMRaster):
         if self._image_type != 'gtiff':
             raise GDALTypeError('Color relief Only support GTIFF output.')
 
-    def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+    def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
         dem_data = self.get_dem_data(envelope)
 

@@ -16,7 +16,7 @@ class Cartographer(object):
     related to that given area.
     """
 
-    def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+    def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
         """ Make geographic data in the envelope and project to
         Google Mercator.
 
@@ -34,8 +34,8 @@ class Raster(Cartographer):
     """ Raster map maker
 
     Different Raster Maker support differnt image type.
-    Mapnik: png, png256
-    GDAL: png, tiff
+    Mapnik: png, png256, jpeg
+    GDAL: gtiff
     """
 
     def __init__(self,

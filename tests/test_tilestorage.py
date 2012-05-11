@@ -191,7 +191,8 @@ class TestMBTilesStorage(TileStorageTestMixin, unittest.TestCase):
         self.pyramid = Pyramid(levels=list(xrange(0, 21)))
         self.output_dir = os.path.join('output', 'test_fsstorage2')
         database = './output/mbtiles_test.db'
-        os.remove(database)
+        if os.path.exists(database):
+            os.remove(database)
         self.storage = create_tilestorage('mbtiles',
                                           'teststorage',
                                           database=database,

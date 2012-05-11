@@ -171,7 +171,7 @@ class MapnikRaster(Raster):
         # projection
         self._proj = mapnik.Projection(_PROJECTIONS['EPSG:3857'])
 
-    def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+    def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
         map_ = mapnik.Map(*size)
         mapnik.load_map(map_, self._theme)
