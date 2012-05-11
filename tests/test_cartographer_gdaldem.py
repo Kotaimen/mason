@@ -6,10 +6,10 @@ Created on May 2, 2012
 
 import os
 import unittest
-from mason.cartographer.gdaldemmaker import (GDALDEMRaster,
-                                             GDALHillShade,
-                                             GDALColorRelief,
-                                             )
+from mason.cartographer.gdaldem import (GDALDEMRaster,
+                                        GDALHillShade,
+                                        GDALColorRelief,
+                                       )
 
 
 TEST_SVR = 'postgresql+psycopg2://postgres:123456@localhost:5432/world_dem'
@@ -56,7 +56,7 @@ class GDALHillShadeTest(unittest.TestCase):
     def testMakeHillShade(self):
         size = (256, 256)
         envelope = TEST_ENVELOPE
-        data = self._maker.make(envelope, size)
+        data = self._maker.doodle(envelope, size)
         self.assert_(data)
 
         with open(self._result1, 'wb') as fp:
@@ -64,7 +64,7 @@ class GDALHillShadeTest(unittest.TestCase):
 
         size = (512, 512)
         envelope = TEST_ENVELOPE
-        data = self._maker.make(envelope, size)
+        data = self._maker.doodle(envelope, size)
         self.assert_(data)
 
         with open(self._result2, 'wb') as fp:
@@ -91,7 +91,7 @@ class GDALColorReliefTest(unittest.TestCase):
     def testMakeColorRelief(self):
         size = (256, 256)
         envelope = TEST_ENVELOPE
-        data = self._maker.make(envelope, size)
+        data = self._maker.doodle(envelope, size)
         self.assert_(data)
 
         with open(self._result1, 'wb') as fp:
@@ -99,7 +99,7 @@ class GDALColorReliefTest(unittest.TestCase):
 
         size = (512, 512)
         envelope = TEST_ENVELOPE
-        data = self._maker.make(envelope, size)
+        data = self._maker.doodle(envelope, size)
         self.assert_(data)
 
         with open(self._result2, 'wb') as fp:

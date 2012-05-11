@@ -6,7 +6,7 @@ Created on May 7, 2012
 import os
 import shutil
 from mason.utils import Timer
-from mason.cartographer.mapnikmaker import MapnikRaster
+from mason.cartographer import MapnikRaster
 
 
 def main():
@@ -26,7 +26,7 @@ def main():
     for size in size_list:
         output = os.path.join(output_dir, 'worldaltas_%d_%d.png' % size)
         with Timer():
-            data = mapnik_maker.make(envelope, size)
+            data = mapnik_maker.doodle(envelope, size)
         with open(output, 'w') as fp:
             fp.write(data)
 

@@ -10,14 +10,14 @@ class TileIndex(object):
 
     """ Coordinate index of a Tile object """
 
-    __slots__ = '_coord', '_envelope', '_serial', '_shard'
+    __slots__ = '_coord', '_envelope', '_serial', '_shard', '_pixsize'
 
     def __init__(self, pyramid, z, x, y):
         self._coord = z, x, y
         # Calculate envelope and serial so Tile can be detached from Pyramid
         self._envelope = pyramid.calculate_tile_envelope(z, x, y)
         self._serial = pyramid.calculate_tile_serial(z, x, y)
-
+        self._pixsize = pyramid.tile_size
         # TODO: implement sharding hash 
         self._shard = 0
 
@@ -44,6 +44,10 @@ class TileIndex(object):
     @property
     def serial(self):
         return self._serial
+
+    @property
+    def pixel_size(self):
+        return self._pixsize
 
     def __hash__(self):
         return hash(self._serial)

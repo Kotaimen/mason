@@ -61,21 +61,34 @@ class MapnikRaster(Raster):
         connectivity between continuous area(tile).
 
     image_type
-        output format, PNG is supported now.
+        output format, PNG, PNG256, JPEG is supported now.
 
     image_parameters
-        palette
-            A file path to a palette file. A palette file format can be
-            a buffer with RGBA values (4 bytes),
-            a buffer with RGB values (3 bytes),
-            an Adobe Photoshop .act file.
+        PNG:
+            None
 
-        color
-            Number of colors to use a index image.
-            If palette is specified, this option will take no effect.
+        JPEG:
+            Key: 'quality'
+            Val: 1-100 jpeg quality.
 
-        transparency
-            A float to represent the transparency of the image.
+        PNG256:
+            Key: 'palette'
+            Val: A file path to a palette file. A palette file format can be:
+                    a buffer with RGBA values (4 bytes),
+                    a buffer with RGB values (3 bytes),
+                    an Adobe Photoshop .act file.
+
+            Key: 'colors'
+            Val: Number of colors to use.
+                 If 'palette' is specified, this option will take no effect.
+
+            Key: 'transparency'
+            Val: Mapnik transparency mode:
+                    0-no alpha,
+                    1-binary alpha(0 or 255),
+                    2-full alpha range
+
+
 
     """
 
@@ -101,44 +114,64 @@ class MapnikRaster(Raster):
 
         # 'png', 'png24', 'png32' are equivalent to 'png32' in mapnik
         # 'png8', 'png256' are equivalent to 'png256' in mapnik
-        if image_type not in ['png', 'png256']:
-            raise MapnikTypeError('Image Type %s not supported' % image_type)
+        if self._image_type not in ['png', 'png256', 'jpeg']:
+            raise MapnikTypeError('Image Type %s not supported' % self._image_type)
 
         # convert image_type and parameters to mapnik format string
         if image_parameters:
-            if 'palette' in image_parameters:
-                palette_file = image_parameters['palette']
-                if self._palette and not os.path.exists(self._palette):
-                    raise MapnikParamError('Palette File does not exists.')
-                if self._image_type == 'png':
-                    raise MapnikTypeError('Only indexed image support colors')
 
-                palette_type = os.path.splitext(palette_file)[1][1:].lower()
-                if palette_type not in ['rgba', 'rgb', 'act']:
-                    raise MapnikTypeError('Palette file should have ' \
-                                          'rgba/rgb/act to indicate its type')
+            # PNG Parameters --------------------------------------------------
+            if self._image_type in ['png', ]:
+                pass
 
-                with open(palette_file, 'rb') as fp:
-                    palette_data = fp.read()
-                self._palette = mapnik.Palette(palette_data, palette_type)
+            # JPEG Parameters -------------------------------------------------
+            elif self._image_type in ['jpeg', ]:
+                # quality
+                quality = image_parameters.get('quality', None)
+                if not isinstance(quality, int):
+                    raise MapnikParamError('JPEG quality shall be an integer.')
+                if quality < 1 or quality > 100:
+                    raise MapnikParamError('JPEG quality shall be 1-100.')
 
-            # index color option will take effect if palette does not exists.
-            if not self._palette and 'colors' in image_parameters:
-                if image_type == 'png':
-                    raise MapnikTypeError('Only indexed image support colors')
-                colors = image_parameters['colors']
-                if colors < 2 or colors > 256:
-                    raise MapnikTypeError('Invalid color numbers')
-                self._image_type += (':c=%d' % colors)
+                # no need to set quality 85, since it is the default value.
+                if quality != 85:
+                    self._image_type += ('%d' % quality)
 
-            if 'transparency' in image_parameters:
-                transparency = image_parameters['transparency']
-                self._image_type += (':t=%d' % (1 if transparency else 0))
+            # PNG256 Parameters -----------------------------------------------
+            elif self._image_type in ['png256', ]:
+                # palette
+                palette = image_parameters.get('palette', None)
+                if palette:
+                    if not os.path.exists(palette):
+                        raise MapnikParamError('Palette File does not exists.')
+
+                    palette_type = os.path.splitext(palette)[1][1:].lower()
+                    if palette_type not in ['rgba', 'rgb', 'act']:
+                        raise MapnikTypeError(
+                                        'Palette file should have suffix' \
+                                        'rgba/rgb/act to indicate its type')
+
+                    with open(palette, 'rb') as fp:
+                        palette_data = fp.read()
+                    self._palette = mapnik.Palette(palette_data, palette_type)
+
+                # colors, if palette is specified, colors will take no effect.
+                else:
+                    colors = image_parameters.get('colors', None)
+                    if colors:
+                        if colors < 2 or colors > 256:
+                            raise MapnikTypeError('Invalid color numbers')
+                        self._image_type += (':c=%d' % colors)
+
+                # transparency
+                transparency = image_parameters.get('transparency', None)
+                if transparency in [0, 1, 2]:
+                    self._image_type += (':t=%d' % transparency)
 
         # projection
         self._proj = mapnik.Projection(_PROJECTIONS['EPSG:3857'])
 
-    def make(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+    def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
         map_ = mapnik.Map(*size)
         mapnik.load_map(map_, self._theme)

@@ -25,7 +25,7 @@ class Test(unittest.TestCase):
         self.assertAlmostEqual(tile.index.envelope.make_tuple(),
                           (-90.0, -66.51326044311185, 0.0, 0.0))
         self.assertEqual(tile.data, b'data')
-
+        self.assertEqual(tile.index.pixel_size, 256)
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
