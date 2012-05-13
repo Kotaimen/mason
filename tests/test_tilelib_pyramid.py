@@ -86,11 +86,23 @@ class Test(unittest.TestCase):
         with open(r'./input/grid.jpg', 'rb') as fp:
             data = fp.read()
         metadata = dict(ext='jpg', mimetype='image/jpeg')
-        metatile = pyramid.create_metatile(8, 0, 0, 2, data, metadata)
+        metatile = pyramid.create_metatile(8, 0, 0, 4, data, metadata)
         for tile in metatile.fission():
             with open(os.path.join(r'./output',
                                    '%d-%d-%d.jpg' % tile.index.coord) , 'wb') as fp:
                 fp.write(tile.data)
+
+    def testCreateMetaTileTIFF(self):
+        pyramid = Pyramid()
+        with open(r'./input/grid.tif', 'rb') as fp:
+            data = fp.read()
+        metadata = dict(ext='tif', mimetype='image/tiff')
+        metatile = pyramid.create_metatile(8, 0, 0, 4, data, metadata)
+        for tile in metatile.fission():
+            with open(os.path.join(r'./output',
+                                   '%d-%d-%d.tif' % tile.index.coord) , 'wb') as fp:
+                fp.write(tile.data)
+
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

@@ -15,10 +15,18 @@ try:
 except ImportError:
     raise
 
+try:
+    output = subprocess.check_output(['convert', '-version'])
+except Exception:
+    raise ImportError('Requires ImageMagick')
+
 
 def gridcrop(image_data, rows, columns, ext):
-
-    return dict(gridcrop_pil(image_data, rows, columns, ext))
+    if ext in ['png', 'jpg']:
+        return dict(gridcrop_pil(image_data, rows, columns, ext))
+    else:
+        # PIL don't handle tiff very well, let imagemagick deal with it
+        return dict(gridcrop_magick(image_data, rows, columns, ext))
 
 
 class _BytesIO(io.BytesIO):
@@ -42,6 +50,7 @@ class _BytesIO(io.BytesIO):
     #      save jpeg images to BytesIO)
     def fileno(self):
         raise AttributeError
+
 
 def gridcrop_pil(image_data, rows, columns, ext):
 
@@ -70,39 +79,57 @@ def gridcrop_pil(image_data, rows, columns, ext):
 
             grid_image = big_image.crop(crop_box)
             buf = _BytesIO()
-
-            grid_image.save(buf, ext)
+            # XXX: Can't find way to "preserve input quality"
+            grid_image.save(buf, ext, quality=95)
             yield (row, column), buf.getvalue()
 
 
-# TODO: Implement ImageMagick engine, subprocess call is ugly but is easily 
-#       portable between differen python versions.
+MAGIC_HEADERS = {'png':b'\x89PNG\r\n\x1a\n',
+                 'jpg':b'\xff\xd8',
+                 'tif':b'II*\x00',
+                 }
 
-#
-#MAGIC_HEADERS = dict(png=b'd',
-#                     jpg=b'b',
-#                     ) 
-#
-#
-#def gridcrop_magick(image_data, rows, columns, ext):
-#    
-#    args = ['convert',
-#            '-quiet', '-limit', 'thread', '1',
-#            '%s:-' % ext,
-#            '-crop',
-#            '%dx%d@' % (rows, columns),
-#            '-']
-#            ]
-#    popen = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-#                     stderr=subprocess.PIPE)
-#    stdout, stderr = subprocess.check_output(image_data)
-#    retcode = popen.poll()
-#
-#    if retcode != 0:
-#        raise subprocess.CalledProcessError(retcode, args, stderr)
-#    
-#    # Imagemagick just join image data together when asked to write to stdout,
-#    # Have to sperate image data using magic here...
-#    
+
+def gridcrop_magick(image_data, rows, columns, ext):
+
+    """ For imagemagick command, see
+
+    http://www.imagemagick.org/Usage/crop/#crop_equal
+
+    Imagemagick 6.5+ is required, Q8 takes less memory but is less accurate
+    """
+
+    args = ['convert',
+            '-quiet', '-limit', 'thread', '1',
+            '%s:-' % ext,
+            '-crop',
+            '%dx%d@' % (rows, columns),
+            '+repage',
+            '+adjoin',
+            '-',
+            ]
+    popen = subprocess.Popen(args, stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    stdout, stderr = popen.communicate(image_data)
+    retcode = popen.poll()
+
+    if retcode != 0:
+        raise subprocess.CalledProcessError(retcode, args, stderr)
+
+    # Imagemagick simply join image datas together when asked to write to stdout,
+    # Have to separate image data using magic headers here...
+    magic = MAGIC_HEADERS[ext]
+
+    bodies = stdout.split(magic)
+    assert len(bodies) == rows * columns + 1
+
+    for n, body in enumerate(bodies[1:]):
+        column = n // rows
+        row = n % columns
+        data = b''.join([magic, body])
+
+        yield (row, column), data
+
 
 

@@ -171,7 +171,7 @@ class Pyramid(object):
 
         tile_datas = gridcrop(data, stride, stride, ext=ext)
         tiles = list()
-        # Assume gridcrop returns ((i, j), data)
+        # gridcrop returns {(i, j): data}
         for (i, j), data in tile_datas.iteritems():
             tile = self.create_tile(z, x + i, y + j, data, metadata)
             tiles.append(tile)
