@@ -6,6 +6,8 @@ Created on Apr 29, 2012
 
 import hashlib
 
+from .geo import Envelope
+
 
 class TileIndex(object):
 
@@ -67,9 +69,7 @@ class Tile(object):
     - A dictionary as metadata, describes additional tile information as
       key-value pairs
 
-    Tile object is immutable once created.
-
-
+    Create Tile object using a Pyramid instance.
 
     Note: in Python 2.x, data is a str, in Python3.x, data is a
           byte string (bytes)
@@ -92,8 +92,6 @@ class Tile(object):
 
     def __init__(self, index, data, metadata):
         assert isinstance(index, TileIndex)
-        assert isinstance(data, bytes)  # works on 2.7-3.x
-        assert isinstance(metadata, dict)  # don't care what's in the dict
         self._index = index
         self._data = data
         self._metadata = metadata
@@ -129,6 +127,50 @@ class Tile(object):
         return 'Tile(%d/%d/%d)' % self._index.coord
 
 
-class MetaTile(object):
+class MetaTileIndex(TileIndex):
 
-    pass
+    """ Coordinate index of a MetaTile object
+
+    A MetaTile is rectangular area of adjacent Tiles used to improve
+    render speed, render in large images reduces database and buffer
+    overhead.
+    """
+
+    def __init__(self, pyramid, z, x, y, stride):
+        TileIndex.__init__(self, pyramid, z, x, y)
+
+        self._stride = stride
+
+        # A list of TileIndexes in the MetaTile
+        self._indexes = list()
+        for i in range(x, x + stride):
+            for j in range(y, y + stride):
+                self._indexes.append(pyramid.create_tile_index(z, i, j,
+                                                              range_check=False))
+
+        # Modify properties calculated in base class
+        z, x, y = self._coord
+        left_bottom = self._indexes[0].envelope.leftbottom
+        right_top = self._indexes[-1].envelope.righttop
+        self._envelope = Envelope(left_bottom.lon, left_bottom.lat,
+                                  right_top.lon, right_top.lat)
+        self._pixsize = self._pixsize * stride
+
+    @property
+    def stride(self):
+        return self._stride
+
+    def fission(self):
+        """ Get a list of TileIndexes belongs to the MetaTileIndex """
+        return self._indexes
+
+
+class MetaTile(Tile):
+
+    def __init__(self, index, tiles):
+        Tile.__init__(self, index, b'', {})
+        assert isinstance(index, MetaTileIndex)
+        self._tiles = tiles
+
+    def fission(self):
+        return self._tiles
