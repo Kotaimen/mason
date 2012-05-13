@@ -13,7 +13,7 @@ class TestTileSource(unittest.TestCase):
 
     def setUp(self):
         prototype = 'cartographer'
-        cartographer_config = dict(prototype='mapniker',
+        cartographer_config = dict(prototype='mapnik',
                                    theme_root='./input/',
                                    theme_name='worldaltas',
                                    image_type='png'

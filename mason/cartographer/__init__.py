@@ -25,19 +25,14 @@ except ImportError:
 #==============================================================================
 class CartographerFactory(object):
 
-    CLASS_REGISTRY = dict(mapniker=MapnikRaster,
+    CLASS_REGISTRY = dict(mapnik=MapnikRaster,
                           hillshade=GDALHillShade,
                           colorrelief=GDALColorRelief,)
 
     def __call__(self, prototype, **params):
-        try:
-            class_prototype = self.CLASS_REGISTRY[prototype]
-        except KeyError:
-            raise Exception('Unkown prototype %s' % prototype)
-
+        class_prototype = self.CLASS_REGISTRY.get(prototype, None)
         if class_prototype is None:
-            raise Exception('Cartographer prototype %s is not \
-                             available.' % prototype)
+            raise Exception('Unknown cartographer prototype "%s"' % prototype)
 
         return class_prototype(**params)
 

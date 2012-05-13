@@ -13,15 +13,15 @@ class TileSourceCreator(object):
 
 class CartographerTileSourceCreator(TileSourceCreator):
 
+    """ Cartographer Tile Source Creator
+
+    params
+        cartographer_config
+            prototype    cartographer prototype
+            params       cartographer parameters
+    """
+
     def __call__(self, tag, **params):
-
-        """ Cartographer Tile Source Creator
-
-        params
-            cartographer_config
-                prototype    cartographer prototype
-                params       cartographer parameters
-        """
 
         config = params.get('cartographer_config', None)
         if not config:
@@ -59,7 +59,7 @@ def create_tile_source(prototype, tag, **params):
         tile source prototype
 
     tag
-        a tile source tag for identify different tile source
+        a tile source tag for distinguishing different tile source
 
     params
         parameters of tile source
@@ -68,7 +68,7 @@ def create_tile_source(prototype, tag, **params):
         {
             'prototype':    'cartographer'
             'cartographer_config' : {
-                                        'prototype': 'mapniker',
+                                        'prototype': 'mapnik',
                                         'theme_root': './input/',
                                         'theme_name': 'worldaltas',
                                         'image_type': 'png'
