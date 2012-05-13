@@ -4,15 +4,19 @@ Created on Apr 29, 2012
 @author: Kotaimen
 '''
 
-from .tile import TileIndex, Tile
+from .tile import TileIndex, Tile, MetaTileIndex, MetaTile
 from . import geo
-
+from ..utils import gridcrop
 #===============================================================================
 # Exceptions
 #===============================================================================
 
 
 class TileOutOfRange(Exception):
+    pass
+
+
+class InvalidTileParameter(Exception):
     pass
 
 
@@ -86,6 +90,8 @@ class Pyramid(object):
     def calculate_tile_serial(self, z, x, y):
         return geo.tile_coordinate_to_serial(z, x, y)
 
+    # Tile Factory Methods -----------------------------------------------------
+
     def create_tile_index(self, z, x, y, range_check=True):
         """ Create TileIndex object using current pyramid projection and range
         constraints """
@@ -107,9 +113,67 @@ class Pyramid(object):
         return tile_index
 
     def create_tile(self, z, x, y, data, metadata):
-        assert data is not None
-        assert metadata is not None
+
+        """ Create a Tile object using given coordinate, data and metadata """
+
+        if not isinstance(data, bytes):
+            raise InvalidTileParameter('Except a bytes object as tile data')
+        if not isinstance(metadata, dict):
+            # XXX: ensure metadata as literal using ast
+            raise InvalidTileParameter('Except dict object as tile metadata')
+
         return Tile(self.create_tile_index(z, x, y),
                     data,
                     metadata)
+
+    def create_metatile_index(self, z, x, y, stride):
+
+        """ Create MetaTileIndex object using current pyramid projection """
+
+        if stride < 1 or stride & (stride - 1) != 0:
+            raise InvalidTileParameter('stride must be power of 2, got %d',
+                                       stride)
+        dim = 2 ** z
+
+        # Adjust coordinate if tile is out of range
+        if x < 0 or x >= dim:
+            x = x % dim
+        if y < 0 or y >= dim:
+            y = y % dim
+
+        # Move coordinate to left top tile in the meta tile
+        x -= (x % stride)
+        y -= (y % stride)
+
+        # Adjust if stride is too large for current layer
+        if (stride >> z) > 0:
+            stride = dim
+
+        return MetaTileIndex(self, z, x, y, stride)
+
+    def create_dummy_metatile(self, z, x, y, stride, tiles):
+        if len(tiles) != stride * stride:
+            raise InvalidTileParameter('Invalid tiles for dummy metatile')
+
+        index = self.create_metatile_index(z, x, y, stride)
+
+        if set(index.fission()) != set(i for i in tiles.index):
+            raise InvalidTileParameter('Invalid tiles for dummy metatile')
+
+        return MetaTile(index, tiles)
+
+    def create_metatile(self, z, x, y, stride, data, metadata):
+        ext = metadata['ext']
+        assert ext in ['png', 'jpg']
+        index = self.create_metatile_index(z, x, y, stride)
+        z, x, y = index.coords
+
+        tile_datas = None  # gridcrop(data, stride, stride, ext=metadata['ext'])
+        tiles = list()
+        # Assume gridcrop returns ((i, j), data)
+        for (i, j), data in tile_datas.iteritems():
+            tile = self.create_tile(z, x + i, y + j, data, metadata)
+            tiles.append(tile)
+        return MetaTile(index, tiles)
+
 
