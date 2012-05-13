@@ -13,7 +13,7 @@ else:
     CLASS_REGISTRY['mapnik'] = MapnikRaster
 
 try:
-    from .gdaldem import GDALHillShade, GDALColorRelief, GDALRaster
+    from .gdaldem import GDALHillShade, GDALColorRelief, GDALDEMRaster
 except ImportError:
     warnings.warn('Can not import gdal or sqlalchemy, gdalmaker not available')
     CLASS_REGISTRY['gdal_hillshade'] = None
