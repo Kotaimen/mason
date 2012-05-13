@@ -25,6 +25,9 @@ class Cartographer(object):
         """
         raise NotImplementedError
 
+    def close(self):
+        pass
+
 
 #==============================================================================
 # Derived Types of Cartographer

@@ -32,6 +32,8 @@ class TestMapnikMaker(unittest.TestCase):
         test_result = './output/worldaltas.png'
         self._save_test_result(test_result, data)
 
+        maker.close()
+
     def testIndexColor(self):
         maker = MapnikRaster(theme_root='./input/',
                              theme_name='worldaltas',
@@ -47,6 +49,8 @@ class TestMapnikMaker(unittest.TestCase):
         test_result = './output/worldaltas_index_color.png'
         self._save_test_result(test_result, data)
 
+        maker.close()
+
     def testTransparency(self):
         maker = MapnikRaster(theme_root='./input/',
                              theme_name='worldaltas',
@@ -61,6 +65,8 @@ class TestMapnikMaker(unittest.TestCase):
 
         test_result = './output/worldaltas_index_color_transparency.png'
         self._save_test_result(test_result, data)
+
+        maker.close()
 
     def testPalette(self):
         maker = MapnikRaster(theme_root='./input/',
@@ -80,6 +86,8 @@ class TestMapnikMaker(unittest.TestCase):
         test_result = './output/worldaltas_index_color_palette.png'
         self._save_test_result(test_result, data)
 
+        maker.close()
+
     def testJPEG(self):
         jpeg_quality = 50
         maker = MapnikRaster(theme_root='./input/',
@@ -98,6 +106,7 @@ class TestMapnikMaker(unittest.TestCase):
         test_result = './output/worldaltas_JPEG_%d.jpeg' % jpeg_quality
         self._save_test_result(test_result, data)
 
+        maker.close()
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

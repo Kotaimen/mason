@@ -2,34 +2,46 @@ import warnings
 from .errors import *
 
 
-CLASS_REGISTRY = dict()
-
+#==============================================================================
+# Cartographer Prototype
+#==============================================================================
 try:
     from .mapniker import MapnikRaster
 except ImportError:
     warnings.warn('Can not import mapnik, mapnikmaker is not available')
-    CLASS_REGISTRY['mapnik'] = None
-else:
-    CLASS_REGISTRY['mapnik'] = MapnikRaster
+    MapnikRaster = None
 
 try:
     from .gdaldem import GDALHillShade, GDALColorRelief, GDALDEMRaster
 except ImportError:
     warnings.warn('Can not import gdal or sqlalchemy, gdalmaker not available')
-    CLASS_REGISTRY['gdal_hillshade'] = None
-    CLASS_REGISTRY['gdal_colorrelief'] = None
-else:
-    CLASS_REGISTRY['gdal_hillshade'] = GDALHillShade
-    CLASS_REGISTRY['gdal_colorrelief'] = GDALColorRelief
+    GDALHillShade = None
+    GDALColorRelief = None
+    GDALDEMRaster = None
+
+
+#==============================================================================
+# Cartographer Factory
+#==============================================================================
+class CartographerFactory(object):
+
+    CLASS_REGISTRY = dict(mapniker=MapnikRaster,
+                          hillshade=GDALHillShade,
+                          colorrelief=GDALColorRelief,)
+
+    def __call__(self, prototype, **params):
+        try:
+            class_prototype = self.CLASS_REGISTRY[prototype]
+        except KeyError:
+            raise Exception('Unkown prototype %s' % prototype)
+
+        if class_prototype is None:
+            raise Exception('Cartographer prototype %s is not \
+                             available.' % prototype)
+
+        return class_prototype(**params)
 
 
 def create_cartographer(prototype, **params):
-    try:
-        klass = CLASS_REGISTRY[prototype]
-    except KeyError:
-        raise Exception('Unkown prototype %s' % prototype)
-
-    if klass is None:
-        raise Exception('%s is not available.' % prototype)
-
-    return klass(**params)
+    """ Create a cartographer """
+    return CartographerFactory()(prototype, **params)

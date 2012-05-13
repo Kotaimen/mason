@@ -37,6 +37,9 @@ class GDALRasterTest(unittest.TestCase):
         with open(result, 'wb') as fp:
             fp.write(data)
 
+    def tearDown(self):
+        self._maker.close()
+
 
 class GDALHillShadeTest(unittest.TestCase):
 
@@ -69,6 +72,9 @@ class GDALHillShadeTest(unittest.TestCase):
 
         with open(self._result2, 'wb') as fp:
             fp.write(data)
+
+    def tearDown(self):
+        self._maker.close()
 
 
 class GDALColorReliefTest(unittest.TestCase):
@@ -104,6 +110,9 @@ class GDALColorReliefTest(unittest.TestCase):
 
         with open(self._result2, 'wb') as fp:
             fp.write(data)
+
+    def tearDown(self):
+        self._maker.close()
 
 
 if __name__ == "__main__":

@@ -189,3 +189,6 @@ class MapnikRaster(Raster):
             return image.tostring(self._image_type, self._palette)
         else:
             return image.tostring(self._image_type)
+
+    def close(self):
+        pass

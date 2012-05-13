@@ -90,12 +90,12 @@ class GDALDEMRaster(Raster):
                                        text=False)
         return fd, tmpname
 
-    def __del__(self):
-        self._session.close()
-
     def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
         """ Make raster image of a specified envelope """
         raise NotImplementedError
+
+    def close(self):
+        self._session.close()
 
 
 #==============================================================================
