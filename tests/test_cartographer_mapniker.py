@@ -13,6 +13,12 @@ class TestMapnikMaker(unittest.TestCase):
     def setUp(self):
         pass
 
+    def _save_test_result(self, name, data):
+        if os.path.exists(name):
+            os.remove(name)
+        with open(name, 'wb') as fp:
+            fp.write(data)
+
     def testTrueColor(self):
         maker = MapnikRaster(theme_root='./input/',
                              theme_name='worldaltas',
@@ -24,11 +30,7 @@ class TestMapnikMaker(unittest.TestCase):
         self.assert_(data)
 
         test_result = './output/worldaltas.png'
-        if os.path.exists(test_result):
-            os.remove(test_result)
-
-        with open(test_result, 'wb') as fp:
-            fp.write(data)
+        self._save_test_result(test_result, data)
 
     def testIndexColor(self):
         maker = MapnikRaster(theme_root='./input/',
@@ -43,11 +45,7 @@ class TestMapnikMaker(unittest.TestCase):
         self.assert_(data)
 
         test_result = './output/worldaltas_index_color.png'
-        if os.path.exists(test_result):
-            os.remove(test_result)
-
-        with open(test_result, 'wb') as fp:
-            fp.write(data)
+        self._save_test_result(test_result, data)
 
     def testTransparency(self):
         maker = MapnikRaster(theme_root='./input/',
@@ -62,11 +60,7 @@ class TestMapnikMaker(unittest.TestCase):
         self.assert_(data)
 
         test_result = './output/worldaltas_index_color_transparency.png'
-        if os.path.exists(test_result):
-            os.remove(test_result)
-
-        with open(test_result, 'wb') as fp:
-            fp.write(data)
+        self._save_test_result(test_result, data)
 
     def testPalette(self):
         maker = MapnikRaster(theme_root='./input/',
@@ -84,11 +78,7 @@ class TestMapnikMaker(unittest.TestCase):
         self.assert_(data)
 
         test_result = './output/worldaltas_index_color_palette.png'
-        if os.path.exists(test_result):
-            os.remove(test_result)
-
-        with open(test_result, 'wb') as fp:
-            fp.write(data)
+        self._save_test_result(test_result, data)
 
     def testJPEG(self):
         jpeg_quality = 50
@@ -106,11 +96,7 @@ class TestMapnikMaker(unittest.TestCase):
         self.assert_(data)
 
         test_result = './output/worldaltas_JPEG_%d.jpeg' % jpeg_quality
-        if os.path.exists(test_result):
-            os.remove(test_result)
-
-        with open(test_result, 'wb') as fp:
-            fp.write(data)
+        self._save_test_result(test_result, data)
 
 
 if __name__ == "__main__":
