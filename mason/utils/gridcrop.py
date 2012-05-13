@@ -8,27 +8,56 @@ Created on May 13, 2012
 
 
 import io
-import Image
 import subprocess
 
+try:
+    import Image
+except ImportError:
+    raise
 
-def gridcrop(data, rows, columns, ext):
-    # XXX: dummy impl
-    for row in range(rows):
-        for column in range(columns):
-            yield (row, column), b''
 
+def gridcrop(image_data, rows, columns, ext):
+
+    return dict(gridcrop_pil(image_data, rows, columns, ext))
+
+
+class _BytesIO(io.BytesIO):
+    # HACK: PIL expects file like object throw "AttributeError" when its 
+    #       not really a file.  This works for StringIO but not BytesIO:
+    #
+    #           >>> buf=StringIO.StringIO()
+    #           >>> buf.fileno()
+    #           Traceback (most recent call last):
+    #           File "<stdin>", line 1, in <module>
+    #           AttributeError: StringIO instance has no attribute 'fileno'
+    #
+    #           >>> buf=io.BytesIO()
+    #           >>> buf.fileno()
+    #           Traceback (most recent call last):
+    #           File "<stdin>", line 1, in <module>
+    #           io.UnsupportedOperation: fileno
+    #
+    #      So we restore the good-old behavior here, and hope someone patch
+    #      this in the future... (strangely this only happens when you try
+    #      save jpeg images to BytesIO)
+    def fileno(self):
+        raise AttributeError
 
 def gridcrop_pil(image_data, rows, columns, ext):
 
-    big_image = Image.open(io.BytesIO(image_data))
+    if ext == 'jpg':
+        ext = 'jpeg'
+    elif ext == 'tif':
+        ext = 'tiff'
+
+    big_image = Image.open(_BytesIO(image_data))
 
     width, height = big_image.size
     assert width % rows == 0
     assert height % columns == 0
 
     grid_width = width // rows
-    grid_height = height // height
+    grid_height = height // rows
 
     for row in range(0, rows):
         for column in range(0, columns):
@@ -40,10 +69,14 @@ def gridcrop_pil(image_data, rows, columns, ext):
             crop_box = (left, top, right, bottom)
 
             grid_image = big_image.crop(crop_box)
-            buf = io.BytesIO()
+            buf = _BytesIO()
 
             grid_image.save(buf, ext)
-            yield (row, column), buffer.getvalue()
+            yield (row, column), buf.getvalue()
+
+
+# TODO: Implement ImageMagick engine, subprocess call is ugly but is easily 
+#       portable between differen python versions.
 
 #
 #MAGIC_HEADERS = dict(png=b'd',

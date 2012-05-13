@@ -6,6 +6,7 @@ Created on Apr 29, 2012
 
 from .tile import TileIndex, Tile, MetaTileIndex, MetaTile
 from . import geo
+
 from ..utils import gridcrop
 #===============================================================================
 # Exceptions
@@ -157,18 +158,18 @@ class Pyramid(object):
 
         index = self.create_metatile_index(z, x, y, stride)
 
-        if set(index.fission()) != set(i for i in tiles.index):
+        if set(index.fission()) != set(t.index for t in tiles):
             raise InvalidTileParameter('Invalid tiles for dummy metatile')
 
         return MetaTile(index, tiles)
 
     def create_metatile(self, z, x, y, stride, data, metadata):
         ext = metadata['ext']
-        assert ext in ['png', 'jpg']
+        assert ext in ['png', 'jpg', 'tif']
         index = self.create_metatile_index(z, x, y, stride)
-        z, x, y = index.coords
+        z, x, y = index.coord
 
-        tile_datas = None  # gridcrop(data, stride, stride, ext=metadata['ext'])
+        tile_datas = gridcrop(data, stride, stride, ext=ext)
         tiles = list()
         # Assume gridcrop returns ((i, j), data)
         for (i, j), data in tile_datas.iteritems():
