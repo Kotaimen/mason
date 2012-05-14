@@ -28,3 +28,6 @@ pip-log.txt
 
 #test result
 tests/output/
+
+#server log files
+*.log

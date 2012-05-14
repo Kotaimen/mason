@@ -15,7 +15,6 @@ class TileNotFound(Exception):
 
 class Mason(object):
 
-
     """ The "TileLayerManager", create and manage one or more Tile layers
 
 
@@ -45,4 +44,16 @@ class Mason(object):
         return tile.data, tile.metadata
 
     def craft_metatile(self):
-        pass
+        raise NotImplementedError
+
+    def get_layers(self):
+        return self._layers.keys()
+
+    def get_layer_metadata(self, alias):
+        return self._layers[alias].metadata
+
+    def close(self):
+        for layer in self._layers.itervalues():
+            layer.close()
+
+
