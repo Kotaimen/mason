@@ -6,6 +6,7 @@ Created on Apr 29, 2012
 
 import hashlib
 
+from ..utils import gridcrop
 from .geo import Envelope
 
 
@@ -140,6 +141,7 @@ class MetaTileIndex(TileIndex):
         TileIndex.__init__(self, pyramid, z, x, y)
 
         self._stride = stride
+        self._pyramid = pyramid
 
         # A list of TileIndexes in the MetaTile
         self._indexes = list()
@@ -174,3 +176,24 @@ class MetaTile(Tile):
 
     def fission(self):
         return self._tiles
+
+    @staticmethod
+    def from_tile_index(metatile_index, data, metadata):
+        # Gridcrop really need to know image type
+        ext = metadata['ext']
+        if ext not in {'png', 'jpg', 'tif'}:
+            raise Exception('Sorry, only supports PNG/JPEG/TIFF image files')
+
+        z, x, y = metatile_index.coord
+        stride = metatile_index.stride
+        pyramid = metatile_index._pyramid
+
+        # Crop into grids, returns {(i, j): data}
+        tile_datas = gridcrop(data, stride, stride, ext=ext)
+
+        tiles = list()
+        for (i, j), data in tile_datas.iteritems():
+            tile = pyramid.create_tile(z, x + i, y + j, data, metadata)
+            tiles.append(tile)
+        return MetaTile(metatile_index, tiles)
+
