@@ -47,6 +47,9 @@ class TileSource(object):
     def get_metatile(self, metatile_index):
         raise NotImplementedError
 
+    def close(self):
+        raise NotImplementedError
+
 
 #==============================================================================
 # Cartographer Tile Source
