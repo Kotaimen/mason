@@ -124,6 +124,7 @@ def create_layer(tag,
 
     """
 
+    # Create Pyramid Object
     pyramid = Pyramid(levels=levels,
                       tile_size=tile_size,
                       envelope=envelope,
@@ -131,9 +132,16 @@ def create_layer(tag,
                       proj=proj
                       )
 
-    source = TileSourceFactory()(source)
+    if source is None:
+        source_object = None
+    else:
+        source_config = dict(source)
+        source_object = TileSourceFactory()(**source)
 
-    storage = TileStorageFactory()(storage)
+    storage_config = dict(storage)
+    if 'tag' not in storage_config:
+        storage_config['tag'] = tag
+    storage = TileStorageFactory()(**storage_config)
 
     metadata.update(dict(name=tag,
                          extension=ext,

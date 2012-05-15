@@ -9,12 +9,34 @@ Created on May 14, 2012
 import os, os.path
 import pprint
 import optparse
+import time
 
 # Use cherrypy as http server framework, we don't need ORM here
 import cherrypy
 
+import mason
+
 VERSION = '0.8'
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
+
+WEEKDAY_NAME = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+MONTH_NAME = [None,
+              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+
+def date_time_string(self, timestamp=None):
+    """ Convert a filesystem timestamp to http response time, taken
+    from BaseHTTPRequestHandler.date_time_string() """
+
+    if timestamp is None:
+        timestamp = time.time()
+    year, month, day, hh, mm, ss, wd, y, z = time.gmtime(timestamp)
+    s = "%s, %02d %3s %4d %02d:%02d:%02d GMT" % (
+            WEEKDAY_NAME[wd],
+            day, MONTH_NAME[month], year,
+            hh, mm, ss)
+    return s
 
 
 def create_root_object(options):
@@ -22,7 +44,8 @@ def create_root_object(options):
     class TileService(object):
 
         def __init__(self):
-            self.mason = None
+            self.mason = mason.create_mason_from_config(options.config,
+                                                        options.mode)
 
         def shutdown(self):
             pass
@@ -30,13 +53,27 @@ def create_root_object(options):
         @cherrypy.expose
         @cherrypy.tools.gzip(mime_types=['application/json', 'text/plain', 'text/html'])
         def default(self, alias, z, x, y, **options):
-            return 'Tile(%s/%s/%s/%s)' % (alias, z, x, y)
+            z = int(z)
+            x = int(x)
+            y, ext = tuple(y.split('.', 1))
+            y = int(y)
+
+            data, metadata = self.mason.craft_tile(alias, z, x, y)
+
+            response = cherrypy.serving.response
+            response.headers['Content-Type'] = metadata['mimetype']
+            response.headers['Content-Length'] = len(data)
+            response.headers['Last-Modified'] = date_time_string(metadata['mtime'])
+
+            response.body = data
+            return response.body
+
 
     class Root(object):
 
         @cherrypy.expose
         def index(self):
-            raise cherrypy.HTTPRedirect('/static/index.html')
+            raise cherrypy.HTTPRedirect('/static/polyviewer.html')
 
         # Anything starts with "tile" goes to tile
         tile = TileService()
@@ -63,9 +100,9 @@ Running a process based server like gunicorn is strongly recommended.
 
     parser.add_option('-c', '--config',
                       dest='config',
-                      default='tileserver.cfg',
+                      default='tileserver.cfg.py',
                       help='''Specify location of the configuration file, default
-                      is tileserver.cfg in current script directory''',
+                      is tileserver.cfg.py in current script directory''',
                       metavar='FILE',
                       )
 
