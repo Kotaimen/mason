@@ -184,7 +184,7 @@ def main():
     host, port = tuple(options.bind.split(':', 1))
 
     # Overwrite cherrypy options
-    cherrypy.config.update({'server.socket_hos': host,
+    cherrypy.config.update({'server.socket_host': host,
                             'server.socket_port': int(port),
                             'server.thread_pool': options.workers,
                             'log.screen': not options.quiet,
