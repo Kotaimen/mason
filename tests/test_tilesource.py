@@ -12,18 +12,14 @@ from mason.tilesource import create_tile_source
 class TestTileSource(unittest.TestCase):
 
     def setUp(self):
-        prototype = 'cartographer'
-        cartographer_config = dict(prototype='mapnik',
-                                   theme_root='./input/',
-                                   theme_name='worldaltas',
-                                   image_type='png'
-                                   )
+        config = dict(prototype='mapnik',
+                       tag='text',
+                       theme_root='./input/',
+                       theme_name='worldaltas',
+                       image_type='png'
+                       )
 
-        tilesource_config = dict(cartographer_config=cartographer_config)
-
-        self._tile_source = create_tile_source(prototype,
-                                               'test',
-                                               **tilesource_config)
+        self._tile_source = create_tile_source(**config)
         self._pyramid = Pyramid()
 
     def _save_test_result(self, name, data):
@@ -38,7 +34,8 @@ class TestTileSource(unittest.TestCase):
         tile = self._tile_source.get_tile(tile_index)
 
         self.assertEqual(tile.index.coord, (z, x, y))
-        self.assertIn('timestamp', tile.metadata)
+        self.assertIn('mtime', tile.metadata)
+        self.assertIn('mimetype', tile.metadata)
         self.assert_(tile.data)
 
         test_result = './output/worldaltas_tile_source.png'
