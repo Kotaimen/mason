@@ -15,6 +15,7 @@ import time
 import cherrypy
 
 import mason
+from mason.utils import Timer
 
 VERSION = '0.8'
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -58,7 +59,11 @@ def create_root_object(options):
             y, ext = tuple(y.split('.', 1))
             y = int(y)
 
-            data, metadata = self.mason.craft_tile(alias, z, x, y)
+            logger = cherrypy.request.app.log.access_log
+
+            with Timer('Tile(%s/%d/%d/%d) craft in %%(time)s.' % (alias, z, x, y),
+                       logger.info, newline=False):
+                data, metadata = self.mason.craft_tile(alias, z, x, y)
 
             response = cherrypy.serving.response
             response.headers['Content-Type'] = metadata['mimetype']
@@ -67,6 +72,15 @@ def create_root_object(options):
 
             response.body = data
             return response.body
+
+        @cherrypy.expose
+        @cherrypy.tools.json_out()
+        def layers(self, alias):
+            if alias == '*':
+
+                return self.mason.get_layers()
+            else:
+                return self.mason.get_layer_metadata(alias)
 
 
     class Root(object):

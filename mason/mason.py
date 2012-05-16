@@ -50,7 +50,10 @@ class Mason(object):
         return self._layers.keys()
 
     def get_layer_metadata(self, alias):
-        return self._layers[alias].metadata
+        try:
+            return self._layers[alias].metadata
+        except KeyError:
+            return {}
 
     def close(self):
         for layer in self._layers.itervalues():
