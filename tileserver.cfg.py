@@ -32,8 +32,8 @@ LAYERS = [
             },
             {
             'prototype': 'mbtiles',
-            'tag': 'worldatlas',            
-             'database': r'/Users/Kotaimen/proj/python_dev/geography-class.mbtiles',
+            'tag': 'worldatlas',
+             'database': r'./samples/data/geography-class.mbtiles',
             },
             ]
         },
@@ -42,7 +42,7 @@ LAYERS = [
         'Description': 'Sample map from TileMill',
         }
     },
-    
+
     # LAYER 2 -------------------------------------------------------------------
 
 ]
