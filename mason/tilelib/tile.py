@@ -5,8 +5,15 @@ Created on Apr 29, 2012
 '''
 
 import hashlib
+import warnings
 
-from ..utils import gridcrop
+try:
+    from ..utils import gridcrop
+except ImportError:
+    warnings.warn("Can't import mason.utils.gridcrop, install PIL/imagemagick")
+    def gridcrop(*args):
+        raise NotImplementedError
+
 from .geo import Envelope
 
 

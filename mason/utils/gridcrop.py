@@ -12,20 +12,26 @@ import subprocess
 
 try:
     import Image
+    HAS_PIL = True
 except ImportError:
-    raise
+    HAS_PIL = False
 
 try:
     output = subprocess.check_output(['convert', '-version'])
+    # XXX: Check version? requires 6.5+.
+    HAS_IMAGEMAGICK = True
 except Exception:
-    raise ImportError('Requires ImageMagick')
+    HAS_IMAGEMAGICK = False
+
+if not (HAS_PIL or HAS_IMAGEMAGICK):
+    raise ImportError('Requires ImageMagick or PIL but got nothing')
 
 
 def gridcrop(image_data, rows, columns, ext):
-    if ext in ['png', 'jpg']:
+
+    if HAS_PIL and ext in ['png', 'jpg']:
         return dict(gridcrop_pil(image_data, rows, columns, ext))
     else:
-        # PIL don't handle tiff very well, let imagemagick deal with it
         return dict(gridcrop_magick(image_data, rows, columns, ext))
 
 
