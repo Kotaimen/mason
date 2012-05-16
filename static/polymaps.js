@@ -1566,7 +1566,7 @@ po.wheel = function() {
   var wheel = {},
       timePrev = 0,
       last = 0,
-      smooth = true,
+      smooth = false,
       zoom = "mouse",
       location,
       map,

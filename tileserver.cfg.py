@@ -13,7 +13,7 @@ LAYERS = [
     'tag': 'worldatlas',
     'ext': 'png',
     'mimetype': 'image/png',
-    'levels':  range(0, 6),
+    'levels':  range(0, 10),
     'tile_size': 256,
     'envelope': (-180, -85.06, 180, 85.06),
     'center': (0, 0),
@@ -21,6 +21,8 @@ LAYERS = [
     'proj': 'ESPG:3857',
     'mode': 'default',
     'source':
+#         None,
+        
         {
         'prototype': 'mapnik',
         'theme_root': './samples/themes/',
@@ -28,16 +30,27 @@ LAYERS = [
         'image_type': 'png',
         },
     'storage':
+#         None,
+        
         {
-         'prototype': 'filesystem',
-         'tag':     'worldaltas',
-         'root': '/tmp/worldaltas/',
-         'ext': 'png',
-         'simple': True,
+        'prototype': 'filesystem',
+        'tag': 'worldaltas',
+        'root': '/tmp/worldaltas/',
+        'ext': 'png',
+        'simple': True,
         },
+
+#         {
+#         'prototype': 'mbtiles',
+#         'tag': 'worldaltas',
+#         'database': '/tmp/worldaltas.mbtiles',
+#         'ext': 'png',
+#         },
+
+
     'metadata':
         {
-        'Description': 'Sample map from TileMill',
+        'Description': 'Sample Map',
         }
     },
 

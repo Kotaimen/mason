@@ -11,7 +11,7 @@
 </Style>
 <Style name="10mland-fill" filter-mode="first">
   <Rule>
-    <PolygonSymbolizer fill="#ffffff" gamma="0.3" />
+    <PolygonSymbolizer fill="#ffffff" gamma="0.5" />
   </Rule>
 </Style>
 <Style name="10mland-outline" filter-mode="first">

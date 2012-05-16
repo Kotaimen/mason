@@ -65,6 +65,10 @@ class CartographerTileSource(TileSource):
 
         # Make a metadata template
         ext = self._cartographer.data_type
+        if ext.startswith('png'):
+            ext = 'png'
+        elif ext.lower.endswith('tiff'):
+            ext = 'tif'
         mimetype = mimetypes.guess_type('ext.%s' % ext)[0]
         self._metadata = dict(ext=ext,
                               mimetype=mimetype)
@@ -77,8 +81,8 @@ class CartographerTileSource(TileSource):
         size = (width, height)
         envelope = tile_index.envelope.make_tuple()
 
-        with Timer('Tile doodle time taken: %(time)s'):
-            data = self._cartographer.doodle(envelope, size)
+#        with Timer('Tile doodle time taken: %(time)s'):
+        data = self._cartographer.doodle(envelope, size)
 
         metadata = dict(self._metadata)
         metadata['mtime'] = time.time()
