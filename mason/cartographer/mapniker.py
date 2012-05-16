@@ -5,9 +5,14 @@ Created on May 2, 2012
 '''
 
 import os
-# from mapnik 2.0.1, module name mapnik2 is deprecated.
-# using mapnik instead.
-import mapnik
+
+try:
+    # From mapnik 2.0.1, module name mapnik2 is deprecated
+    import mapnik
+except ImportError:
+    # In case of mapnik 2.0.0
+    import mapnik2 as mapnik
+
 from .cartographer import Raster
 from .errors import (MapnikVersionError,
                      MapnikThemeNotFound,
