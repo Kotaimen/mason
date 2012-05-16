@@ -95,7 +95,7 @@ class TestFileSystemTileStorageDefault(TileStorageTestMixin, unittest.TestCase):
                                           )
 
     def tearDown(self):
-        self.storage.flush_all()
+#        self.storage.flush_all()
         self.storage.close()
 
     def testFilename(self):
@@ -130,7 +130,7 @@ class TestFileSystemTileStorageCompressed(TileStorageTestMixin, unittest.TestCas
                                )
 
     def tearDown(self):
-        self.storage.flush_all()
+#        self.storage.flush_all()
         self.storage.close()
 
     def testFilename(self):
@@ -146,6 +146,27 @@ class TestFileSystemTileStorageCompressed(TileStorageTestMixin, unittest.TestCas
                                                     '20',
                                                     '00', '07', 'C0', '0F',
                                                     '20-1000-2000.txt.gz')))
+
+class TestFileSystemTileStorageSimpleCompressed(TileStorageTestMixin, unittest.TestCase):
+
+    def setUp(self):
+        self.pyramid = Pyramid(levels=list(xrange(0, 21)))
+        self.output_dir = os.path.join('output', 'test_fsstorage3')
+        if os.path.exists(self.output_dir):
+            shutil.rmtree('test_fsstorage3', ignore_errors=True)
+
+        self.storage = factory('filesystem',
+                               'teststorage',
+                               root=self.output_dir,
+                               ext='txt',
+                               mimetype='text/plain',
+                               compress=True,
+                               simple=True,
+                               )
+
+    def tearDown(self):
+#        self.storage.flush_all()
+        self.storage.close()
 
 
 class TestMemcacheStorageDefault(TileStorageTestMixin, unittest.TestCase):
@@ -190,15 +211,19 @@ class TestMBTilesStorage(TileStorageTestMixin, unittest.TestCase):
     def setUp(self):
         # Create storage in another thread so we can verify whether the
         # thread safety code works.
+        self.storage = None
         thread = threading.Thread(target=self._setUp)
         thread.start()
         thread.join()
+        assert self.storage is not None
+
 
     def _setUp(self):
         self.pyramid = Pyramid(levels=list(xrange(0, 21)))
         self.output_dir = os.path.join('output', 'test_fsstorage2')
-        database = './output/mbtiles_test.db'
-        os.remove(database)
+        database = './output/test_mbtiles1.db'
+        if os.path.exists(database):
+            os.remove(database)
         self.storage = factory('mbtiles',
                                'teststorage',
                                database=database,

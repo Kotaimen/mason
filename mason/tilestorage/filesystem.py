@@ -48,6 +48,11 @@ class FileSystemTileStorage(TileStorage):
     compress
         Optional, whether to compress file using gzip (the written file will
         have .ext.gz as extension), default value is False.
+
+    simple
+        Optional, whether to use simple directory theme (z/x/y.ext), recommended
+        when serving small number of tiles (or serve direct from a static file
+        server).
     """
 
     def __init__(self,
@@ -56,6 +61,7 @@ class FileSystemTileStorage(TileStorage):
                  ext='dat',
                  mimetype=None,
                  compress=False,
+                 simple=False,
                  ):
         TileStorage.__init__(self, tag)
 
@@ -79,11 +85,18 @@ class FileSystemTileStorage(TileStorage):
         # Append .gz to extension if compression is on
         self._use_gzip = bool(compress)
 
+        # Decide which basename to use accordion to directory name mode
+        self._simple = simple
         self._basename = '%d-%d-%d.' + self._ext
 
     def _make_pathname(self, tile_index):
-        dirname = os.path.join(*tile_coordiante_to_dirname(*tile_index.coord))
-        basename = self._basename % tile_index.coord
+
+        if self._simple:
+            basename = '%d.%s' % (tile_index.y, self._ext)
+            dirname = os.path.join(str(tile_index.z), str(tile_index.x))
+        else:
+            basename = self._basename % tile_index.coord
+            dirname = os.path.join(*tile_coordiante_to_dirname(*tile_index.coord))
         if self._use_gzip:
             basename += '.gz'
         return os.path.join(self._root, dirname, basename)
