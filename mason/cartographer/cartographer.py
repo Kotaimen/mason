@@ -15,6 +15,9 @@ class Cartographer(object):
     Cartographer takes a bounding box to generate geographic data
     related to that given area.
     """
+    @property
+    def data_type(self):
+        raise NotImplementedError
 
     def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
         """ Make geographic data in the envelope and project to
@@ -53,6 +56,10 @@ class Raster(Cartographer):
 
         self._image_type = image_type.lower()
         self._image_parameters = image_parameters
+
+    @property
+    def data_type(self):
+        return self._image_type
 
 
 class GeoJson(Cartographer):

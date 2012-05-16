@@ -11,26 +11,12 @@ class TileSourceCreator(object):
         raise NotImplementedError
 
 
-class CartographerTileSourceCreator(TileSourceCreator):
+class CartographerCreator(TileSourceCreator):
 
-    """ Cartographer Tile Source Creator
+    """ Cartographer Tile Source Creator """
 
-    params
-        cartographer_config
-            prototype    cartographer prototype
-            params       cartographer parameters
-    """
-
-    def __call__(self, tag, **params):
-
-        config = params.get('cartographer_config', None)
-        if not config:
-            raise Exception('"cartographer_config" is expected.')
-
-        prototype = config['prototype']
-        del config['prototype']
-
-        cartographer = create_cartographer(prototype, **config)
+    def __call__(self, prototype, tag, **params):
+        cartographer = create_cartographer(prototype, **params)
         return CartographerTileSource(tag, cartographer)
 
 
@@ -41,7 +27,10 @@ class TileSourceFactory(object):
 
     """ Tile Source Factory """
 
-    CLASS_REGISTRY = dict(cartographer=CartographerTileSourceCreator())
+    CLASS_REGISTRY = dict(mapnik=CartographerCreator(),
+                          hillshade=CartographerCreator(),
+                          colorrelief=CartographerCreator(),
+                          )
 
     def __call__(self, prototype, tag, **params):
 
@@ -49,7 +38,7 @@ class TileSourceFactory(object):
         if class_prototype is None:
             raise Exception('Unknown tile source prototype "%s"' % prototype)
 
-        return class_prototype(tag, **params)
+        return class_prototype(prototype, tag, **params)
 
 
 def create_tile_source(prototype, tag, **params):
@@ -64,15 +53,14 @@ def create_tile_source(prototype, tag, **params):
     params
         parameters of tile source
 
-    example
-        {
-            'prototype':    'cartographer'
-            'cartographer_config' : {
-                                        'prototype': 'mapnik',
-                                        'theme_root': './input/',
-                                        'theme_name': 'worldaltas',
-                                        'image_type': 'png'
-                                    }
-       }
+    configuration example
+        'source':
+            {
+            'prototype': 'mapnik',
+            'tag': 'example',
+            'theme_root': './samples/themes/',
+            'theme_name': 'worldaltas',
+            'image_type': 'png',
+            },
     """
     return TileSourceFactory()(prototype, tag, **params)

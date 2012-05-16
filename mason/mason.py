@@ -20,8 +20,8 @@ class Mason(object):
 
     """
 
-    def __init__(self, mode='default'):
-        assert mode in ['default', 'readonly', 'rewrite']
+    def __init__(self, mode='readonly'):
+        assert mode in ['readonly', 'readwrite']
         self._mode = mode
         self._layers = dict()
 

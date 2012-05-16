@@ -27,7 +27,7 @@ class Layer(object):
         self._source = source
         self._storage = storage
         self._metadata = metadata
-        assert mode in ['default', 'readonly', 'rewrite']
+        assert mode in ['readonly', 'readwrite', 'overwrite']
         self._mode = mode
 
     @property
@@ -43,7 +43,7 @@ class Layer(object):
         tile_index = self._pyramid.create_tile_index(z, x, y)
 
         # Read from storage first
-        if self._mode != 'rewrite':
+        if self._mode != 'overwrite':
             tile = self._storage.get(tile_index)
             if self._mode == 'readonly' or tile is not None:
                 return tile
@@ -62,7 +62,7 @@ class Layer(object):
 
         tile_indexes = metatile_index.fission()
         # Check whether tiles are all rendered
-        if self._mode != 'rewrite':
+        if self._mode != 'overwrite':
             if self._storage.has_all(tile_indexes):
                 return
 
@@ -88,7 +88,7 @@ def create_layer(tag,
                  center=(0, 0),
                  crs='EPSG:4326',
                  proj='ESPG:3857',
-                 mode='default',
+                 mode='readonly',
                  source={},
                  storage={},
                  metadata={},
@@ -132,17 +132,25 @@ def create_layer(tag,
                       proj=proj
                       )
 
+    # create source object
     if source is None:
         source_object = None
     else:
         source_config = dict(source)
-        source_object = TileSourceFactory()(**source)
+        if 'tag' not in source_config:
+            source_config['tag'] = tag
+        source_object = TileSourceFactory()(**source_config)
 
-    storage_config = dict(storage)
-    if 'tag' not in storage_config:
-        storage_config['tag'] = tag
-    storage = TileStorageFactory()(**storage_config)
+    # create storage object
+    if storage is None:
+        storage_config = {'prototype': 'null', 'tag': tag}
+    else:
+        storage_config = dict(storage)
+        if 'tag' not in storage_config:
+            storage_config['tag'] = tag
+    storage_object = TileStorageFactory()(**storage_config)
 
+    # create metadata
     metadata.update(dict(name=tag,
                          extension=ext,
                          mimetype=mimetype,
@@ -152,6 +160,5 @@ def create_layer(tag,
                          crs=crs,
                          projection=proj))
 
-    return Layer(tag, pyramid, source, storage, metadata,
+    return Layer(tag, pyramid, source_object, storage_object, metadata,
                  mode=mode)
-

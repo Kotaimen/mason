@@ -20,22 +20,20 @@ LAYERS = [
     'crs': 'ESPG:4326',
     'proj': 'ESPG:3857',
     'mode': 'default',
-    'source': None,
+    'source':
+        {
+        'prototype': 'mapnik',
+        'theme_root': './samples/themes/',
+        'theme_name': 'worldaltas',
+        'image_type': 'png',
+        },
     'storage':
         {
-        'prototype': 'cascade',
-        'storages': [
-            {
-            'prototype': 'memcache',
-            'tag': 'worldatlas',
-            'servers': ['localhost:11211'],
-            },
-            {
-            'prototype': 'mbtiles',
-            'tag': 'worldatlas',
-             'database': r'./samples/data/geography-class.mbtiles',
-            },
-            ]
+         'prototype': 'filesystem',
+         'tag':     'worldaltas',
+         'root': '/tmp/worldaltas/',
+         'ext': 'png',
+         'simple': True,
         },
     'metadata':
         {

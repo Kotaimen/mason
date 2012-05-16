@@ -17,6 +17,8 @@ def create_mason_from_config(config_file, mode):
     mason = Mason(mode)
 
     for layer_config in layers_config:
+        layer_config = dict(layer_config)
+        layer_config['mode'] = mode
         layer = create_layer(**layer_config)
         mason.add_layer(layer)
 

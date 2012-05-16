@@ -137,7 +137,7 @@ Running a process based server like gunicorn is strongly recommended.
 
     parser.add_option('-m', '--mode',
                       dest='mode',
-                      choices=['readonly', 'hybrid'],
+                      choices=['readonly', 'readwrite'],
                       default='readonly',
                       help='''Operate mode, set to "readonly" (the default value)
                       for read tile only from storage; set to "hybrid" enables online rendering.

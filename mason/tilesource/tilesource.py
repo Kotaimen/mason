@@ -4,6 +4,7 @@ Created on May 10, 2012
 @author: ray
 '''
 import time
+import mimetypes
 from ..utils import Timer
 from ..tilelib import Tile
 
@@ -62,9 +63,15 @@ class CartographerTileSource(TileSource):
         TileSource.__init__(self, tag)
         self._cartographer = cartographer
 
+        # Make a metadata template
+        ext = self._cartographer.data_type
+        mimetype = mimetypes.guess_type('ext.%s' % ext)[0]
+        self._metadata = dict(ext=ext,
+                              mimetype=mimetype)
+
     def get_tile(self, tile_index):
         """ Get tile according to the tile index """
-        # tile is a square.
+        # tile is square-shaped.
         width = height = tile_index.pixel_size
 
         size = (width, height)
@@ -73,8 +80,10 @@ class CartographerTileSource(TileSource):
         with Timer('Tile doodle time taken: %(time)s'):
             data = self._cartographer.doodle(envelope, size)
 
-        metadata = dict()
-        metadata['timestamp'] = time.time()
+
+        metadata = dict(self._metadata)
+        metadata['mtime'] = time.time()
+
         tile = Tile.from_tile_index(tile_index, data, metadata)
 
         return tile
