@@ -208,7 +208,7 @@ class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
                 if row is None:
                     return None
 
-                data = row[0]
+                data = bytes(row[0])
                 metadata = dict(ext=self._ext,
                                 mimetype=self._mimetype,
                                 mtime=self._mtime)
