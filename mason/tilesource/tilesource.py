@@ -80,7 +80,6 @@ class CartographerTileSource(TileSource):
         with Timer('Tile doodle time taken: %(time)s'):
             data = self._cartographer.doodle(envelope, size)
 
-
         metadata = dict(self._metadata)
         metadata['mtime'] = time.time()
 

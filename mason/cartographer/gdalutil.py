@@ -41,7 +41,32 @@ def _subprocess_call(command_list):
         raise GDALProcessError(str(e))
 
 
-def gdal_hillshade(src, dst, zfactor=1, scale=1, azimuth=315, altitude=45):
+def _make_control_params(image_type, image_parameters):
+    control_params = list()
+
+    image_type = image_type.upper()
+    assert image_type in ('GTIFF', 'PNG', 'JPEG')
+    if image_parameters:
+        assert isinstance(image_parameters, dict)
+        if image_type == 'JPEG':
+            quality = image_parameters.get('quality', None)
+            if not isinstance(quality, int):
+                raise Exception('Quality should be an integer.')
+            if quality > 100 or quality < 10:
+                raise Exception('Invalid JPEG quality.')
+            control_params.extend(['-co', "quality=%d" % quality])
+    return control_params
+
+
+def gdal_hillshade(src,
+                   dst,
+                   zfactor=1,
+                   scale=1,
+                   azimuth=315,
+                   altitude=45,
+                   image_type='GTIFF',
+                   image_parameters=None
+                   ):
     """
     To generate a hill shade from dem data source.
 
@@ -62,25 +87,42 @@ def gdal_hillshade(src, dst, zfactor=1, scale=1, azimuth=315, altitude=45):
     altitude
         altitude of the light, in degrees.
 
+    image_type
+        output file format (GTIFF, PNG, JPEG)
+
+    image_parameters
+        output file format parameters
+
     -compute_edges
         before gdal 1.8 a rectangle with nodata value will be generated with
         output files. This can be fixed with computed_edges option in gdal 1.8
         and later.
 
     """
+
     z, s, az, alt = map(str, (zfactor, scale, azimuth, altitude))
+    control_params = _make_control_params(image_type, image_parameters)
+
     command_list = ['gdaldem', 'hillshade', src, dst,
                     '-z', z,
                     '-s', s,
                     '-az', az,
                     '-alt', alt,
                     '-compute_edges',
+                    '-of', image_type,
                     '-q'
                     ]
+
+    command_list.extend(control_params)
+
     return _subprocess_call(command_list)
 
 
-def gdal_colorrelief(src, dst, color_context):
+def gdal_colorrelief(src,
+                     dst,
+                     color_context,
+                     image_type='GTIFF',
+                     image_parameters=None):
     """
     To generate a color relief from dem data source
 
@@ -97,8 +139,18 @@ def gdal_colorrelief(src, dst, color_context):
             nv     0   0   0
         nv: no data value
 
+    image_type
+        output file format (GTIFF, PNG, JPEG)
+
+    image_parameters
+        output file format parameters
     """
-    command_list = ['gdaldem', 'color-relief', src, color_context, dst, '-q']
+    control_params = _make_control_params(image_type, image_parameters)
+    command_list = ['gdaldem', 'color-relief', src, color_context, dst,
+                    '-of', image_type,
+                    '-q']
+
+    command_list.extend(control_params)
     return _subprocess_call(command_list)
 
 
