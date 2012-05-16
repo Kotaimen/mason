@@ -14,8 +14,6 @@ class TileIndex(object):
 
     """ Coordinate index of a Tile object """
 
-    __slots__ = '_coord', '_envelope', '_serial', '_shard', '_pixsize'
-
     def __init__(self, pyramid, z, x, y):
         self._coord = z, x, y
         # Calculate envelope and serial so Tile can be detached from Pyramid
@@ -88,8 +86,6 @@ class Tile(object):
         String, ISO format time of last tile modification time
 
     """
-
-    __slots__ = '_index', '_data', '_metadata', '_hash'
 
     def __init__(self, index, data, metadata):
         assert isinstance(index, TileIndex)
