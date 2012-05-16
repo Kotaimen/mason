@@ -30,7 +30,7 @@ class Options(object):
     # Absolute path to configuration file
     config = os.path.abspath('tileserver.cfg.py')
     # Server mode, can be 'default' or 'readonly'
-    mode = 'default'
+    mode = 'readwrite'
 
 application = cherrypy.Application(tileserver.create_root_object(Options()),
                                    script_name=None,
