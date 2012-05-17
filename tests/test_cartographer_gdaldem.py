@@ -6,10 +6,7 @@ Created on May 2, 2012
 
 import os
 import unittest
-from mason.cartographer.gdaldem import (GDALDEMRaster,
-                                        GDALHillShade,
-                                        GDALColorRelief,
-                                       )
+from mason.cartographer.gdaldem import GDALHillShade, GDALColorRelief
 
 
 TEST_SVR = 'postgresql+psycopg2://postgres:123456@localhost:5432/world_dem'
@@ -17,102 +14,185 @@ TEST_TBL = 'world'
 TEST_ENVELOPE = (103.9995833, 27.9995833, 104.5004167, 28.5004167)
 
 
-class GDALRasterTest(unittest.TestCase):
+class CartographerHillShadeTest(unittest.TestCase):
 
     def setUp(self):
-        self._maker = GDALDEMRaster(server=TEST_SVR,
-                                    dem_table='world',
-                                    image_type='gtiff')
-
-        self._result = './output/test_result_raw'
-        if os.path.exists(self._result):
-            os.remove(self._result)
-
-    def testGetDemData(self):
-        envelope = TEST_ENVELOPE
-        data = self._maker.get_dem_data(envelope)
-        self.assert_(data)
-
-        result = './output/test_result_raw'
-        with open(result, 'wb') as fp:
-            fp.write(data)
+        pass
 
     def tearDown(self):
-        self._maker.close()
+        pass
 
+    def test_HillShade_256x256(self):
+        cartograher = GDALHillShade(server=TEST_SVR, dem_table=TEST_TBL)
+        test_result = './output/test_cartographer_hillshade_256x256.tif'
+        if os.path.exists(test_result):
+            os.remove(test_result)
 
-class GDALHillShadeTest(unittest.TestCase):
-
-    def setUp(self):
-        self._maker = GDALHillShade(server=TEST_SVR,
-                                    dem_table='world',
-                                    image_type='gtiff')
-
-        self._result1 = './output/test_result_hillshade_256_256'
-        if os.path.exists(self._result1):
-            os.remove(self._result1)
-
-        self._result2 = './output/test_result_hillshade_512_512'
-        if os.path.exists(self._result2):
-            os.remove(self._result2)
-
-    def testMakeHillShade(self):
         size = (256, 256)
         envelope = TEST_ENVELOPE
-        data = self._maker.doodle(envelope, size)
+        data = cartograher.doodle(envelope, size)
         self.assert_(data)
 
-        with open(self._result1, 'wb') as fp:
+        with open(test_result, 'wb') as fp:
             fp.write(data)
+
+        cartograher.close()
+
+    def test_HillShade_512x512(self):
+        cartograher = GDALHillShade(server=TEST_SVR, dem_table=TEST_TBL)
+        test_result = './output/test_cartographer_hillshade_512x512.tif'
+        if os.path.exists(test_result):
+            os.remove(test_result)
 
         size = (512, 512)
         envelope = TEST_ENVELOPE
-        data = self._maker.doodle(envelope, size)
+        data = cartograher.doodle(envelope, size)
         self.assert_(data)
 
-        with open(self._result2, 'wb') as fp:
+        with open(test_result, 'wb') as fp:
             fp.write(data)
 
-    def tearDown(self):
-        self._maker.close()
+        cartograher.close()
+
+    def test_HillShade_PNG(self):
+        cartograher = GDALHillShade(server=TEST_SVR,
+                                    dem_table=TEST_TBL,
+                                    image_type='png')
+        test_result = './output/test_cartographer_hillshade_png.png'
+        if os.path.exists(test_result):
+            os.remove(test_result)
+
+        size = (256, 256)
+        envelope = TEST_ENVELOPE
+        data = cartograher.doodle(envelope, size)
+        self.assert_(data)
+
+        with open(test_result, 'wb') as fp:
+            fp.write(data)
+
+        cartograher.close()
+
+    def test_HillShade_JPEG(self):
+        cartograher = GDALHillShade(server=TEST_SVR,
+                                    dem_table=TEST_TBL,
+                                    image_type='jpeg',
+                                    image_parameters={'quality': 95})
+        test_result = './output/test_cartographer_hillshade_jpeg_95.jpg'
+        if os.path.exists(test_result):
+            os.remove(test_result)
+
+        size = (256, 256)
+        envelope = TEST_ENVELOPE
+        data = cartograher.doodle(envelope, size)
+        self.assert_(data)
+
+        with open(test_result, 'wb') as fp:
+            fp.write(data)
+
+        cartograher.close()
 
 
 class GDALColorReliefTest(unittest.TestCase):
 
     def setUp(self):
-        color_context = './input/HypsometricColors(Light).txt'
-        self._maker = GDALColorRelief(color_context=color_context,
+        self._color_context = './input/HypsometricColors(Light).txt'
+#        self._maker = GDALColorRelief(color_context=color_context,
+#                                      server=TEST_SVR,
+#                                      dem_table='world',
+#                                      image_type='gtiff')
+#
+#        self._result1 = './output/test_result_color_relief_256_256'
+#        if os.path.exists(self._result1):
+#            os.remove(self._result1)
+#
+#        self._result2 = './output/test_result_color_relief_512_512'
+#        if os.path.exists(self._result2):
+#            os.remove(self._result2)
+
+    def test_ColorRelief_256x256(self):
+        color_context = self._color_context
+        cartograher = GDALColorRelief(color_context=color_context,
                                       server=TEST_SVR,
                                       dem_table='world',
                                       image_type='gtiff')
 
-        self._result1 = './output/test_result_color_relief_256_256'
-        if os.path.exists(self._result1):
-            os.remove(self._result1)
+        test_result = './output/test_cartographer_colorrelief_256x256.tif'
+        if os.path.exists(test_result):
+            os.remove(test_result)
 
-        self._result2 = './output/test_result_color_relief_512_512'
-        if os.path.exists(self._result2):
-            os.remove(self._result2)
-
-    def testMakeColorRelief(self):
         size = (256, 256)
         envelope = TEST_ENVELOPE
-        data = self._maker.doodle(envelope, size)
+        data = cartograher.doodle(envelope, size)
         self.assert_(data)
 
-        with open(self._result1, 'wb') as fp:
+        with open(test_result, 'wb') as fp:
             fp.write(data)
+
+        cartograher.close()
+
+    def test_ColorRelief_512x512(self):
+        color_context = self._color_context
+        cartograher = GDALColorRelief(color_context=color_context,
+                                      server=TEST_SVR,
+                                      dem_table='world',
+                                      image_type='gtiff')
+
+        test_result = './output/test_cartographer_colorrelief_512x512.tif'
+        if os.path.exists(test_result):
+            os.remove(test_result)
 
         size = (512, 512)
         envelope = TEST_ENVELOPE
-        data = self._maker.doodle(envelope, size)
+        data = cartograher.doodle(envelope, size)
         self.assert_(data)
 
-        with open(self._result2, 'wb') as fp:
+        with open(test_result, 'wb') as fp:
             fp.write(data)
 
-    def tearDown(self):
-        self._maker.close()
+        cartograher.close()
+
+    def test_ColorRelief_PNG(self):
+        color_context = self._color_context
+        cartograher = GDALColorRelief(color_context=color_context,
+                                      server=TEST_SVR,
+                                      dem_table='world',
+                                      image_type='png')
+
+        test_result = './output/test_cartographer_colorrelief_png.png'
+        if os.path.exists(test_result):
+            os.remove(test_result)
+
+        size = (256, 256)
+        envelope = TEST_ENVELOPE
+        data = cartograher.doodle(envelope, size)
+        self.assert_(data)
+
+        with open(test_result, 'wb') as fp:
+            fp.write(data)
+
+        cartograher.close()
+
+    def test_ColorRelief_JPEG(self):
+        color_context = self._color_context
+        cartograher = GDALColorRelief(color_context=color_context,
+                                      server=TEST_SVR,
+                                      dem_table='world',
+                                      image_type='jpeg',
+                                      image_parameters={'quality': 95})
+
+        test_result = './output/test_cartographer_colorrelief_jpeg_95.jpg'
+        if os.path.exists(test_result):
+            os.remove(test_result)
+
+        size = (256, 256)
+        envelope = TEST_ENVELOPE
+        data = cartograher.doodle(envelope, size)
+        self.assert_(data)
+
+        with open(test_result, 'wb') as fp:
+            fp.write(data)
+
+        cartograher.close()
 
 
 if __name__ == "__main__":
