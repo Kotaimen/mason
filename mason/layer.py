@@ -131,7 +131,10 @@ def create_layer(tag,
                       crs=crs,
                       proj=proj
                       )
-
+    
+    if source is None and storage is None:
+        raise Exception('source and storage cannot both be None')
+    
     # create source object
     if source is None:
         source_object = None
