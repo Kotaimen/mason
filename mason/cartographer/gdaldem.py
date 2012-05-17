@@ -145,8 +145,8 @@ class GDALHillShade(GDALDEMRaster):
         self._azimuth = azimuth
         self._altitude = altitude
 
-        if self._image_type != 'gtiff':
-            raise GDALTypeError('Hill Shade Only support GTIFF output.')
+        if self._image_type not in ('gtiff', 'png', 'jpeg'):
+            raise GDALTypeError('Hill Shade Only support GTIFF, PNG, JPEG.')
 
     def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
@@ -172,7 +172,9 @@ class GDALHillShade(GDALDEMRaster):
                            self._zfactor,
                            self._scale,
                            self._azimuth,
-                           self._altitude)
+                           self._altitude,
+                           self._image_type,
+                           self._image_parameters)
 
             # get result data from temp file
             with open(dst_tempname, 'rb') as fp:
@@ -219,8 +221,8 @@ class GDALColorRelief(GDALDEMRaster):
 
         self._color_context = color_context
 
-        if self._image_type != 'gtiff':
-            raise GDALTypeError('Color relief Only support GTIFF output.')
+        if self._image_type not in ('gtiff', 'png', 'jpeg'):
+            raise GDALTypeError('Hill Shade Only support GTIFF, PNG, JPEG.')
 
     def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
@@ -242,7 +244,9 @@ class GDALColorRelief(GDALDEMRaster):
 
             gdal_colorrelief(wrp_tempname,
                              dst_tempname,
-                             self._color_context
+                             self._color_context,
+                             self._image_type,
+                             self._image_parameters
                             )
 
             # get result data from temp file

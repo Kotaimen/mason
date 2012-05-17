@@ -43,11 +43,11 @@ def _subprocess_call(command_list):
 def _make_control_params(image_type, image_parameters):
     control_params = list()
 
-    image_type = image_type.upper()
-    assert image_type in ('GTIFF', 'PNG', 'JPEG')
+    image_type = image_type.lower()
+    assert image_type in ('gtiff', 'png', 'jpeg')
     if image_parameters:
         assert isinstance(image_parameters, dict)
-        if image_type == 'JPEG':
+        if image_type == 'jpeg':
             quality = image_parameters.get('quality', None)
             if not isinstance(quality, int):
                 raise Exception('Quality should be an integer.')
