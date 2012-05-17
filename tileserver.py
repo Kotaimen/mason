@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-'''
-Created on May 14, 2012
+""" A Simple HTTP Tile Server
 
+Created on May 14, 2012
 @author: Kotaimen
-'''
+"""
 
 import os, os.path
 import pprint
-import optparse
+import argparse
 import time
 
 # Use cherrypy as http server framework, we don't need ORM here
@@ -99,79 +99,84 @@ def create_root_object(options):
 
     return Root()
 
-
 def parse_args():
-    parser = optparse.OptionParser(description='''A Simple HTTP Tile Server''',
-                                   epilog=\
-'''Note: this script uses cherrypy's built-in threaded server, which is fine
-for serving static tiles, but if online rendering is enabled, backend may
-not be thread-safe and may (and will eventually) cause GIL problem.
-Running a process based server like gunicorn is strongly recommended.
-(Start WSGI server using wsgi.py)
+    parser = argparse.ArgumentParser(description='''A Simple HTTP Tile Server''',
+                                     epilog=\
+'''By default, server is running in readonly mode and won't render anything.
+NOTE:  this script uses cherrypy's built-in threaded server, which is fine
+for serving static tiles, but if online tile rendering is enabled, backend may
+not be thread-safe and may cause GIL problem (eg: when you have 32 Cores). In this case,
+run a process based server like gunicorn is strongly recommended.  (Start WSGI server
+use supplied wsgi.py)
 ''',
-                                   usage='%prog [OPTIONS]',
-                                   version=VERSION)
+                                     usage='%(prog)s [OPTIONS]',
+                                     )
 
-    parser.add_option('-c', '--config',
-                      dest='config',
-                      default='tileserver.cfg.py',
-                      help='''Specify location of the configuration file, default
-                      is tileserver.cfg.py in current script directory''',
-                      metavar='FILE',
-                      )
+    parser.add_argument('-c', '--config',
+                        dest='config',
+                        default='tileserver.cfg.py',
+                        help='''Specify location of the configuration file, default
+                        is tileserver.cfg.py in current script directory''',
+                        metavar='FILE',
+                        )
 
-    parser.add_option('-b', '--bind',
-                      dest='bind',
-                      default='localhost:8080',
-                      help='''Specify host:port server listens to, default to
-                      localhost:8080
-                      ''',
-                      )
+    parser.add_argument('-b', '--bind',
+                        dest='bind',
+                        default='127.0.0.1:8080',
+                        help='''Specify host:port server listens to, default to
+                        127.0.0.1:8080
+                        ''',
+                        )
 
-    parser.add_option('-w', '--workers',
-                      dest='workers',
-                      default=10,
-                      type='int',
-                      help='Number of cherrypy worker threads, default is 10',
-                      )
+    parser.add_argument('-w', '--workers',
+                        dest='workers',
+                        default=10,
+                        type=int,
+                        help='Number of cherrypy worker threads, default is 10',
+                        )
 
-    parser.add_option('-m', '--mode',
-                      dest='mode',
-                      choices=['readonly', 'readwrite'],
-                      default='readonly',
-                      help='''Operate mode, set to "readonly" (the default value)
-                      for read tile only from storage; set to "hybrid" enables online rendering.
-                      ''',
-                      )
+    parser.add_argument('--mode', '-m',
+                        dest='mode',
+                        choices=['readonly', 'readwrite'],
+                        default='readonly',
+                        help='''Operate mode, set to "readonly" (the default value)
+                        for read tile only from storage; set to "readwrite" enables
+                        online rendering.
+                        ''',
+                        )
 
-    parser.add_option('-q', '--quiet',
-                      dest='quiet',
-                      action='store_true',
-                      default=False,
-                      help='Do not write response info to screen'
-                      )
+    parser.add_argument('-q', '--quiet',
+                        dest='quiet',
+                        action='store_true',
+                        default=False,
+                        help='''Do not write http response info to screen, automatic
+                        enabled when production mode is on.'''
+                        )
 
-    parser.add_option('-p', '--production',
-                      dest='production',
-                      action='store_true',
-                      default=False,
-                      help='Set production mode and disables auto-reloading')
+    parser.add_argument('-p', '--production',
+                        dest='production',
+                        action='store_true',
+                        default=False,
+                        help='Enable production mode and disables auto-reloading.')
 
-    parser.add_option('--access-log',
-                      dest='access_log',
-                      default='access.log',
-                      help='Specify filename of access log',
-                      metavar='FILE',
-                      )
+    parser.add_argument('--access-log',
+                        dest='access_log',
+                        default='access.log',
+                        help='Specify filename of access log',
+                        metavar='FILE',
+                       )
 
-    parser.add_option('--error-log',
-                      dest='error_log',
-                      default='error.log',
-                      help='Specify filename of error log',
-                      metavar='FILE',
-                      )
+    parser.add_argument('--error-log',
+                        dest='error_log',
+                        default='error.log',
+                        help='Specify filename of error log',
+                        metavar='FILE',
+                        )
 
-    (options, _args) = parser.parse_args()
+    options = parser.parse_args()
+
+    if options.production:
+        options.quiet = False
 
     return options
 
@@ -181,7 +186,7 @@ def main():
     options = parse_args()
 #    pprint.pprint(options)
 
-    host, port = tuple(options.bind.split(':', 1))
+    host, port = tuple(options.bind.rsplit(':', 1))
 
     # Overwrite cherrypy options
     cherrypy.config.update({'server.socket_host': host,
