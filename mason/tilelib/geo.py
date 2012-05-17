@@ -153,7 +153,7 @@ class GoogleMercatorProjection(object):
     """ Project ESPG:4326 (WGS84) to ESPG:3857 (Google Mercator)
 
     The defacto standard web map projection Google Mercator is formerly
-    known as ESPG:909913, which is a actually a joke for "google", so in
+    known as ESPG:900913, which is a actually a joke for "google", so in
     PostGIS 2.0 the projections is replaced by standard name ESPG:3857.
 
     Note: This is reinvented so we don't have to depend on gdal-python
