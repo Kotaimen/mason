@@ -3,7 +3,6 @@ Created on May 1, 2012
 
 @author: ray
 '''
-import os
 import re
 import subprocess
 
@@ -23,10 +22,10 @@ try:
 except OSError:
     raise RuntimeError("Can't find dgaldem, please install GDAL")
 
+
 #==============================================================================
 # Errors
 #==============================================================================
-
 class GDALProcessError(Exception):
     pass
 
