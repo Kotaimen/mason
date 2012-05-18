@@ -6,11 +6,11 @@ Created on May 2, 2012
 import os
 import tempfile
 import sqlalchemy
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 from .cartographer import Raster
 from .gdalutil import gdal_hillshade, gdal_colorrelief, gdal_warp
-from .errors import GDALTypeError
+from .errors import GDALTypeError, GDALDataError
 
 
 #==============================================================================
@@ -41,6 +41,7 @@ class GDALDEMRaster(Raster):
 
     def __init__(self,
                  server='',
+                 pool_size=10,
                  dem_table='',
                  image_type='gtiff',
                  image_parameters=None,
@@ -51,10 +52,9 @@ class GDALDEMRaster(Raster):
         engine = sqlalchemy.create_engine(
                         server,
                         poolclass=sqlalchemy.pool.SingletonThreadPool,
-                        pool_size=1)
+                        pool_size=pool_size)
 
-        session_maker = sessionmaker(bind=engine)
-        self._session = session_maker()
+        self._session_maker = scoped_session(sessionmaker(bind=engine))
         self._table = dem_table
 
     def get_dem_data(self, envelope):
@@ -79,9 +79,25 @@ class GDALDEMRaster(Raster):
                      'table': self._table}
 
         sql = sql.replace('\n', ' ')
-        row = self._session.query('dem_data').from_statement(sql).one()
-        data = row.dem_data
-        return data
+
+        session = self._session_maker()
+        try:
+            row = session.query('dem_data').from_statement(sql).one()
+            session.close()
+            data = row.dem_data
+            if not data:
+                raise GDALDataError('Empty Data.')
+            return data
+        except Exception as e:
+            session.rollback()
+            raise GDALDataError('No Dem Data Found. %s' % str(e))
+
+    def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+        """ Make raster image of a specified envelope """
+        raise NotImplementedError
+
+    def close(self):
+        pass
 
     def _get_tmp_file(self, tag):
         suffix = '_%d_%s' % (os.getpid(), tag)
@@ -89,13 +105,6 @@ class GDALDEMRaster(Raster):
                                        dir=tempfile.gettempdir(),
                                        text=False)
         return fd, tmpname
-
-    def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
-        """ Make raster image of a specified envelope """
-        raise NotImplementedError
-
-    def close(self):
-        self._session.close()
 
 
 #==============================================================================
@@ -129,16 +138,18 @@ class GDALHillShade(GDALDEMRaster):
                  azimuth=315,
                  altitude=45,
                  server='',
+                 pool_size=10,
                  dem_table='',
                  image_type='gtiff',
                  image_parameters=None,
                  ):
 
         GDALDEMRaster.__init__(self,
-                               server,
-                               dem_table,
-                               image_type,
-                               image_parameters)
+                               server=server,
+                               pool_size=pool_size,
+                               dem_table=dem_table,
+                               image_type=image_type,
+                               image_parameters=image_parameters)
 
         self._zfactor = zfactor
         self._scale = scale
@@ -209,15 +220,17 @@ class GDALColorRelief(GDALDEMRaster):
     def __init__(self,
                  color_context=None,
                  server='',
+                 pool_size=10,
                  dem_table='',
                  image_type='gtiff',
                  image_parameters=None,
                  ):
         GDALDEMRaster.__init__(self,
-                               server,
-                               dem_table,
-                               image_type,
-                               image_parameters)
+                               server=server,
+                               pool_size=pool_size,
+                               dem_table=dem_table,
+                               image_type=image_type,
+                               image_parameters=image_parameters)
 
         self._color_context = color_context
 

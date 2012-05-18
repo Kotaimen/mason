@@ -44,3 +44,7 @@ class GDALError(CartographerError):
 
 class GDALTypeError(GDALError):
     pass
+
+
+class GDALDataError(GDALError):
+    pass
