@@ -22,6 +22,13 @@ try:
 except OSError:
     raise RuntimeError("Can't find dgaldem, please install GDAL")
 
+try:
+    stdout = subprocess.Popen(['gdaltransform', '--help'],
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE).communicate()[0]
+except OSError:
+    raise RuntimeError("Can't find gdaltransform, please install GDAL")
+
 
 #==============================================================================
 # Errors
@@ -63,7 +70,7 @@ def gdal_hillshade(src,
                    scale=1,
                    azimuth=315,
                    altitude=45,
-                   image_type='GTIFF',
+                   image_type='gtiff',
                    image_parameters=None
                    ):
     """
@@ -120,7 +127,7 @@ def gdal_hillshade(src,
 def gdal_colorrelief(src,
                      dst,
                      color_context,
-                     image_type='GTIFF',
+                     image_type='gtiff',
                      image_parameters=None):
     """
     To generate a color relief from dem data source
@@ -173,3 +180,39 @@ def gdal_warp(src, dst, width, height):
                     '-q',
                     src, dst]
     return _subprocess_call(command_list)
+
+
+def gdal_transform(src_srs, dst_srs, coordinates):
+    """ Reprojects a list of coordinates into any supported projection
+
+    Return generator of coordinates
+
+    src_srs
+        source spatial reference system
+
+    dst_srs
+        result spatial reference system
+
+    coordinates
+        list of coordinates or one coordinate
+    """
+
+    if isinstance(coordinates, tuple):
+        coordinates = [coordinates, ]
+
+    coodinates_str = '\n'.join('%f %f' % coord for coord in coordinates)
+    try:
+        stdout = subprocess.Popen(['gdaltransform',
+                                   '-s_srs', src_srs,
+                                   '-t_srs', dst_srs,
+                                   ],
+                                  stdin=subprocess.PIPE,
+                                  stdout=subprocess.PIPE
+                                  ).communicate(coodinates_str)[0]
+
+        for transformed_coords in stdout.splitlines():
+            x, y, _ = transformed_coords.split()
+            yield (float(x), float(y))
+
+    except Exception as e:
+        raise GDALProcessError(str(e))
