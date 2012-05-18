@@ -160,26 +160,27 @@ def gdal_colorrelief(src,
     return _subprocess_call(command_list)
 
 
-def gdal_warp(src, dst, width, height):
-    """
-    To warp the dem data to specified width and height in pixel
-
-    width
-        image width in pixel
-
-    height
-        image height in pixel
-
-    """
-    nodata = '-32768'
-    width, height = str(width), str(height)
-    command_list = ['gdalwarp', '-ts', width, height,
-                    '-srcnodata', nodata,
-                    '-dstnodata', nodata,
-                    '-r', 'cubicspline',
-                    '-q',
-                    src, dst]
-    return _subprocess_call(command_list)
+#def gdal_warp(src, dst, width, height):
+#    """
+#    To warp the dem data to specified width and height in pixel
+#
+#    width
+#        image width in pixel
+#
+#    height
+#        image height in pixel
+#
+#    """
+#    nodata = '-32768'
+#    width, height = str(width), str(height)
+#    command_list = ['gdalwarp',
+#                    '-ts', width, height,
+#                    '-srcnodata', nodata,
+#                    '-dstnodata', nodata,
+#                    '-r', 'cubicspline',
+#                    '-q',
+#                    src, dst]
+#    return _subprocess_call(command_list)
 
 
 def gdal_transform(src_srs, dst_srs, coordinates):
@@ -216,3 +217,42 @@ def gdal_transform(src_srs, dst_srs, coordinates):
 
     except Exception as e:
         raise GDALProcessError(str(e))
+
+
+def gdal_warp(src, dst,
+              envelope=None,
+              srs=None,
+              size=None,
+              ):
+    assert any((envelope is not None, srs is not None, size is not None))
+
+    nodata = '-32768'
+    command_list = ['gdalwarp',
+                    '-srcnodata', nodata,
+                    '-dstnodata', nodata,
+                    '-r', 'cubicspline',
+                    '-q',
+                    ]
+    if srs:
+        src_srs, dst_srs = srs
+        command_list.extend(['-s_srs', src_srs,
+                             '-t_srs', dst_srs, ])
+
+    if size:
+        width, height = str(size[0]), str(size[1])
+        command_list.extend(['-ts', width, height, ])
+
+    if envelope:
+        xmin, ymin, xmax, ymax = envelope
+        coords = list(((xmin, ymin), (xmax, ymax)))
+        coords_reprojected = list(gdal_transform(src_srs, dst_srs, coords))
+
+        xmin, ymin = coords_reprojected[0]
+        xmax, ymax = coords_reprojected[1]
+
+        command_list.extend(['-te',
+                             str(xmin), str(ymin), str(xmax), str(ymax)])
+
+    command_list.extend([src, dst])
+
+    return _subprocess_call(command_list)
