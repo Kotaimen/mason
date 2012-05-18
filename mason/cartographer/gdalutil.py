@@ -12,8 +12,8 @@ try:
 except OSError:
     raise RuntimeError("Can't find gdalwarp, please install GDAL")
 gdal_version = float(re.search(r'^GDAL (\d\.\d)\.\d', stdout).group(1))
-if gdal_version < 1.9:
-    raise RuntimeError('Requires gdal 1.9 or later')
+if gdal_version < 1.8:
+    raise RuntimeError('Requires gdal 1.8 or later')
 
 try:
     stdout = subprocess.Popen(['gdaldem'],
@@ -158,29 +158,6 @@ def gdal_colorrelief(src,
 
     command_list.extend(control_params)
     return _subprocess_call(command_list)
-
-
-#def gdal_warp(src, dst, width, height):
-#    """
-#    To warp the dem data to specified width and height in pixel
-#
-#    width
-#        image width in pixel
-#
-#    height
-#        image height in pixel
-#
-#    """
-#    nodata = '-32768'
-#    width, height = str(width), str(height)
-#    command_list = ['gdalwarp',
-#                    '-ts', width, height,
-#                    '-srcnodata', nodata,
-#                    '-dstnodata', nodata,
-#                    '-r', 'cubicspline',
-#                    '-q',
-#                    src, dst]
-#    return _subprocess_call(command_list)
 
 
 def gdal_transform(src_srs, dst_srs, coordinates):

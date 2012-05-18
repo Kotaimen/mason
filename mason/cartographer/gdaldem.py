@@ -125,7 +125,7 @@ class GDALDEMRaster(Raster):
             session.rollback()
             raise GDALDataError('No Dem Data Found. %s' % str(e))
 
-    def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+    def doodle(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
         """ Make raster image of a specified envelope """
         raise NotImplementedError
 
@@ -185,16 +185,16 @@ class GDALHillShade(GDALDEMRaster):
         if self._image_type not in ('gtiff', 'png', 'jpeg'):
             raise GDALTypeError('Hill Shade Only support GTIFF, PNG, JPEG.')
 
-    def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+    def doodle(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
 
         # HACK: Buffer 5 pixel to render a larger image.
-        # We add some buffer first and crop the image back to original envelope
-        # because postgis may give out image with nodata boundaries
-        # sometimes(Need to figure why...).
+        # We buffered a little first and crop the image back to the original
+        # envelope in order to eliminate boundaries around the selected data
+        # from PostGIS (Boundary sucks...Any good idea?).
         #
         # GDAL <=1.7 do not support '-compute_edges',
-        # without which back boundaries will be generated both for hillshade
-        # and color-relief. Here we only support gdal > 1.7.
+        # without which there will be back boundaries around generated
+        # hill shade or color-relief as well.
 
         buffered = _buffer_envelope(envelope, size, 5)
         dem_data = self.get_dem_data(buffered)
@@ -226,7 +226,7 @@ class GDALHillShade(GDALDEMRaster):
                            self._image_type,
                            self._image_parameters)
 
-            # get result data from temp file
+            # get result data from temporary file
             with open(dst_tempname, 'rb') as fp:
                 data = fp.read()
 
@@ -276,7 +276,7 @@ class GDALColorRelief(GDALDEMRaster):
         if self._image_type not in ('gtiff', 'png', 'jpeg'):
             raise GDALTypeError('Hill Shade Only support GTIFF, PNG, JPEG.')
 
-    def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+    def doodle(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
         # Please refer to the comment for Hillshade.
         buffered = _buffer_envelope(envelope, size, 5)
         dem_data = self.get_dem_data(buffered)
@@ -287,7 +287,7 @@ class GDALColorRelief(GDALDEMRaster):
             _fd, wrp_tempname = _get_tmp_file('colorrelief_wrp')
             _fd, dst_tempname = _get_tmp_file('colorrelief_dst')
 
-            # write dem data to temp file
+            # write dem data to temporary file
             with open(src_tempname, 'wb') as fp:
                 fp.write(dem_data)
 
@@ -305,7 +305,7 @@ class GDALColorRelief(GDALDEMRaster):
                              self._image_parameters
                             )
 
-            # get result data from temp file
+            # get result data from temporary file
             with open(dst_tempname, 'rb') as fp:
                 data = fp.read()
 

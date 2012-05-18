@@ -19,7 +19,7 @@ class Cartographer(object):
     def data_type(self):
         raise NotImplementedError
 
-    def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+    def doodle(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
         """ Make geographic data in the envelope and project to
         Google Mercator.
 

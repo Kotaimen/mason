@@ -120,7 +120,7 @@ class MapnikRaster(Raster):
         # 'png', 'png24', 'png32' are equivalent to 'png32' in mapnik
         # 'png8', 'png256' are equivalent to 'png256' in mapnik
         if self._image_type not in ['png', 'png256', 'jpeg']:
-            raise MapnikTypeError('Image Type %s not supported' % self._image_type)
+            raise MapnikTypeError('%s not supported' % self._image_type)
 
         # convert image_type and parameters to mapnik format string
         if image_parameters:
@@ -176,7 +176,7 @@ class MapnikRaster(Raster):
         # projection
         self._proj = mapnik.Projection(_PROJECTIONS['EPSG:3857'])
 
-    def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+    def doodle(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
 
         map_ = mapnik.Map(*size)
         mapnik.load_map(map_, self._theme)
