@@ -41,7 +41,7 @@ class Raster(Cartographer):
 
     Different Raster Maker support differnt image type.
     Mapnik: png, png256, jpeg
-    GDAL: gtiff
+    GDAL: gtiff, png, jpeg
     """
 
     def __init__(self,

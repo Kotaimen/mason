@@ -27,6 +27,16 @@ WHERE ST_INTERSECTS(the_rast, %(bbox)s)
 # Helper Functions
 #==============================================================================
 def _buffer_envelope(envelope, size, buffer_size):
+    """ Buffer the envelope with buffer_size(pixel size)
+
+    This is an approximate approach that makes the given envelope a
+    little bigger than its original size.
+
+    Buffer is calculated by:
+        Buffer Degree = Degree_Diff / Pixel_Diff * Buffer_Pixel
+
+    This should be improved if any efficient method is found in the future.
+    """
     width, height = size
     minx, miny, maxx, maxy = envelope
 
@@ -45,6 +55,7 @@ def _buffer_envelope(envelope, size, buffer_size):
 
 
 def _get_tmp_file(tag):
+    """ Create a temporary file  """
     suffix = '_%d_%s' % (os.getpid(), tag)
     fd, tmpname = tempfile.mkstemp(suffix=suffix,
                                    dir=tempfile.gettempdir(),
@@ -176,6 +187,15 @@ class GDALHillShade(GDALDEMRaster):
 
     def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
+        # HACK: Buffer 5 pixel to render a larger image.
+        # We add some buffer first and crop the image back to original envelope
+        # because postgis may give out image with nodata boundaries
+        # sometimes(Need to figure why...).
+        #
+        # GDAL <=1.7 do not support '-compute_edges',
+        # without which back boundaries will be generated both for hillshade
+        # and color-relief. Here we only support gdal > 1.7.
+
         buffered = _buffer_envelope(envelope, size, 5)
         dem_data = self.get_dem_data(buffered)
 
@@ -257,7 +277,7 @@ class GDALColorRelief(GDALDEMRaster):
             raise GDALTypeError('Hill Shade Only support GTIFF, PNG, JPEG.')
 
     def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
-
+        # Please refer to the comment for Hillshade.
         buffered = _buffer_envelope(envelope, size, 5)
         dem_data = self.get_dem_data(buffered)
 
