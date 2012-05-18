@@ -13,6 +13,45 @@ from .gdalutil import gdal_hillshade, gdal_colorrelief, gdal_warp
 from .errors import GDALTypeError, GDALDataError
 
 
+DEM_DATA_QUERY = """
+SELECT
+ST_ASGDALRASTER(
+ST_UNION(ST_CLIP(the_rast, %(bbox)s, true)), 'GTIFF')
+AS dem_data
+FROM %(table)s
+WHERE ST_INTERSECTS(the_rast, %(bbox)s)
+"""
+
+
+#==============================================================================
+# Helper Functions
+#==============================================================================
+def _buffer_envelope(self, envelope, size, buffer_size):
+    width, height = size
+    minx, miny, maxx, maxy = envelope
+
+    diff_x = abs(maxx - minx)
+    diff_y = abs(maxy - miny)
+
+    buffer_x = diff_x / width * buffer_size
+    buffer_y = diff_y / height * buffer_size
+
+    new_envelope = (minx - buffer_x,
+                    miny - buffer_y,
+                    maxx + buffer_x,
+                    maxy + buffer_y,
+                    )
+    return new_envelope
+
+
+def _get_tmp_file(tag):
+    suffix = '_%d_%s' % (os.getpid(), tag)
+    fd, tmpname = tempfile.mkstemp(suffix=suffix,
+                                   dir=tempfile.gettempdir(),
+                                   text=False)
+    return fd, tmpname
+
+
 #==============================================================================
 # Base class of GDAL DEM Raster Maker
 #==============================================================================
@@ -61,28 +100,11 @@ class GDALDEMRaster(Raster):
         """ Get dem data in the area of envelope from database """
 
         bbox_sql = "ST_MakeEnvelope(%f, %f, %f, %f, 4326)" % envelope
+        querysql = DEM_DATA_QUERY % {'bbox': bbox_sql, 'table': self._table}
 
-        sql = """ SELECT
-                      ST_ASGDALRASTER(
-                          ST_TRANSFORM(
-                              ST_UNION(
-                                  ST_CLIP(the_rast, %(bbox)s, true)
-                              ),
-                              3857,
-                              'Cubic'
-                          ),
-                          'GTiff'
-                      ) AS dem_data
-                  FROM %(table)s
-                  WHERE ST_INTERSECTS(the_rast, %(bbox)s)
-              """ % {'bbox': bbox_sql,
-                     'table': self._table}
-
-        sql = sql.replace('\n', ' ')
-
-        session = self._session_maker()
         try:
-            row = session.query('dem_data').from_statement(sql).one()
+            session = self._session_maker()
+            row = session.query('dem_data').from_statement(querysql).one()
             session.close()
             data = row.dem_data
             if not data:
@@ -98,13 +120,6 @@ class GDALDEMRaster(Raster):
 
     def close(self):
         pass
-
-    def _get_tmp_file(self, tag):
-        suffix = '_%d_%s' % (os.getpid(), tag)
-        fd, tmpname = tempfile.mkstemp(suffix=suffix,
-                                       dir=tempfile.gettempdir(),
-                                       text=False)
-        return fd, tmpname
 
 
 #==============================================================================
@@ -165,9 +180,9 @@ class GDALHillShade(GDALDEMRaster):
 
         try:
             # GDAL only support file as their input and output.
-            _fd, src_tempname = self._get_tmp_file('hillshade_src')
-            _fd, wrp_tempname = self._get_tmp_file('hillshade_wrp')
-            _fd, dst_tempname = self._get_tmp_file('hillshade_dst')
+            _fd, src_tempname = _get_tmp_file('hillshade_src')
+            _fd, wrp_tempname = _get_tmp_file('hillshade_wrp')
+            _fd, dst_tempname = _get_tmp_file('hillshade_dst')
 
             # write dem data to temp file
             with open(src_tempname, 'wb') as fp:
@@ -243,9 +258,9 @@ class GDALColorRelief(GDALDEMRaster):
 
         try:
             # gdal utilities only support file as their input and output.
-            _fd, src_tempname = self._get_tmp_file('colorrelief_src')
-            _fd, wrp_tempname = self._get_tmp_file('colorrelief_wrp')
-            _fd, dst_tempname = self._get_tmp_file('colorrelief_dst')
+            _fd, src_tempname = _get_tmp_file('colorrelief_src')
+            _fd, wrp_tempname = _get_tmp_file('colorrelief_wrp')
+            _fd, dst_tempname = _get_tmp_file('colorrelief_dst')
 
             # write dem data to temp file
             with open(src_tempname, 'wb') as fp:
