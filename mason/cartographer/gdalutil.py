@@ -224,6 +224,20 @@ def gdal_warp(src, dst,
               srs=None,
               size=None,
               ):
+    """ Warp DEM data to specified envelope, srs and size
+
+    envelope
+        bounding box of format (xmin, ymin, xmax, ymax)
+
+    srs
+        tuple of source and target srs, for example ('EPSG:4326', 'EPSG:3857')
+
+    size
+        tuple of result size in pixel, for example (256, 256)
+
+    At least one parameter of envelope, srs, and size should be provided.
+    Make sure gdaltransform amd gdalwarp is available on your system.
+    """
     assert any((envelope is not None, srs is not None, size is not None))
 
     nodata = '-32768'
@@ -235,6 +249,7 @@ def gdal_warp(src, dst,
                     ]
     if srs:
         src_srs, dst_srs = srs
+        assert src_srs != dst_srs
         command_list.extend(['-s_srs', src_srs,
                              '-t_srs', dst_srs, ])
 
@@ -244,11 +259,12 @@ def gdal_warp(src, dst,
 
     if envelope:
         xmin, ymin, xmax, ymax = envelope
-        coords = list(((xmin, ymin), (xmax, ymax)))
-        coords_reprojected = list(gdal_transform(src_srs, dst_srs, coords))
+        if srs:
+            coords = list(((xmin, ymin), (xmax, ymax)))
+            coords_reprojected = list(gdal_transform(src_srs, dst_srs, coords))
 
-        xmin, ymin = coords_reprojected[0]
-        xmax, ymax = coords_reprojected[1]
+            xmin, ymin = coords_reprojected[0]
+            xmax, ymax = coords_reprojected[1]
 
         command_list.extend(['-te',
                              str(xmin), str(ymin), str(xmax), str(ymax)])

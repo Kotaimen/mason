@@ -170,12 +170,34 @@ class GDALWarp(unittest.TestCase):
 
     def test_WarpTo256x256(self):
         test_source = self._test_dem
-        test_result = './output/test_warp.tif'
+        test_result = './output/test_warp_size.tif'
 
         if os.path.exists(test_result):
             os.remove(test_result)
 
-        ret = gdal_warp(test_source, test_result, 256, 256)
+        ret = gdal_warp(test_source, test_result, size=(256, 256))
+        self.assert_(ret)
+
+    def test_WarpToGoogleMercator(self):
+        test_source = self._test_dem
+        test_result = './output/test_warp_proj.tif'
+
+        if os.path.exists(test_result):
+            os.remove(test_result)
+
+        ret = gdal_warp(test_source, test_result,
+                        srs=('EPSG:4326', 'EPSG:3857'))
+        self.assert_(ret)
+
+    def test_WarpToEnvelop(self):
+        test_source = self._test_dem
+        test_result = './output/test_warp_envelope.tif'
+
+        if os.path.exists(test_result):
+            os.remove(test_result)
+
+        ret = gdal_warp(test_source, test_result,
+                        envelope=(-114, 43, -113, 44))
         self.assert_(ret)
 
 
