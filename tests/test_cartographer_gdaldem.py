@@ -96,18 +96,6 @@ class GDALColorReliefTest(unittest.TestCase):
 
     def setUp(self):
         self._color_context = './input/HypsometricColors(Light).txt'
-#        self._maker = GDALColorRelief(color_context=color_context,
-#                                      server=TEST_SVR,
-#                                      dem_table='world',
-#                                      image_type='gtiff')
-#
-#        self._result1 = './output/test_result_color_relief_256_256'
-#        if os.path.exists(self._result1):
-#            os.remove(self._result1)
-#
-#        self._result2 = './output/test_result_color_relief_512_512'
-#        if os.path.exists(self._result2):
-#            os.remove(self._result2)
 
     def test_ColorRelief_256x256(self):
         color_context = self._color_context
