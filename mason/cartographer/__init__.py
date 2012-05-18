@@ -12,12 +12,11 @@ except ImportError:
     MapnikRaster = None
 
 try:
-    from .gdaldem import GDALHillShade, GDALColorRelief, GDALDEMRaster
+    from .gdaldem import GDALHillShade, GDALColorRelief
 except ImportError:
     warnings.warn('Can not import gdal or sqlalchemy, gdalmaker not available')
     GDALHillShade = None
     GDALColorRelief = None
-    GDALDEMRaster = None
 
 
 #==============================================================================
