@@ -26,7 +26,7 @@ WHERE ST_INTERSECTS(the_rast, %(bbox)s)
 #==============================================================================
 # Helper Functions
 #==============================================================================
-def _buffer_envelope(self, envelope, size, buffer_size):
+def _buffer_envelope(envelope, size, buffer_size):
     width, height = size
     minx, miny, maxx, maxy = envelope
 
@@ -176,7 +176,8 @@ class GDALHillShade(GDALDEMRaster):
 
     def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
-        dem_data = self.get_dem_data(envelope)
+        buffered = _buffer_envelope(envelope, size, 5)
+        dem_data = self.get_dem_data(buffered)
 
         try:
             # GDAL only support file as their input and output.
@@ -189,8 +190,11 @@ class GDALHillShade(GDALDEMRaster):
                 fp.write(dem_data)
 
             # warp to size
-            width, height = size
-            gdal_warp(src_tempname, wrp_tempname, width, height)
+            gdal_warp(src_tempname,
+                      wrp_tempname,
+                      envelope=envelope,
+                      srs=('EPSG:4326', 'EPSG:3857'),
+                      size=size)
 
             # create hill shade
             gdal_hillshade(wrp_tempname,
@@ -254,7 +258,8 @@ class GDALColorRelief(GDALDEMRaster):
 
     def doodle(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
 
-        dem_data = self.get_dem_data(envelope)
+        buffered = _buffer_envelope(envelope, size, 5)
+        dem_data = self.get_dem_data(buffered)
 
         try:
             # gdal utilities only support file as their input and output.
@@ -267,8 +272,11 @@ class GDALColorRelief(GDALDEMRaster):
                 fp.write(dem_data)
 
             # warp to size
-            width, height = size
-            gdal_warp(src_tempname, wrp_tempname, width, height)
+            gdal_warp(src_tempname,
+                      wrp_tempname,
+                      envelope=envelope,
+                      srs=('EPSG:4326', 'EPSG:3857'),
+                      size=size)
 
             gdal_colorrelief(wrp_tempname,
                              dst_tempname,
