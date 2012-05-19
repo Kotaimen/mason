@@ -42,12 +42,14 @@ def CascadeTileStorage(tag, storages, read_mode='cache', write_mode='last'):
 
     for storage_param in storages:
         storage_param = dict(storage_param)
-        tag = storage_param['tag']
+        if 'tag' in storage_param:
+            t = storage_param['tag']
+            del storage_param['tag']
+        else:
+            t = tag
         prototype = storage_param['prototype']
-        del storage_param['tag']
         del storage_param['prototype']
-
-        storage_objects.append(factory(prototype, tag, **storage_param))
+        storage_objects.append(factory(prototype, t, **storage_param))
 
     return _CascadeTileStorageImp(tag, storage_objects,
                                   read_mode=read_mode,

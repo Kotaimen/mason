@@ -134,8 +134,12 @@ class ReadOnlyTileStorage(TileStorage):
     def put(self, tile):
         pass
 
+    def put_multi(self, tiles):
+        pass
+
     def delete(self, tile_index):
         pass
+
 
     def flush_all(self):
         pass

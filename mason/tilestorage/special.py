@@ -36,7 +36,7 @@ class DefaultTileStorage(ReadOnlyTileStorage):
                  filename='',
                  ext='',
                  mimetype=None):
-        ReadOnlyTileStorage.__init__(tag)
+        ReadOnlyTileStorage.__init__(self, tag)
 
         self._filename = filename
         assert self._filename
@@ -51,7 +51,7 @@ class DefaultTileStorage(ReadOnlyTileStorage):
             self._mimetype = mimetype
 
         with open(self._filename, 'rb') as fp:
-            self._data(fp.read())
+            self._data = fp.read()
 
         self._metadata = dict(ext=self._ext,
                               mimetype=self._mimetype,
@@ -60,6 +60,12 @@ class DefaultTileStorage(ReadOnlyTileStorage):
 
     def get(self, tile_index):
         return Tile(tile_index, self._data, self._metadata)
+
+    def has_all(self, tile_index):
+        return True
+
+    def has_any(self, tile_index):
+        return True
 
 
 class CascadeTileStorage(TileStorage):
@@ -139,6 +145,27 @@ class CascadeTileStorage(TileStorage):
                 storage.put(tile)
         elif self._writemode == 'last':
             self._storages[-1].put(tile)
+        else:
+            raise Exception('Unknown write mode')
+
+    def has_all(self, tiles):
+        if self._writemode == 'last':
+            return self._storages[-1].has_all(tiles)
+        else:
+            return all(s.has_any(tiles) for s in self._storages)
+
+    def has_any(self, tiles):
+        if self._writemode == 'last':
+            return self._storages[-1].has_any(tiles)
+        else:
+            return any(s.has_any(tiles) for s in self._storages)
+
+    def put_multi(self, tiles):
+        if self._writemode == 'sync':
+            for storage in self._storages:
+                storage.put_multi(tiles)
+        elif self._writemode == 'last':
+            self._storages[-1].put_multi(tiles)
         else:
             raise Exception('Unknown write mode')
 
