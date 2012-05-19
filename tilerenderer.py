@@ -20,7 +20,6 @@ from mason import create_mason_from_config
 from mason.tilelib import Envelope
 from mason.utils import Timer
 
-
 CPU_COUNT = multiprocessing.cpu_count()
 VERSION = '0.8'
 QUEUE_LIMIT = 1024
@@ -75,7 +74,7 @@ def spawner(queue, statics, layer, pyramid, levels, envelope, stride):
 # Consumer
 #===============================================================================
 
-def slave(queue, statics, options):
+def slave(queue, statistics, options):
     setup_logger(options.logfile)
     mason = create_mason_from_config(options.config, options.mode)
     layer = mason.get_layer(options.layer)
@@ -93,11 +92,11 @@ def slave(queue, statics, options):
             try:
                 rendered = layer.render_metatile(z, x, y, stride)
                 if rendered:
-                    statics.rendered += 1
+                    statistics.rendered += 1
                 else:
-                    statics.skipped += 1
+                    statistics.skipped += 1
             except Exception as e:
-                statics.failed += 1
+                statistics.failed += 1
                 logger.exception(e)
             finally:
                 queue.task_done()
@@ -107,11 +106,10 @@ def slave(queue, statics, options):
 #===============================================================================
 
 
-def boss(options, statics):
+def boss(options, statistics):
     logger.info('===== Start Rendering =====')
     mason = create_mason_from_config(options.config, options.mode)
     layer = mason.get_layer(options.layer)
-
     pyramid = layer.pyramid
     queue = multiprocessing.JoinableQueue(maxsize=QUEUE_LIMIT)
 
@@ -120,7 +118,7 @@ def boss(options, statics):
         logging.info('Starting slave #%d' % w)
         worker = multiprocessing.Process(name='slave#%d' % w,
                                          target=slave,
-                                         args=(queue, statics, options)
+                                         args=(queue, statistics, options)
                                          )
 
         worker.daemon = True
@@ -129,7 +127,7 @@ def boss(options, statics):
     # Start producer
     producer = multiprocessing.Process(name='tilespawner',
                                        target=spawner,
-                                       args=(queue, statics, layer, pyramid,
+                                       args=(queue, statistics, layer, pyramid,
                                              options.levels, options.envelope,
                                              options.stride))
     producer.daemon = True
@@ -146,7 +144,7 @@ def boss(options, statics):
     else:
         logger.info('===== Rendering Complete =====')
     finally:
-        return statics
+        return statistics
 
 #===============================================================================
 # Argument & Checking
@@ -265,7 +263,7 @@ def setup_logger(log_file, level=logging.INFO):
     logger.addHandler(handler)
 
 
-def test_config(options):
+def verify_config(options):
     setup_logger(options.logfile)
     logger.info('===== Testing Configuration =====')
 
@@ -334,32 +332,31 @@ def main():
     print 'Press CTRL+C to break render process.'
     print '=' * 70
     options = parse_args()
-    options = test_config(options)
+    options = verify_config(options)
 
     if options.test > 0:
         print 'Turn off testing to start rendering'
         return
     timer = Timer('Rendering finished in %(times)s')
 
-    statics = multiprocessing.sharedctypes.Value(Statics, 0, 0, 0)
+    statistics = multiprocessing.sharedctypes.Value(Statics, 0, 0, 0)
 
     try:
         timer.tic()
-        boss(options, statics)
+        boss(options, statistics)
     finally:
         timer.tac()
         print '=' * 70
         print 'Rendered %d MetaTiles, skipped %d, failed %d.' % \
-            (statics.rendered, statics.skipped, statics.failed)
-        if statics.rendered > 0:
-            speed_per_tile = 1.0 * statics.rendered / options.stride / \
-                options.stride / timer.get_time()
-            print 'Average speed: %.5fs' % speed_per_tile
-
+            (statistics.rendered, statistics.skipped, statistics.failed)
+        if statistics.rendered > 0:
+            speed_per_tile = 1.0 * timer.get_time() / \
+                 (statistics.rendered * options.stride * options.stride)
+            print 'Average speed: %s/tile' % Timer.human_time(speed_per_tile)
         else:
             print 'Rendered noting.'
 
-        if statics.failed > 0:
+        if statistics.failed > 0:
             print 'Please check error log'
         print '=' * 70
 

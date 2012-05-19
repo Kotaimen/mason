@@ -40,6 +40,10 @@ class Timer(object):
 
     def get_timestr(self):
         diff = self._tac - self._tic
+        return self.human_time(diff)
+
+    @staticmethod
+    def human_time(diff):
         if diff > 3600:
             return '%dh%.2fm' % (diff // 3600, diff % 3600 / 60.)
         if diff > 60:
