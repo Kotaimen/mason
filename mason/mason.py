@@ -41,11 +41,15 @@ class Mason(object):
 
         return tile.data, tile.metadata
 
-    def craft_metatile(self):
-        raise NotImplementedError
+    def craft_metatile(self, alias, z, x, y, stride):
+        layer = self._layers[alias]
+        layer.render_metatile(z, x, y, stride)
 
     def get_layers(self):
         return self._layers.keys()
+
+    def get_layer(self, alias):
+        return self._layers[alias]
 
     def get_layer_metadata(self, alias):
         try:

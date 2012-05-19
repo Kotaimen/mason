@@ -84,6 +84,10 @@ class Pyramid(object):
     def projection(self):
         return self._proj
 
+    @property
+    def projector(self):
+        return self._projector
+
     def calculate_tile_envelope(self, z, x, y):
         return self._projector.tile_envelope(z, x, y)
 

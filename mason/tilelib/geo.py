@@ -189,8 +189,18 @@ class GoogleMercatorProjection(object):
         """ Coordinate to tile """
         world_x, world_y = self.project(coordinate)
         tile_num = 2 ** z
+        x, y = (int(math.floor(tile_num * world_x)),
+                int(math.floor(tile_num * world_y)))
+        if x < 0:
+            x = 0
+        if y < 0:
+            y = 0
+        if x >= tile_num:
+            x = tile_num - 1
+        if y >= tile_num:
+            y = tile_num - 1
 
-        return math.floor(tile_num * world_x), math.floor(tile_num * world_y)
+        return x, y
 
     def coord2pixel(self, coordinate, z, tile_size=256):
 

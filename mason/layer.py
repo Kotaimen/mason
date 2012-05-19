@@ -31,6 +31,10 @@ class Layer(object):
         self._mode = mode
 
     @property
+    def pyramid(self):
+        return self._pyramid
+
+    @property
     def tag(self):
         return self._tag
 
@@ -64,15 +68,16 @@ class Layer(object):
         # Check whether tiles are all rendered
         if self._mode != 'overwrite':
             if self._storage.has_all(tile_indexes):
-                return
+                return False
 
         if self._mode == 'readonly':
-            return
+            return False
 
         # Generate metatile and write all tiles to storage
         metatile = self._source.get_metatile(metatile_index)
         tiles = metatile.fission()
         self._storage.put_multi(tiles)
+        return True
 
     def close(self):
         self._source.close()
@@ -131,10 +136,10 @@ def create_layer(tag,
                       crs=crs,
                       proj=proj
                       )
-    
+
     if source is None and storage is None:
         raise Exception('source and storage cannot both be None')
-    
+
     # create source object
     if source is None:
         source_object = None

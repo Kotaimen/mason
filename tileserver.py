@@ -49,7 +49,7 @@ def create_root_object(options):
                                                         options.mode)
 
         def shutdown(self):
-            pass
+            self.mason.close()
 
         @cherrypy.expose
         @cherrypy.tools.gzip(mime_types=['application/json', 'text/plain', 'text/html'])
@@ -98,6 +98,10 @@ def create_root_object(options):
             return
 
     return Root()
+
+# ========================================================================================    
+# Entry
+# ========================================================================================    
 
 def parse_args():
     parser = argparse.ArgumentParser(description='''A Simple HTTP Tile Server''',

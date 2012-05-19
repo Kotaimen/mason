@@ -172,8 +172,10 @@ class MetaTileIndex(TileIndex):
 
 class MetaTile(Tile):
 
-    def __init__(self, index, tiles):
-        Tile.__init__(self, index, b'', {})
+    def __init__(self, index, tiles, data=None):
+        if data is None:
+            data = b''
+        Tile.__init__(self, index, data, {})
         assert isinstance(index, MetaTileIndex)
         self._tiles = tiles
 
@@ -198,5 +200,5 @@ class MetaTile(Tile):
         for (i, j), data in tile_datas.iteritems():
             tile = pyramid.create_tile(z, x + i, y + j, data, metadata)
             tiles.append(tile)
-        return MetaTile(metatile_index, tiles)
+        return MetaTile(metatile_index, tiles, data)
 
