@@ -58,25 +58,42 @@ class Layer(object):
 
         return tile
 
-    def render_metatile(self, z, x, y, stride):
+    @staticmethod
+    def dummy_logger(*args):
+        pass
+
+    def render_metatile(self, z, x, y, stride, logger=None):
+        if logger is None:
+            logger = self.dummy_logger
+
+        else:
+            logger = logger.debug
+
         metatile_index = self._pyramid.create_metatile_index(z, x, y, stride)
         # Although we can automatic fix MetaTileCoordinate, mismatching 
         # generally means something is wrong
         assert metatile_index.coord == (z, x, y)
 
         tile_indexes = metatile_index.fission()
+
+        tag = 'MetaTile[%d/%d/%d@%d]' % (z, x, y, stride)
+
         # Check whether tiles are all rendered
         if self._mode != 'overwrite':
-            if self._storage.has_all(tile_indexes):
-                return False
+            with Timer('%s looked up in %%(time)s' % tag, logger, False):
+                if self._storage.has_all(tile_indexes):
+                    return False
 
         if self._mode == 'readonly':
             return False
 
         # Generate metatile and write all tiles to storage
-        metatile = self._source.get_metatile(metatile_index)
+        with Timer('%s rendered in %%(time)s' % tag, logger, False):
+            metatile = self._source.get_metatile(metatile_index)
         tiles = metatile.fission()
-        self._storage.put_multi(tiles)
+        with Timer('%s saved in %%(time)s' % tag, logger, False):
+            self._storage.put_multi(tiles)
+
         return True
 
     def close(self):

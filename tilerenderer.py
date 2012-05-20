@@ -90,7 +90,7 @@ def slave(queue, statistics, options):
         logger.info('Rendering %s...', tag)
         with Timer('...%s rendered in %%(time)s' % tag, logger.info, False):
             try:
-                rendered = layer.render_metatile(z, x, y, stride)
+                rendered = layer.render_metatile(z, x, y, stride, logger)
                 if rendered:
                     statistics.rendered += 1
                 else:
@@ -251,7 +251,7 @@ globe down to level 20 contain zillions of tiles, literally!
     return options
 
 
-def setup_logger(log_file, level=logging.INFO):
+def setup_logger(log_file, level=logging.DEBUG):
     global logger
     if logger is not None:
         return
