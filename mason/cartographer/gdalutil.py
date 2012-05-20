@@ -10,24 +10,24 @@ try:
     stdout = subprocess.Popen(['gdalwarp', '--version'],
                               stdout=subprocess.PIPE).communicate()[0]
 except OSError:
-    raise RuntimeError("Can't find gdalwarp, please install GDAL")
+    raise ImportError("Can't find gdalwarp, please install GDAL")
 gdal_version = float(re.search(r'^GDAL (\d\.\d)\.\d', stdout).group(1))
 if gdal_version < 1.8:
-    raise RuntimeError('Requires gdal 1.8 or later')
+    raise ImportError('Requires gdal 1.8 or later')
 
 try:
     stdout = subprocess.Popen(['gdaldem'],
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE).communicate()[0]
 except OSError:
-    raise RuntimeError("Can't find dgaldem, please install GDAL")
+    raise ImportError("Can't find dgaldem, please install GDAL")
 
 try:
     stdout = subprocess.Popen(['gdaltransform', '--help'],
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE).communicate()[0]
 except OSError:
-    raise RuntimeError("Can't find gdaltransform, please install GDAL")
+    raise ImportError("Can't find gdaltransform, please install GDAL")
 
 
 #==============================================================================
