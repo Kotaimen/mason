@@ -43,7 +43,7 @@ class Layer(object):
         return self._metadata
 
     def get_tile(self, z, x, y):
-
+        """ Get a tile from this layer, returns Tile object """
         tile_index = self._pyramid.create_tile_index(z, x, y)
 
         # Read from storage first
@@ -63,22 +63,27 @@ class Layer(object):
         pass
 
     def render_metatile(self, z, x, y, stride, logger=None):
+        """ Render specified metatile and cache to storage if necessary """
+
+        # Assign a dummy logger if none is given
         if logger is None:
             logger = self.dummy_logger
-
         else:
             logger = logger.debug
 
+        # Create the metatile index
         metatile_index = self._pyramid.create_metatile_index(z, x, y, stride)
         # Although we can automatic fix MetaTileCoordinate, mismatching 
         # generally means something is wrong
         assert metatile_index.coord == (z, x, y)
 
-        tile_indexes = metatile_index.fission()
-
+        # Tag for debug output
         tag = 'MetaTile[%d/%d/%d@%d]' % (z, x, y, stride)
 
-        # Check whether tiles are all rendered
+        # Fission into regular tiles indexes
+        tile_indexes = metatile_index.fission()
+
+        # Check whether required tiles are already rendered
         if self._mode != 'overwrite':
             with Timer('%s looked up in %%(time)s' % tag, logger, False):
                 if self._storage.has_all(tile_indexes):
@@ -97,7 +102,8 @@ class Layer(object):
         return True
 
     def close(self):
-        self._source.close()
+        if self._source is not None:
+            self._source.close()
         self._storage.close()
 
 
@@ -143,6 +149,22 @@ def create_layer(tag,
 
     proj
         Authority ID of map projection
+
+    mode
+        Operation mode, can be one of "readonly", "readwrite", "rewrite".
+        "readonly" reads everything from TileStorage and never renders
+        "overwrite" renders from TileSource and write to TileStorage every time
+        "readwrite" read from TileStorage if it already exists, and render
+                    a new one, cache into storage otherwise
+
+    source
+        TileSource configuration, see TileSource docs
+
+    storage
+        TileStorage configuration, see TileStorage docs
+
+    metadata
+        Metadata as a dict
 
     """
 
