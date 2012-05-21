@@ -1,5 +1,10 @@
+
 from ..cartographer import create_cartographer
-from .tilesource import TileSource, CartographerTileSource
+from ..tilestorage import create_tilestorage
+from ..composer.imagemagick import ImageMagickComposer
+
+from .singleton import CartographerTileSource
+from .composer import ComposerTileSource
 
 
 #==============================================================================
@@ -20,6 +25,38 @@ class CartographerCreator(TileSourceCreator):
         return CartographerTileSource(tag, cartographer)
 
 
+class ComposerCreator(TileSourceCreator):
+
+    """ Composer Tile Source Creator """
+
+    def __call__(self, prototype, tag, sources, storages, **params):
+
+        # create sources
+        source_list = list()
+        for n, source_cfg in enumerate(sources):
+            if 'tag' not in source_cfg:
+                source_cfg['tag'] = '%s_%s' % (tag, n)
+            source = create_tile_source(**source_cfg)
+            source_list.append(source)
+
+        # create storages
+        storage_list = list()
+        for n, storage_cfg in enumerate(storages):
+            if 'tag' not in storage_cfg:
+                storage_cfg['tag'] = '%s_%s' % (tag, n)
+            storage = create_tilestorage(**storage_cfg)
+            storage_list.append(storage)
+
+        try:
+            command = params['command']
+            del params['command']
+        except KeyError:
+            raise Exception('Composer command is missing.')
+
+        composer = ImageMagickComposer(tag, command, **params)
+        return ComposerTileSource(tag, source_list, storage_list, composer)
+
+
 #==============================================================================
 # Tile Source Factory
 #==============================================================================
@@ -30,6 +67,7 @@ class TileSourceFactory(object):
     CLASS_REGISTRY = dict(mapnik=CartographerCreator(),
                           hillshade=CartographerCreator(),
                           colorrelief=CartographerCreator(),
+                          composer=ComposerCreator(),
                           )
 
     def __call__(self, prototype, tag, **params):
