@@ -1,7 +1,7 @@
 
 from ..cartographer import create_cartographer
 from ..tilestorage import create_tilestorage
-from ..composer.imagemagick import ImageMagickComposer
+from ..composer import create_tile_composer
 
 from .singleton import CartographerTileSource
 from .composer import ComposerTileSource
@@ -47,13 +47,9 @@ class ComposerCreator(TileSourceCreator):
             storage = create_tilestorage(**storage_cfg)
             storage_list.append(storage)
 
-        try:
-            command = params['command']
-            del params['command']
-        except KeyError:
-            raise Exception('Composer command is missing.')
+        # create composer
+        composer = create_tile_composer('imagemagick', tag, **params)
 
-        composer = ImageMagickComposer(tag, command, **params)
         return ComposerTileSource(tag, source_list, storage_list, composer)
 
 

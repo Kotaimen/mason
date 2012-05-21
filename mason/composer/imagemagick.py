@@ -10,6 +10,11 @@ import subprocess
 
 from .composer import TileComposer, TileComposerError
 
+try:
+    output = subprocess.check_output(['convert', '-version'])
+except Exception:
+    raise ImportError('Convert is not found. Please Install ImageMagick.')
+
 
 #==============================================================================
 # ImageMagick Composer
@@ -49,6 +54,7 @@ class ImageMagickComposer(TileComposer):
         if image_type not in ['png', 'jpeg']:
             raise TileComposerError('Invalid Image Type "%s"' % image_type)
 
+        self._data_type = image_type
         self._command = command
 
     def compose(self, tiles):
