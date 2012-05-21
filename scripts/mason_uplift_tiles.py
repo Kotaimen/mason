@@ -19,49 +19,54 @@ import threading
 import argparse
 
 from mason.utils import Timer
+from mason.tilelib import tile_coordiante_to_dirname
 
-logger = multiprocessing.log_to_stderr(level=logging.INFO)
 
-def uplift_tile():
-    pass
+#logger = multiprocessing.log_to_stderr(level=logging.INFO)
 
-#def walk_layer_hashed(root, level, ext):
-#    pattern = re.compile(r'(\d+)-(\d+)-(\d)+\.' + ext)
-#    for base, dirs, files in os.walk(os.path.join(root, '%02d' % level)):
-#
-#        for filename in files:
-#            match = pattern.match(filename)
-#            if not match:
-#                continue
-#
-#            z, x, y = tuple(map(int, [pattern.group(1),
-#                                      pattern.group(2),
-#                                      pattern.group(3)]))
-#
-#            if (x % 2) != 0 or (y % 2) != 0:
-#                continue
-#
-#            input_names = [os.path.join(base, '%d-%d-%d.' % (z, x, y) + ext),
-#                           os.path.join(base, '%d-%d-%d.' % (z, x + 1, y) + ext),
-#                           os.path.join(base, '%d-%d-%d.' % (z, x, y + 1) + ext),
-#                           os.path.join(base, '%d-%d-%d.' % (z, x + 1, y + 1) + ext)]
-#
-#            
-#
-#
-#            os.path.join(base, filename)
+
+def walk_layer_hashed(root, level, ext):
+    level_root = os.path.join(root, '%02d' % level)
+    pattern = re.compile(r'(\d+)-(\d+)-(\d)+\.' + ext)
+    n = 0
+    for base, dirs, files in os.walk(level_root):
+        for filename in files:
+            match = pattern.match(filename)
+            if not match:
+                continue
+
+            z, x, y = tuple(map(int, match.groups()))
+
+            if (x % 2) != 0 or (y % 2) != 0:
+                continue
+
+            input_names = [os.path.join(base, '%d-%d-%d.' % (z, x, y) + ext),
+                           os.path.join(base, '%d-%d-%d.' % (z, x + 1, y) + ext),
+                           os.path.join(base, '%d-%d-%d.' % (z, x, y + 1) + ext),
+                           os.path.join(base, '%d-%d-%d.' % (z, x + 1, y + 1) + ext)]
+
+            os.path.join(base, filename)
+
+            dirname = os.path.join(*tile_coordiante_to_dirname(z - 1,
+                                                               x // 2,
+                                                               y // 2))
+            output_name = os.path.join(root,
+                                       dirname,
+                                       '%d-%d-%d.%s' % (z - 1, x // 2,
+                                                        y // 2, ext))
+            n += 1
+            yield input_names, output_name
+    else:
+        print 'Found %d tiles to uplift' % (n * 4)
 
 
 def walk_layer_simple(root, level, ext):
-
     level_root = os.path.join(root, '%d' % level)
-
     pattern = re.compile(r'\d+\.' + ext)
-
+    n = 0
     for base, dirs, files in os.walk(level_root):
 
         for filename in files:
-
             # level_root/x/y.ext
             if not pattern.match(filename):
                 continue
@@ -80,11 +85,15 @@ def walk_layer_simple(root, level, ext):
                            os.path.join(head, '%d' % (x + 1), '%d.%s' % (y + 1, ext)),
                            ]
 
-            output_name = os.path.join(root, '%d' % (z - 1),
+            output_name = os.path.join(root,
+                                       '%d' % (z - 1),
                                        '%d' % (x // 2),
                                        '%d.%s' % (y // 2, ext))
-
+            n += 1
             yield input_names, output_name
+    else:
+        print 'Found %d tiles to uplift' % (n * 4)
+
 
 def do_uplift(input_names, output_name, ext, sharpen):
 
@@ -124,7 +133,7 @@ def do_uplift(input_names, output_name, ext, sharpen):
 def do_uplift_one(args):
     input_list, output, ext, sharpen = args
 #    print 'Uplifting "%s"' % output
-    with Timer('Uplifted "%s", time taken %%(time)s' % output):
+    with Timer('Uplifted "%s" in %%(time)s' % output):
         do_uplift(input_list, output, ext, sharpen)
 
 
@@ -200,8 +209,10 @@ def main():
 #                                 ext=options.ext,
 #                                 simple=options.simple
 #                                 )
-
-    gen = walk_layer_simple(options.root, options.level, options.ext)
+    if options.simple:
+        gen = walk_layer_simple(options.root, options.level, options.ext)
+    else:
+        gen = walk_layer_hashed(options.root, options.level, options.ext)
 
     def task_gen():
         for n, (input_list, output) in enumerate(gen):
