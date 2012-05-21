@@ -101,8 +101,8 @@ class GDALDEMRaster(Raster):
         # Create session
         engine = sqlalchemy.create_engine(
                         server,
-                        poolclass=sqlalchemy.pool.SingletonThreadPool,
-                        pool_size=pool_size)
+                        poolclass=sqlalchemy.pool.StaticPool)
+#                        pool_size=pool_size)
 
         self._session_maker = scoped_session(sessionmaker(bind=engine))
         self._table = dem_table
