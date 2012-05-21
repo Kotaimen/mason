@@ -22,16 +22,55 @@ LAYERS = [
     'mode': 'default',
     'source':
 #         None,
-        
+
         {
         'prototype': 'mapnik',
         'theme_root': './samples/themes/',
         'theme_name': 'worldaltas',
         'image_type': 'png',
         },
+
+#         {
+#          'prototype': 'composer',
+#          'command': """ convert $1 $2 -compose overlay -composite png:-""",
+#          'sources': [
+#                    {
+#                    'prototype': 'colorrelief',
+#                    'server': TEST_SVR,
+#                    'dem_table': TEST_TBL,
+#                    'color_context': './samples/HypsometricColors(Dark).txt',
+#                    'image_type': 'png',
+#                    },
+#                    {
+#                    'prototype': 'hillshade',
+#                    'server': TEST_SVR,
+#                    'dem_table': TEST_TBL,
+#                    'image_type': 'png',
+#                    },
+#
+#                    ],
+#          'storages': [
+#                    {
+#                    'prototype': 'filesystem',
+#                    'tag': 'colorrelief',
+#                    'root': '/tmp/worldaltas/colorrelief/',
+#                    'ext': 'png',
+#                    'simple': True,
+#                    },
+#
+#                    {
+#                    'prototype': 'filesystem',
+#                    'tag': 'hillshade',
+#                    'root': '/tmp/worldaltas/hillshade/',
+#                    'ext': 'png',
+#                    'simple': True,
+#                    },
+#                    ]
+#         },
+
     'storage':
 #         None,
-        
+
         {
         'prototype': 'filesystem',
         'tag': 'worldaltas',
