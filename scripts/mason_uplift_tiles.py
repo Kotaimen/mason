@@ -27,33 +27,31 @@ from mason.tilelib import tile_coordiante_to_dirname
 
 def walk_layer_hashed(root, level, ext):
     level_root = os.path.join(root, '%02d' % level)
-    pattern = re.compile(r'(\d+)-(\d+)-(\d)+\.' + ext)
+    pattern = re.compile(r'(\d+)-(\d+)-(\d+)\.' + ext)
     n = 0
+
+    def tile_path(z, x, y):
+        dirs = os.path.join(*tile_coordiante_to_dirname(z, x, y))
+        basename = '%d-%d-%d.%s' % (z, x, y, ext)
+        return os.path.join(root, dirs, basename)
+
     for base, dirs, files in os.walk(level_root):
+
         for filename in files:
             match = pattern.match(filename)
             if not match:
                 continue
 
             z, x, y = tuple(map(int, match.groups()))
-
             if (x % 2) != 0 or (y % 2) != 0:
                 continue
 
-            input_names = [os.path.join(base, '%d-%d-%d.' % (z, x, y) + ext),
-                           os.path.join(base, '%d-%d-%d.' % (z, x + 1, y) + ext),
-                           os.path.join(base, '%d-%d-%d.' % (z, x, y + 1) + ext),
-                           os.path.join(base, '%d-%d-%d.' % (z, x + 1, y + 1) + ext)]
+            input_names = [tile_path(z, x, y),
+                           tile_path(z, x + 1, y),
+                           tile_path(z, x, y + 1),
+                           tile_path(z, x + 1, y + 1), ]
+            output_name = tile_path(z - 1, x // 2, y // 2)
 
-            os.path.join(base, filename)
-
-            dirname = os.path.join(*tile_coordiante_to_dirname(z - 1,
-                                                               x // 2,
-                                                               y // 2))
-            output_name = os.path.join(root,
-                                       dirname,
-                                       '%d-%d-%d.%s' % (z - 1, x // 2,
-                                                        y // 2, ext))
             n += 1
             yield input_names, output_name
     else:
@@ -75,7 +73,6 @@ def walk_layer_simple(root, level, ext):
             z = level
             x = int(tail)
             y = int(filename.rsplit('.')[0])
-
             if (x % 2) != 0 or (y % 2) != 0:
                 continue
 
