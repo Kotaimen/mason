@@ -78,11 +78,11 @@ class ComposerTileSource(TileSource):
         """ Gets metatile """
 
         metatiles = list()
-
         for source in self._sources:
             metatile = source.get_metatile(metatile_index)
-            if metatile is not None:
-                metatiles.append(metatile)
+            if metatile is None:
+                raise Exception('MetaTile Source is Missing!')
+            metatiles.append(metatile)
 
         data = self._composer.compose(metatiles)
 
