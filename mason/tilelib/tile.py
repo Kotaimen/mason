@@ -151,12 +151,12 @@ class MetaTileIndex(TileIndex):
         for i in range(x, x + stride):
             for j in range(y, y + stride):
                 self._indexes.append(pyramid.create_tile_index(z, i, j,
-                                                              range_check=False))
+                                                            range_check=False))
 
         # Modify properties calculated in base class
         z, x, y = self._coord
-        left_bottom = self._indexes[0].envelope.leftbottom
-        right_top = self._indexes[-1].envelope.righttop
+        left_bottom = self._indexes[stride - 1].envelope.leftbottom
+        right_top = self._indexes[-stride].envelope.righttop
         self._envelope = Envelope(left_bottom.lon, left_bottom.lat,
                                   right_top.lon, right_top.lat)
         self._pixsize = self._pixsize * stride
@@ -172,10 +172,10 @@ class MetaTileIndex(TileIndex):
 
 class MetaTile(Tile):
 
-    def __init__(self, index, tiles, data=None):
+    def __init__(self, index, tiles, metadata, data=None):
         if data is None:
             data = b''
-        Tile.__init__(self, index, data, {})
+        Tile.__init__(self, index, data, metadata)
         assert isinstance(index, MetaTileIndex)
         self._tiles = tiles
 
@@ -197,8 +197,8 @@ class MetaTile(Tile):
         tile_datas = gridcrop(data, stride, stride, ext=ext)
 
         tiles = list()
-        for (i, j), data in tile_datas.iteritems():
-            tile = pyramid.create_tile(z, x + i, y + j, data, metadata)
+        for (i, j), d in tile_datas.iteritems():
+            tile = pyramid.create_tile(z, x + i, y + j, d, metadata)
             tiles.append(tile)
-        return MetaTile(metatile_index, tiles, data)
+        return MetaTile(metatile_index, tiles, metadata, data)
 
