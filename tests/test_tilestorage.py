@@ -147,6 +147,7 @@ class TestFileSystemTileStorageCompressed(TileStorageTestMixin, unittest.TestCas
                                                     '00', '07', 'C0', '0F',
                                                     '20-1000-2000.txt.gz')))
 
+
 class TestFileSystemTileStorageSimpleCompressed(TileStorageTestMixin, unittest.TestCase):
 
     def setUp(self):
@@ -255,36 +256,6 @@ class CascadeTileStorageDefault(TileStorageTestMixin, unittest.TestCase):
                                               database=r'./output/test_cascade_level_2.mbtiles',
                                               ext='txt'),
                                          ],
-                               )
-
-    def tearDown(self):
-        self.storage.flush_all()
-        self.storage.close()
-
-
-class CascadeTileStorageTop(TileStorageTestMixin, unittest.TestCase):
-
-    def setUp(self):
-
-        warnings.warn('memcache storage test flushes everything in localhost:11211')
-        client = memcache.Client(['localhost:11211'])
-        client.flush_all()
-        self.pyramid = Pyramid(levels=list(xrange(0, 21)))
-        self.output_dir = os.path.join('output', 'test_fsstorage2')
-
-        self.storage = factory('cascade',
-                               'testcascade1',
-                               storages=[dict(tag='testcascade1_level_1',
-                                              prototype='memcache',
-                                              servers=['localhost:11211']),
-                                         dict(tag='testcascade_level_2',
-                                              prototype='mbtiles',
-                                              database=r'./output/test_cascade_level_2.mbtiles',
-                                              ext='txt'),
-                                         ],
-                               read_mode='top',
-                               write_mode='sync',
-
                                )
 
     def tearDown(self):

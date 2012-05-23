@@ -30,7 +30,7 @@ except ImportError as e:
 
 # ===== Storage Factory ========================================================
 
-def CascadeTileStorage(tag, storages, read_mode='cache', write_mode='last'):
+def CascadeTileStorage(tag, storages, read_mode='cache'):
 
     # HACK: CascadeTileStorage only accepts storage object as parameter, but
     #       for convince we really want to write storage parameters in the
@@ -52,8 +52,7 @@ def CascadeTileStorage(tag, storages, read_mode='cache', write_mode='last'):
         storage_objects.append(factory(prototype, t, **storage_param))
 
     return _CascadeTileStorageImp(tag, storage_objects,
-                                  read_mode=read_mode,
-                                  write_mode=write_mode)
+                                  read_mode=read_mode)
 
 CascadeTileStorage.__doc__ = _CascadeTileStorageImp.__doc__
 

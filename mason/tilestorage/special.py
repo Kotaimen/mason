@@ -7,7 +7,7 @@ Created on May 10, 2012
 import os, os.path
 import mimetypes
 
-from .tilestorage import TileStorage, ReadOnlyTileStorage
+from .tilestorage import TileStorage, NullTileStorage, ReadOnlyTileStorage
 from ..tilelib import Tile
 
 
@@ -72,6 +72,10 @@ class CascadeTileStorage(TileStorage):
 
     """ Chain several TileStorages together
 
+    Currently only allows 2 or 3 storages, operate as a "cascade cache", the
+    first storage is a constrained  cache, usually memcached; second is
+    slower full storage, the last one looked when tile is not found
+    in second one.""
 
 
     tag
@@ -87,22 +91,6 @@ class CascadeTileStorage(TileStorage):
             Acts as a layerd cache, tile is read from first storage to last
             storage, and write to previous storage once a tile is found
 
-        top
-            Act as a "top" view, data is read from last storage to first
-            storage
-
-        Default value is "cache"
-
-    writemode
-        Optional, controls how tile is write to storages, can be one of:
-
-        sync
-            Tile is written to all stroages
-
-        last
-            Tile is written to last storage only, tile in previous storage
-            is deleted
-
         Default value is "cache"
 
     """
@@ -110,71 +98,47 @@ class CascadeTileStorage(TileStorage):
     def __init__(self, tag,
                  storages,
                  read_mode='cache',
-                 write_mode='last',
                  ):
         TileStorage.__init__(self, tag)
         self._readmode = read_mode
-        assert self._readmode in ['cache', 'top']
-        self._writemode = write_mode
-        assert self._writemode in ['sync', 'last']
+        assert self._readmode in ['cache']
         self._storages = storages
-        assert len(self._storages) > 1
+        assert len(storages) in [2, 3]
+        if len(storages) == 2:
+            self._storages.append(NullTileStorage())
 
     def get(self, tile_index):
         if self._readmode == 'cache':
             for n, storage in enumerate(self._storages):
                 tile = storage.get(tile_index)
                 if tile is not None:
-                    for m in range(0, n):
-                        self._storages[m].put(tile)
+                    if n == 1:
+                        # Write back to cache only if read from tile source
+                        self._storages[0].put(tile)
                     return tile
             else:
                 return None
-
-        elif self._readmode == 'top':
-            for storage in reversed(self._storages):
-                tile = storage.get(tile_index)
-                if tile is not None:
-                    return tile
         else:
             raise Exception('Unknown read mode')
 
     def put(self, tile):
-        if self._writemode == 'sync':
-            for storage in self._storages:
-                storage.put(tile)
-        elif self._writemode == 'last':
-            self._storages[-1].put(tile)
-        else:
-            raise Exception('Unknown write mode')
+        self._storages[1].put(tile)
 
-    def has_all(self, tiles):
-        if self._writemode == 'last':
-            return self._storages[-1].has_all(tiles)
-        else:
-            return all(s.has_any(tiles) for s in self._storages)
+    def has_all(self, tile_indexes):
+        return self._storages[1].has_all(tile_indexes)
 
-    def has_any(self, tiles):
-        if self._writemode == 'last':
-            return self._storages[-1].has_any(tiles)
-        else:
-            return any(s.has_any(tiles) for s in self._storages)
+    def has_any(self, tile_indexes):
+        return self._storages[1].has_any(tile_indexes)
 
     def put_multi(self, tiles):
-        if self._writemode == 'sync':
-            for storage in self._storages:
-                storage.put_multi(tiles)
-        elif self._writemode == 'last':
-            self._storages[-1].put_multi(tiles)
-        else:
-            raise Exception('Unknown write mode')
+        self._storages[1].put_multi(tiles)
 
     def delete(self, tile_index):
-        for storage in self._storages:
-            storage.delete(tile_index)
+        self._storages[0].delete(tile_index)
+        self._storages[1].delete(tile_index)
 
     def has(self, tile_index):
-        return any(storage.has(tile_index) for storage in self._storages)
+        return self._storages[1].has(tile_index)
 
     def flush_all(self):
         for storage in self._storages:

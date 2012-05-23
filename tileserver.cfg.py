@@ -20,6 +20,9 @@ LAYERS = [
     'crs': 'ESPG:4326',
     'proj': 'ESPG:3857',
     'mode': 'default',
+
+    # Data Source -=-=-=-=-=-=-=-=-=
+
     'source':
 #         None,
 
@@ -68,15 +71,31 @@ LAYERS = [
 #                    ]
 #         },
 
+    # Data Storage -=-=-=-=-=-=-=-=-=
+
     'storage':
 #         None,
 
         {
-        'prototype': 'filesystem',
-        'tag': 'worldaltas',
-        'root': '/tmp/worldaltas/',
-        'ext': 'png',
-        'simple': True,
+        'prototype': 'cascade',
+        'storages':
+            [
+            {
+             'prototype': 'memcache',
+             'servers': ['localhost:11211'],
+            },
+            {
+             'prototype': 'filesystem',
+             'root': '/tmp/worldaltas/',
+             'ext': 'png',
+             'simple': True,
+            },
+            {
+             'prototype': 'default',
+             'filename': r'./samples/checkboard256.png',
+             'ext': 'png',
+            },
+            ],
         },
 
 #         {
