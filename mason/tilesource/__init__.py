@@ -42,6 +42,8 @@ class ComposerCreator(TileSourceCreator):
         # create storages
         storage_list = list()
         for n, storage_cfg in enumerate(storages):
+            if storage_cfg is None:
+                storage_cfg = {'prototype': 'null'}
             if 'tag' not in storage_cfg:
                 storage_cfg['tag'] = '%s_%s' % (tag, n)
             storage = create_tilestorage(**storage_cfg)
