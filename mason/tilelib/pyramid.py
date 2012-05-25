@@ -164,7 +164,7 @@ class Pyramid(object):
         if set(index.fission()) != set(t.index for t in tiles):
             raise InvalidTileParameter('Invalid tiles for dummy metatile')
 
-        return MetaTile(index, tiles)
+        return MetaTile(index, tiles, metadata=dict())
 
     def create_metatile(self, z, x, y, stride, data, metadata):
         index = self.create_metatile_index(z, x, y, stride)
