@@ -147,8 +147,8 @@ class FileSystemTileStorage(TileStorage):
 
         # Make a temp file first
         fd, tempname = tempfile.mkstemp(suffix='tmp',
-                                            prefix=basename,
-                                            dir=dirname)
+                                        prefix=basename,
+                                        dir=dirname)
         # Close os file handle, we will write using standard file io
         os.close(fd)
 

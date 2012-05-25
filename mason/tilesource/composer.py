@@ -91,3 +91,6 @@ class ComposerTileSource(TileSource):
 
         metatile = MetaTile.from_tile_index(metatile_index, data, metadata)
         return metatile
+
+    def close(self):
+        pass
