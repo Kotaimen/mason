@@ -44,15 +44,23 @@ class ImageMagickComposer(TileComposer):
     def __init__(self, tag, command):
         TileComposer.__init__(self, tag)
 
-        # output image should be sent to stdout(use '-')
-        match = re.search('(\w+):-', command)
-        if not match:
-            raise TileComposerError('Output Image Type is missing.')
+        if not isinstance(command, list):
+            raise TileComposerError('Command should be a list of arguments')
 
-        # get image type from imagemagick command
-        image_type = match.group(1)
-        if image_type not in ['png', 'jpeg']:
-            raise TileComposerError('Invalid Image Type "%s"' % image_type)
+        output_sum = 0
+        for arg in command:
+            if not isinstance(arg, str):
+                raise TileComposerError('Argument should be string')
+
+            match = re.match('(\w+):-', arg)
+            if match:
+                image_type = match.group(1)
+                if image_type not in ['png', 'jpeg']:
+                    raise TileComposerError('Invalid Image Type "%s"' % image_type)
+
+                output_sum += 1
+                if output_sum != 1:
+                    raise TileComposerError('There should be one output!')
 
         self._data_type = image_type
         self._command = command
@@ -60,15 +68,14 @@ class ImageMagickComposer(TileComposer):
     def compose(self, tiles):
         """ Composes tiles according to the command"""
 
-        temp_files = list()
+        command = self._command
+        tempfiles = list()
 
-        # Generate proper temp file for imagemagick (it don't accept
-        # images from stdin)
-        def sourcerepl(match):
+        for idx, tile_no in self._parse_command(command):
             try:
-                tile = tiles[int(match.group(1)) - 1]
+                tile = tiles[tile_no - 1]
             except KeyError:
-                TileComposerError('Tile sources and command does not match.')
+                TileComposerError('Tile sources & command not match.')
 
             data = tile.data
             ext = tile.metadata['ext']
@@ -77,20 +84,31 @@ class ImageMagickComposer(TileComposer):
                                             prefix='composer_')
             # Close the file descriptor since we are just getting a temp name
             os.close(fd)
+
             # Write image data to temp files
             with open(tempname, 'wb') as fp:
                 fp.write(data)
-            temp_files.append(tempname)
-            return tempname
+
+            command[idx] = tempname
+            tempfiles.append(tempname)
 
         try:
             # Execute imagemagick command
-            command = re.sub(r'\$(\d+)', sourcerepl, self._command).split()
             stdout = subprocess.check_output(command)
         finally:
             # Delete temporary files
-            for filename in temp_files:
+            for filename in tempfiles:
                 if os.path.exists(filename):
                     os.remove(filename)
 
         return stdout
+
+    def _parse_command(self, command):
+
+        for i in range(len(command)):
+
+            arg = command[i]
+            match = re.match(r'\$(\d+)', arg)
+            if match:
+                tile_no = int(match.group(1))
+                yield (i, tile_no)

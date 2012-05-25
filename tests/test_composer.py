@@ -11,7 +11,7 @@ from mason.tilelib.pyramid import Pyramid
 class TestImageMagicComposer(unittest.TestCase):
 
     def setUp(self):
-        command = 'convert $1 $2 -compose lighten -composite png:-'
+        command = 'convert $1 $2 -compose lighten -composite png:-'.split()
         self._composer = ImageMagickComposer('test', command)
         self._pyramid = Pyramid()
 
