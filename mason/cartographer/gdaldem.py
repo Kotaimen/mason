@@ -91,7 +91,7 @@ class GDALDEMRaster(Raster):
 
     def __init__(self,
                  server='',
-                 pool_size=10,
+                 pool_size=5,
                  dem_table='',
                  image_type='gtiff',
                  image_parameters=None,
@@ -101,8 +101,9 @@ class GDALDEMRaster(Raster):
         # Create session
         engine = sqlalchemy.create_engine(
                         server,
-                        poolclass=sqlalchemy.pool.StaticPool)
-#                        pool_size=pool_size)
+                        poolclass=sqlalchemy.pool.StaticPool,
+#                        pool_size=pool_size
+                        )
 
         self._session_maker = scoped_session(sessionmaker(bind=engine))
         self._table = dem_table
@@ -201,9 +202,13 @@ class GDALHillShade(GDALDEMRaster):
 
         try:
             # GDAL only support file as their input and output.
-            _fd, src_tempname = _get_tmp_file('hillshade_src')
-            _fd, wrp_tempname = _get_tmp_file('hillshade_wrp')
-            _fd, dst_tempname = _get_tmp_file('hillshade_dst')
+            fd1, src_tempname = _get_tmp_file('hillshade_src')
+            fd2, wrp_tempname = _get_tmp_file('hillshade_wrp')
+            fd3, dst_tempname = _get_tmp_file('hillshade_dst')
+
+            os.close(fd1)
+            os.close(fd2)
+            os.close(fd3)
 
             # write dem data to temp file
             with open(src_tempname, 'wb') as fp:
@@ -283,9 +288,13 @@ class GDALColorRelief(GDALDEMRaster):
 
         try:
             # gdal utilities only support file as their input and output.
-            _fd, src_tempname = _get_tmp_file('colorrelief_src')
-            _fd, wrp_tempname = _get_tmp_file('colorrelief_wrp')
-            _fd, dst_tempname = _get_tmp_file('colorrelief_dst')
+            fd1, src_tempname = _get_tmp_file('colorrelief_src')
+            fd2, wrp_tempname = _get_tmp_file('colorrelief_wrp')
+            fd3, dst_tempname = _get_tmp_file('colorrelief_dst')
+
+            os.close(fd1)
+            os.close(fd2)
+            os.close(fd3)
 
             # write dem data to temporary file
             with open(src_tempname, 'wb') as fp:
