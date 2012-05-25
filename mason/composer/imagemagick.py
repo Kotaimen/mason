@@ -76,7 +76,7 @@ class ImageMagickComposer(TileComposer):
             fd, tempname = tempfile.mkstemp(suffix='.' + ext,
                                             prefix='composer_')
             # Close the file descriptor since we are just getting a temp name
-            os.close()
+            os.close(fd)
             # Write image data to temp files
             with open(tempname, 'wb') as fp:
                 fp.write(data)
