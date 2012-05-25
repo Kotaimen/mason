@@ -5,6 +5,9 @@ from ..composer import create_tile_composer
 
 from .singleton import CartographerTileSource
 from .composer import ComposerTileSource
+from .null import NullTileSource
+
+null_tile_source = NullTileSource()
 
 
 #==============================================================================
@@ -16,12 +19,30 @@ class TileSourceCreator(object):
         raise NotImplementedError
 
 
-class CartographerCreator(TileSourceCreator):
+class MapnikTileSourceCreator(TileSourceCreator):
 
     """ Cartographer Tile Source Creator """
 
-    def __call__(self, prototype, tag, **params):
-        cartographer = create_cartographer(prototype, **params)
+    def __call__(self, tag, **params):
+        cartographer = create_cartographer('mapnik', **params)
+        return CartographerTileSource(tag, cartographer)
+
+
+class HillShadeTileSourceCreator(TileSourceCreator):
+
+    """ Cartographer Tile Source Creator """
+
+    def __call__(self, tag, **params):
+        cartographer = create_cartographer('hillshade', **params)
+        return CartographerTileSource(tag, cartographer)
+
+
+class ColorReliefTileSourceCreator(TileSourceCreator):
+
+    """ Cartographer Tile Source Creator """
+
+    def __call__(self, tag, **params):
+        cartographer = create_cartographer('colorrelief', **params)
         return CartographerTileSource(tag, cartographer)
 
 
@@ -29,7 +50,10 @@ class ComposerCreator(TileSourceCreator):
 
     """ Composer Tile Source Creator """
 
-    def __call__(self, prototype, tag, sources, storages, **params):
+    def __call__(self, tag, **params):
+
+        sources = params['sources']
+        storages = params['storages']
 
         # create sources
         source_list = list()
@@ -49,10 +73,19 @@ class ComposerCreator(TileSourceCreator):
             storage = create_tilestorage(**storage_cfg)
             storage_list.append(storage)
 
+        del params['sources']
+        del params['storages']
+
         # create composer
         composer = create_tile_composer('imagemagick', tag, **params)
 
         return ComposerTileSource(tag, source_list, storage_list, composer)
+
+
+class NullTileSourceCreator(TileSourceCreator):
+
+    def __call__(self, tag, **params):
+        return null_tile_source
 
 
 #==============================================================================
@@ -62,10 +95,11 @@ class TileSourceFactory(object):
 
     """ Tile Source Factory """
 
-    CLASS_REGISTRY = dict(mapnik=CartographerCreator(),
-                          hillshade=CartographerCreator(),
-                          colorrelief=CartographerCreator(),
+    CLASS_REGISTRY = dict(mapnik=MapnikTileSourceCreator(),
+                          hillshade=HillShadeTileSourceCreator(),
+                          colorrelief=ColorReliefTileSourceCreator(),
                           composer=ComposerCreator(),
+                          null=NullTileSourceCreator(),
                           )
 
     def __call__(self, prototype, tag, **params):
@@ -74,7 +108,7 @@ class TileSourceFactory(object):
         if class_prototype is None:
             raise Exception('Unknown tile source prototype "%s"' % prototype)
 
-        return class_prototype(prototype, tag, **params)
+        return class_prototype(tag, **params)
 
 
 def create_tile_source(prototype, tag, **params):
