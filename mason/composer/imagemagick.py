@@ -73,30 +73,20 @@ class ImageMagickComposer(TileComposer):
             data = tile.data
             ext = tile.metadata['ext']
 
-            try:
-                fd, tempname = tempfile.mkstemp(suffix='.' + ext,
-                                                prefix='composer_')
-            except Exception:
-                raise
-            else:
-                os.write(fd, data)
-                return tempname
-                os.close(fd)
-                temp_files.append(tempname)
+            fd, tempname = tempfile.mkstemp(suffix='.' + ext,
+                                            prefix='composer_')
+            # Close the file descriptor since we are just getting a temp name
+            os.close()
+            # Write image data to temp files
+            with open(tempname, 'wb') as fp:
+                fp.write(data)
+            temp_files.append(tempname)
+            return tempname
 
         try:
             # Execute imagemagick command
             command = re.sub(r'\$(\d+)', sourcerepl, self._command).split()
-            popen = subprocess.Popen(command,
-                                     stdin=subprocess.PIPE,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE,
-                                     )
-            stdout, stderr = popen.communicate()
-            ret = popen.poll()
-
-            if ret != 0:
-                raise subprocess.CalledProcessError(ret, command, stderr)
+            stdout = subprocess.check_output(command)
         finally:
             # Delete temporary files
             for filename in temp_files:
