@@ -47,6 +47,9 @@ class ImageMagickComposer(TileComposer):
         if not isinstance(command, list):
             raise TileComposerError('Command should be a list of arguments')
 
+        if not command[0] == 'convert':
+            raise TileComposerError('Should use imagemagick command "convert"')
+
         output_sum = 0
         for arg in command:
             if not isinstance(arg, str):
@@ -68,8 +71,10 @@ class ImageMagickComposer(TileComposer):
     def compose(self, tiles):
         """ Composes tiles according to the command"""
 
-        command = self._command
-        tempfiles = list()
+        # Copy a command list since we are going to modify it
+        command = list(self._command)
+        # List of temp file names
+        files_to_delete = list()
 
         for idx, tile_no in self._parse_command(command):
             try:
@@ -80,24 +85,29 @@ class ImageMagickComposer(TileComposer):
             data = tile.data
             ext = tile.metadata['ext']
 
+            # Generate a temp file using mkstemp
             fd, tempname = tempfile.mkstemp(suffix='.' + ext,
                                             prefix='composer_')
-            # Close the file descriptor since we are just getting a temp name
+            # Close the file descriptor since we are just getting a file name
             os.close(fd)
 
             # Write image data to temp files
+            # NOTE: Write using os.write will cause fd opened forever and 
+            #       eventually exhaust file handles...
             with open(tempname, 'wb') as fp:
                 fp.write(data)
 
+            # Replace '%n' with read image filename
             command[idx] = tempname
-            tempfiles.append(tempname)
+            # Remember the temp files so we can delete it layer
+            files_to_delete.append(tempname)
 
         try:
-            # Execute imagemagick command
+            # Execute imagemagick command 
             stdout = subprocess.check_output(command)
         finally:
             # Delete temporary files
-            for filename in tempfiles:
+            for filename in files_to_delete:
                 if os.path.exists(filename):
                     os.remove(filename)
 
@@ -106,7 +116,6 @@ class ImageMagickComposer(TileComposer):
     def _parse_command(self, command):
 
         for i in range(len(command)):
-
             arg = command[i]
             match = re.match(r'\$(\d+)', arg)
             if match:
