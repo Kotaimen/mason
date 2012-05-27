@@ -55,9 +55,13 @@ class ComposerCreator(TileSourceCreator):
         sources = params['sources']
         storages = params['storages']
 
+        data_type = params['image_type']
+
         # create sources
         source_list = list()
         for n, source_cfg in enumerate(sources):
+            if source_cfg is None:
+                source_cfg = {'prototype': 'null'}
             if 'tag' not in source_cfg:
                 source_cfg['tag'] = '%s_%s' % (tag, n)
             source = create_tile_source(**source_cfg)
@@ -75,9 +79,11 @@ class ComposerCreator(TileSourceCreator):
 
         del params['sources']
         del params['storages']
+        del params['image_type']
 
         # create composer
-        composer = create_tile_composer('imagemagick', tag, **params)
+        composer = create_tile_composer('imagemagick', tag, data_type,
+                                        **params)
 
         return ComposerTileSource(tag, source_list, storage_list, composer)
 

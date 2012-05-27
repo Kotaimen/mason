@@ -16,102 +16,119 @@ except Exception:
     raise ImportError('Convert is not found. Please Install ImageMagick.')
 
 
+class ImageMagickError(subprocess.CalledProcessError):
+
+    def __init__(self, returncode, cmd, output=None):
+        self.returncode = returncode
+        self.cmd = cmd
+        self.output = output
+
+    def __str__(self):
+        return '%d\n$ %s\n%s' % (self.returncode, self.cmd, self.output)
+
 #==============================================================================
 # ImageMagick Composer
 #==============================================================================
+
+
 class ImageMagickComposer(TileComposer):
 
     """ ImageMagick Composer
 
-    Compose tiles with ImageMagick tools according to the
-    specified command.
+    Compose tiles using ImageMagick convert command (www.imagemagick.org)
 
-    Image Source is designated as '$n', n starts from 1,
-    eg.'$1','$2'.
+    The command is the ImageMagick convert command-line parameters, with
+    following exceptions:
 
-    Image output should not be specified, since that will
-    be deduced from the image_type by the composer.
+    - Image Source is designated as '$n', starts from 1 (eg.'$1','$2'), the
+      number will be replaced with image generated from tile source list
+    - Output image type is always automatic specified and is written to stdout
+      as last parameter.
+    - The command can be split into lines and and line starts with '#' is
+      ignored.  This allows write comment in the command.
 
-    Samples:
-        command = 'convert $1 $2 -compose lighten -composite'
+    For example, the following command::
 
-    the number of source corresponds with the order of the
-    tiles passed into the compose method, which is also the order
-    of the sources defined in the composer source.
+       '''$1 -blur 0x4
+          # ---Comment line ----
+          $2 -compose lighten -composite'''
+
+    Becomes::
+
+       'convert /tmp/foo.png -blur 0x4 /tmp/bar.png -compose lighten -compose png:-'
+
+    Note filenames is generated randomly.
 
     """
 
-    def __init__(self, tag, command):
-        TileComposer.__init__(self, tag)
+    def __init__(self, tag, data_type, command):
+        TileComposer.__init__(self, tag, data_type=data_type)
 
-        if not isinstance(command, list):
-            raise TileComposerError('Command should be a list of arguments')
-
-        if not command[0] == 'convert':
-            raise TileComposerError('Should use imagemagick command "convert"')
-
-        output_sum = 0
-        for arg in command:
-            if not isinstance(arg, str):
-                raise TileComposerError('Argument should be string')
-
-            match = re.match('(\w+):-', arg)
-            if match:
-                image_type = match.group(1)
-                if image_type not in ['png', 'jpeg']:
-                    raise TileComposerError('Invalid Image Type "%s"' % image_type)
-
-                output_sum += 1
-                if output_sum != 1:
-                    raise TileComposerError('There should be one output!')
-
-        self._data_type = image_type
-        self._command = command
+        # Convert command string to list of arguments
+        lines = ['convert -quiet -limit thread 1']
+        for line in command.splitlines():
+            if line.lstrip().startswith('#'):
+                continue
+            lines.append(line.strip())
+        lines.append('%s:-' % self._data_type)
+        self._command = ' '.join(lines).split()
 
     def compose(self, tiles):
         """ Composes tiles according to the command"""
 
-        # Copy a command list since we are going to modify it
+        # Copy a command list since we are going to modify it in place
         command = list(self._command)
-        # List of temp file names
-        files_to_delete = list()
 
-        for idx, tile_no in self._parse_command(command):
+        files_to_delete = dict()
+
+        for cmd_no, tile_no in self._parse_command(command):
             try:
                 tile = tiles[tile_no - 1]
             except KeyError:
-                TileComposerError('Tile sources & command not match.')
+                TileComposerError('Invalid tile source "%s"' % tile_no)
 
-            data = tile.data
-            ext = tile.metadata['ext']
+            # Generate a new tempfile for tiles not used yet
+            if tile_no not in files_to_delete:
 
-            # Generate a temp file using mkstemp
-            fd, tempname = tempfile.mkstemp(suffix='.' + ext,
-                                            prefix='composer_')
-            # Close the file descriptor since we are just getting a file name
-            os.close(fd)
+                # Image extension
+                ext = tile.metadata['ext']
 
-            # Write image data to temp files
-            # NOTE: Write using os.write will cause fd opened forever and 
-            #       eventually exhaust file handles...
-            with open(tempname, 'wb') as fp:
-                fp.write(data)
+                # Generate a temp file name using mkstemp
+                fd, tempname = tempfile.mkstemp(suffix='.' + ext,
+                                                prefix='mgktle$%d-' % tile_no)
+                # Close the file descriptor immediately 
+                # NOTE: Write using os.write() will cause fd being opened
+                #       forever (even after called os.close()), and 
+                #       eventually exhaust file handles, confirmed this
+                #       on darwin & linux
+                os.close(fd)
 
-            # Replace '%n' with read image filename
-            command[idx] = tempname
-            # Remember the temp files so we can delete it layer
-            files_to_delete.append(tempname)
+                # Delete the temp file later
+                files_to_delete[tile_no] = tempname
+
+                # Write image data to temp file
+                with open(tempname, 'wb') as fp:
+                    fp.write(tile.data)
+
+            # Replace '%n' with real filename
+            command[cmd_no] = tempname
 
         try:
-            # Execute imagemagick command 
-            stdout = subprocess.check_output(command)
+            # Call imagemagick command
+            process = subprocess.Popen(command,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
+            retcode = process.poll()
+            if retcode:
+                raise ImageMagickError(retcode, ' '.join(command),
+                                       output=stderr)
+            return stdout
         finally:
             # Delete temporary files
-            for filename in files_to_delete:
+            for filename in files_to_delete.itervalues():
                 if os.path.exists(filename):
                     os.remove(filename)
-
-        return stdout
 
     def _parse_command(self, command):
 

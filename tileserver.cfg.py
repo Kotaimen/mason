@@ -35,10 +35,7 @@ LAYERS = [
 
 #         {
 #          'prototype': 'composer',
-#          'command': ['convert', 
-#                      '$1', '$2', 
-#                      '-compose', 'overlay', '-composite', 
-#                      'png:-'],
+#          'command': '$1 $2 -compose overlay -composite',
 #          'sources': [
 #                    {
 #                    'prototype': 'colorrelief',

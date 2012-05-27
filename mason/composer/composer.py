@@ -19,9 +19,9 @@ class TileComposer(object):
 
     """ Compose a list of tiles """
 
-    def __init__(self, tag):
+    def __init__(self, tag, data_type):
         self._tag = tag
-        self._data_type = None
+        self._data_type = data_type
 
     @property
     def tag(self):
@@ -36,3 +36,4 @@ class TileComposer(object):
     def compose(self, tiles):
         """ composes a list of tiles to one tile """
         raise NotImplementedError
+
