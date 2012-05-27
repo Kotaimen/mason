@@ -141,7 +141,7 @@ use supplied wsgi.py)
 
     parser.add_argument('--mode', '-m',
                         dest='mode',
-                        choices=['readonly', 'readwrite'],
+                        choices=['readonly', 'readwrite', 'r', 'rw'],
                         default='readonly',
                         help='''Operate mode, set to "readonly" (the default value)
                         for read tile only from storage; set to "readwrite" enables
@@ -181,6 +181,11 @@ use supplied wsgi.py)
 
     if options.production:
         options.quiet = False
+
+    if options.mode == 'r':
+        options.mode = 'readonly'
+    elif options.mode == 'rw':
+        options.mode = 'readwrite'
 
     return options
 
