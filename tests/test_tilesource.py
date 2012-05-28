@@ -9,6 +9,14 @@ from mason.tilelib.pyramid import Pyramid
 from mason.tilesource import create_tile_source
 
 
+def save_to_file(tag, ext, data):
+    file_name = './output/test_tile_source_' + tag + ext
+    if os.path.exists(file_name):
+        os.remove(file_name)
+    with open(file_name, 'wb') as fp:
+        fp.write(data)
+
+
 class TestTileSource(unittest.TestCase):
 
     def setUp(self):
@@ -16,17 +24,11 @@ class TestTileSource(unittest.TestCase):
                        tag='text',
                        theme_root='./input/',
                        theme_name='worldaltas',
-                       image_type='png'
+                       data_type='png'
                        )
 
         self._tile_source = create_tile_source(**config)
         self._pyramid = Pyramid()
-
-    def _save_test_result(self, name, data):
-        if os.path.exists(name):
-            os.remove(name)
-        with open(name, 'wb') as fp:
-            fp.write(data)
 
     def testGetTile(self):
         z, x, y = 1, 1, 1
@@ -38,8 +40,7 @@ class TestTileSource(unittest.TestCase):
         self.assertIn('mimetype', tile.metadata)
         self.assert_(tile.data)
 
-        test_result = './output/worldaltas_tile_source.png'
-        self._save_test_result(test_result, tile.data)
+        save_to_file('worldaltas', tile.metadata['ext'], tile.data)
 
     def testGetMetaTile(self):
         pass

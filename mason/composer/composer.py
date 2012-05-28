@@ -19,7 +19,8 @@ class TileComposer(object):
 
     """ Compose a list of tiles """
 
-    def __init__(self, tag, data_type):
+    def __init__(self, tag, data_type=None):
+        assert data_type is not None
         self._tag = tag
         self._data_type = data_type
 

@@ -14,6 +14,7 @@ except ImportError:
     import mapnik2 as mapnik
 
 from .cartographer import Raster
+from .datatype import RenderData
 from .errors import (MapnikVersionError,
                      MapnikThemeNotFound,
                      MapnikTypeError,
@@ -102,10 +103,14 @@ class MapnikRaster(Raster):
                  theme_name,
                  scale_factor=1.0,
                  buffer_size=0,
-                 image_type='png',
-                 image_parameters=None,
+                 data_type=None
                  ):
-        Raster.__init__(self, image_type, image_parameters)
+        Raster.__init__(self, data_type)
+
+        # 'png', 'png24', 'png32' are equivalent to 'png32' in mapnik
+        # 'png8', 'png256' are equivalent to 'png256' in mapnik
+        if self._data_type.name not in ['png', 'png256', 'jpeg']:
+            raise MapnikTypeError('Only support PNG/PNG256/JPEG format.')
 
         self._scale_factor = scale_factor
         self._buffer_size = buffer_size
@@ -117,20 +122,17 @@ class MapnikRaster(Raster):
         if not os.path.exists(self._theme):
             raise MapnikThemeNotFound(self._theme)
 
-        # 'png', 'png24', 'png32' are equivalent to 'png32' in mapnik
-        # 'png8', 'png256' are equivalent to 'png256' in mapnik
-        if self._image_type not in ['png', 'png256', 'jpeg']:
-            raise MapnikTypeError('%s not supported' % self._image_type)
-
         # convert image_type and parameters to mapnik format string
+        image_type = self._data_type.name
+        image_parameters = self._data_type.parameters
         if image_parameters:
 
             # PNG Parameters --------------------------------------------------
-            if self._image_type in ['png', ]:
+            if image_type == 'png':
                 pass
 
             # JPEG Parameters -------------------------------------------------
-            elif self._image_type in ['jpeg', ]:
+            elif image_type == 'jpeg':
                 # quality
                 quality = image_parameters.get('quality', None)
                 if not isinstance(quality, int):
@@ -140,10 +142,10 @@ class MapnikRaster(Raster):
 
                 # no need to set quality 85, since it is the default value.
                 if quality != 85:
-                    self._image_type += ('%d' % quality)
+                    image_type += ('%d' % quality)
 
             # PNG256 Parameters -----------------------------------------------
-            elif self._image_type in ['png256', ]:
+            elif image_type == 'png256':
                 # palette
                 palette = image_parameters.get('palette', None)
                 if palette:
@@ -166,12 +168,14 @@ class MapnikRaster(Raster):
                     if colors:
                         if colors < 2 or colors > 256:
                             raise MapnikTypeError('Invalid color numbers')
-                        self._image_type += (':c=%d' % colors)
+                        image_type += (':c=%d' % colors)
 
                 # transparency
                 transparency = image_parameters.get('transparency', None)
                 if transparency in [0, 1, 2]:
-                    self._image_type += (':t=%d' % transparency)
+                    image_type += (':t=%d' % transparency)
+
+        self._image_type = image_type
 
         # projection
         self._proj = mapnik.Projection(_PROJECTIONS['EPSG:3857'])
@@ -191,9 +195,8 @@ class MapnikRaster(Raster):
         mapnik.render(map_, image, self._scale_factor)
 
         if self._palette:
-            return image.tostring(self._image_type, self._palette)
+            data = image.tostring(self._image_type, self._palette)
         else:
-            return image.tostring(self._image_type)
+            data = image.tostring(self._image_type)
 
-    def close(self):
-        pass
+        return RenderData(data, self._data_type)

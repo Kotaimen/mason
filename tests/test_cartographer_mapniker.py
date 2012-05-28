@@ -5,108 +5,110 @@ Created on May 2, 2012
 '''
 import os
 import unittest
-from mason.cartographer.mapniker import MapnikRaster
+from mason.cartographer import create_cartographer
+
+
+def save_to_file(tag, ext, data):
+    file_name = './output/test_mapnik_' + tag + ext
+    if os.path.exists(file_name):
+        os.remove(file_name)
+    with open(file_name, 'wb') as fp:
+        fp.write(data)
 
 
 class TestMapnikMaker(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
-    def _save_test_result(self, name, data):
-        if os.path.exists(name):
-            os.remove(name)
-        with open(name, 'wb') as fp:
-            fp.write(data)
-
     def testTrueColor(self):
-        maker = MapnikRaster(theme_root='./input/',
-                             theme_name='worldaltas',
-                             image_type='png')
+        cartographer = create_cartographer('mapnik',
+                                           theme_root='./input/',
+                                           theme_name='worldaltas',
+                                           data_type='png')
 
         size = (256, 256)
         envelope = (-180, -85, 180, 85)
-        data = maker.doodle(envelope, size)
-        self.assert_(data)
+        render_data = cartographer.doodle(envelope, size)
 
-        test_result = './output/worldaltas.png'
-        self._save_test_result(test_result, data)
+        data = render_data.data
+        data_type = render_data.data_type
+        save_to_file('worldaltas', data_type.ext, data)
 
-        maker.close()
+        cartographer.close()
 
     def testIndexColor(self):
-        maker = MapnikRaster(theme_root='./input/',
-                             theme_name='worldaltas',
-                             image_type='png256',
-                             image_parameters={'colors': 5}
-                            )
+        cartographer = create_cartographer('mapnik',
+                                           theme_root='./input/',
+                                           theme_name='worldaltas',
+                                           data_type='png256',
+                                           data_parameters={'colors': 5})
 
         size = (256, 256)
         envelope = (-180, -85, 180, 85)
-        data = maker.doodle(envelope, size)
-        self.assert_(data)
+        render_data = cartographer.doodle(envelope, size)
 
-        test_result = './output/worldaltas_index_color.png'
-        self._save_test_result(test_result, data)
+        data = render_data.data
+        data_type = render_data.data_type
+        save_to_file('worldaltas_index_color', data_type.ext, data)
 
-        maker.close()
+        cartographer.close()
 
     def testTransparency(self):
-        maker = MapnikRaster(theme_root='./input/',
-                             theme_name='worldaltas',
-                             image_type='png256',
-                             image_parameters={'transparency': 0}
-                            )
+        cartographer = create_cartographer('mapnik',
+                                           theme_root='./input/',
+                                           theme_name='worldaltas',
+                                           data_type='png256',
+                                           data_parameters={'transparency': 0})
 
         size = (256, 256)
         envelope = (-180, -85, 180, 85)
-        data = maker.doodle(envelope, size)
-        self.assert_(data)
+        render_data = cartographer.doodle(envelope, size)
 
-        test_result = './output/worldaltas_index_color_transparency.png'
-        self._save_test_result(test_result, data)
+        data = render_data.data
+        data_type = render_data.data_type
+        save_to_file('worldaltas_transparency', data_type.ext, data)
 
-        maker.close()
+        cartographer.close()
 
     def testPalette(self):
-        maker = MapnikRaster(theme_root='./input/',
-                             theme_name='worldaltas',
-                             image_type='png256',
-                             image_parameters={
-                                'palette': './input/example-palette.act',
-                                'colors': 5,
-                             }
-                            )
+        cartographer = create_cartographer('mapnik',
+                                            theme_root='./input/',
+                                            theme_name='worldaltas',
+                                            data_type='png256',
+                                            data_parameters={
+                                            'palette': './input/example-palette.act',
+                                            'colors': 5,
+                                            }
+                                            )
 
         size = (256, 256)
         envelope = (-180, -85, 180, 85)
-        data = maker.doodle(envelope, size)
-        self.assert_(data)
+        render_data = cartographer.doodle(envelope, size)
 
-        test_result = './output/worldaltas_index_color_palette.png'
-        self._save_test_result(test_result, data)
+        data = render_data.data
+        data_type = render_data.data_type
+        save_to_file('worldaltas_palette', data_type.ext, data)
 
-        maker.close()
+        cartographer.close()
 
     def testJPEG(self):
         jpeg_quality = 50
-        maker = MapnikRaster(theme_root='./input/',
-                             theme_name='worldaltas',
-                             image_type='jpeg',
-                             image_parameters={
-                                'quality': jpeg_quality,
-                             }
-                            )
+        cartographer = create_cartographer('mapnik',
+                                    theme_root='./input/',
+                                    theme_name='worldaltas',
+                                    data_type='jpeg',
+                                    data_parameters={
+                                                     'quality': jpeg_quality,
+                                                    }
+                                    )
 
         size = (256, 256)
         envelope = (-180, -85, 180, 85)
-        data = maker.doodle(envelope, size)
-        self.assert_(data)
+        render_data = cartographer.doodle(envelope, size)
 
-        test_result = './output/worldaltas_JPEG_%d.jpeg' % jpeg_quality
-        self._save_test_result(test_result, data)
+        data = render_data.data
+        data_type = render_data.data_type
+        save_to_file('worldaltas_jpeg50', data_type.ext, data)
 
-        maker.close()
+        cartographer.close()
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

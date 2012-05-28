@@ -4,7 +4,6 @@ Created on May 21, 2012
 @author: ray
 '''
 import time
-import mimetypes
 
 from ..tilelib import Tile, MetaTile
 from .tilesource import TileSource
@@ -38,16 +37,6 @@ class ComposerTileSource(TileSource):
         self._storages = storages
         self._composer = composer
 
-        ext = self._composer.data_type
-        if ext.startswith('png'):
-            ext = 'png'
-        elif ext.lower().endswith('tiff'):
-            ext = 'tif'
-        elif ext.lower() == 'jpeg':
-            ext = 'jpg'
-        mimetype = mimetypes.guess_type('ext.%s' % ext)[0]
-        self._metadata = dict(ext=ext, mimetype=mimetype)
-
     def get_tile(self, tile_index):
         """ Gets tile """
 
@@ -66,12 +55,14 @@ class ComposerTileSource(TileSource):
 
             tiles.append(tile)
 
-        data = self._composer.compose(tiles)
+        renderdata = self._composer.compose(tiles)
 
-        metadata = dict(self._metadata)
-        metadata['mtime'] = time.time()
+        data_type = renderdata.data_type
+        metadata = dict(ext=data_type.ext,
+                        mimetype=data_type.mimetype,
+                        mtime=time.time())
 
-        tile = Tile.from_tile_index(tile_index, data, metadata)
+        tile = Tile.from_tile_index(tile_index, renderdata.data, metadata)
         return tile
 
     def get_metatile(self, metatile_index):
@@ -84,12 +75,16 @@ class ComposerTileSource(TileSource):
                 raise Exception('MetaTile Source is Missing!')
             metatiles.append(metatile)
 
-        data = self._composer.compose(metatiles)
+        renderdata = self._composer.compose(metatiles)
 
-        metadata = dict(self._metadata)
-        metadata['mtime'] = time.time()
+        data_type = renderdata.data_type
+        metadata = dict(ext=data_type.ext,
+                        mimetype=data_type.mimetype,
+                        mtime=time.time())
 
-        metatile = MetaTile.from_tile_index(metatile_index, data, metadata)
+        metatile = MetaTile.from_tile_index(metatile_index,
+                                            renderdata.data,
+                                            metadata)
         return metatile
 
     def close(self):

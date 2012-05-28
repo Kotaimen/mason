@@ -8,6 +8,7 @@ import re
 import tempfile
 import subprocess
 
+from ..cartographer.datatype import RenderData
 from .composer import TileComposer, TileComposerError
 
 try:
@@ -62,7 +63,7 @@ class ImageMagickComposer(TileComposer):
     """
 
     def __init__(self, tag, data_type, command):
-        TileComposer.__init__(self, tag, data_type=data_type)
+        TileComposer.__init__(self, tag, data_type)
 
         # Convert command string to list of arguments
         lines = ['convert -quiet -limit thread 1']
@@ -70,7 +71,7 @@ class ImageMagickComposer(TileComposer):
             if line.lstrip().startswith('#'):
                 continue
             lines.append(line.strip())
-        lines.append('%s:-' % self._data_type)
+        lines.append('%s:-' % self._data_type.name)
         self._command = ' '.join(lines).split()
 
     def compose(self, tiles):
@@ -123,7 +124,8 @@ class ImageMagickComposer(TileComposer):
             if retcode:
                 raise ImageMagickError(retcode, ' '.join(command),
                                        output=stderr)
-            return stdout
+
+            return RenderData(stdout, self._data_type)
         finally:
             # Delete temporary files
             for filename in files_to_delete.itervalues():

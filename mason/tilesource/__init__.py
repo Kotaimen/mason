@@ -55,8 +55,6 @@ class ComposerCreator(TileSourceCreator):
         sources = params['sources']
         storages = params['storages']
 
-        data_type = params['image_type']
-
         # create sources
         source_list = list()
         for n, source_cfg in enumerate(sources):
@@ -79,11 +77,9 @@ class ComposerCreator(TileSourceCreator):
 
         del params['sources']
         del params['storages']
-        del params['image_type']
 
         # create composer
-        composer = create_tile_composer('imagemagick', tag, data_type,
-                                        **params)
+        composer = create_tile_composer('imagemagick', tag, **params)
 
         return ComposerTileSource(tag, source_list, storage_list, composer)
 
