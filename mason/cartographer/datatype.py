@@ -31,7 +31,7 @@ class DataType(object):
         # mimetypes.guess_type() gives different result on '.png' and
         # '.jpg' on Python2.7 and Python3.2, while types_map returns
         # the same.
-        self._mimetype = mimetypes.types_map[ext]
+        self._mimetype = mimetypes.types_map['.%s' % ext]
 
     @property
     def name(self):
@@ -58,7 +58,7 @@ class PNGDataType(DataType):
     """ PNG Data Type """
 
     def __init__(self, parameters=None):
-        DataType.__init__(self, 'png', '.png', parameters)
+        DataType.__init__(self, 'png', 'png', parameters)
 
 
 class PNG256DataType(DataType):
@@ -66,7 +66,7 @@ class PNG256DataType(DataType):
     """ PNG256 Data Type """
 
     def __init__(self, parameters=None):
-        DataType.__init__(self, 'png256', '.png', parameters)
+        DataType.__init__(self, 'png256', 'png', parameters)
 
 
 class GTIFFDataType(DataType):
@@ -74,7 +74,7 @@ class GTIFFDataType(DataType):
     """ GTIFF Data Type """
 
     def __init__(self, parameters=None):
-        DataType.__init__(self, 'gtiff', '.tif', parameters)
+        DataType.__init__(self, 'gtiff', 'tif', parameters)
 
 
 class JPEGDataType(DataType):
@@ -82,7 +82,7 @@ class JPEGDataType(DataType):
     """ JPEG Data Type """
 
     def __init__(self, parameters=None):
-        DataType.__init__(self, 'jpeg', '.jpg', parameters)
+        DataType.__init__(self, 'jpeg', 'jpg', parameters)
 
 
 #==============================================================================

@@ -10,7 +10,8 @@ from mason.tilesource import create_tile_source
 
 
 def save_to_file(tag, ext, data):
-    file_name = './output/test_tile_source_' + tag + ext
+    file_name = './output/test_tile_source_%(tag)s.%(ext)s' % \
+                {'tag': tag, 'ext': ext}
     if os.path.exists(file_name):
         os.remove(file_name)
     with open(file_name, 'wb') as fp:

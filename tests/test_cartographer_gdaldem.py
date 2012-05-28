@@ -15,7 +15,8 @@ TEST_ENVELOPE = (103.9995833, 27.9995833, 104.5004167, 28.5004167)
 
 
 def save_to_file(tag, ext, data):
-    file_name = './output/test_cartographer_' + tag + ext
+    file_name = './output/test_cartographer_%(tag)s.%(ext)s' % \
+                {'tag': tag, 'ext': ext}
     if os.path.exists(file_name):
         os.remove(file_name)
     with open(file_name, 'wb') as fp:
