@@ -5,6 +5,7 @@ Created on May 2, 2012
 '''
 
 import os
+import sys
 
 try:
     # From mapnik 2.0.1, module name mapnik2 is deprecated
@@ -34,6 +35,17 @@ _PROJECTIONS = {
 'EPSG:3857': '+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 ' \
              '+x_0=0.0 +y_0=0 +units=m +k=1.0 +nadgrids=@null +over +no_defs',
 }
+
+# Automatically add system font directory
+if sys.platform == 'darwin':
+    mapnik.register_fonts(r'/Library/Fonts/')
+elif sys.platform == 'linux':
+    mapnik.register_fonts(r'/var/lib/fonts')
+elif sys.platform == 'win32':
+    mapnik.register_fonts(r'C:\Windows\Fonts/')
+
+#for face in list(mapnik.FontEngine.face_names()):
+#    print face
 
 
 #==============================================================================
