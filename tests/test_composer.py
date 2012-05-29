@@ -4,19 +4,17 @@ Created on May 19, 2012
 @author: ray
 '''
 import unittest
-from mason.composer.imagemagick import ImageMagickComposer
+from mason.composer import create_tile_composer
 from mason.tilelib.pyramid import Pyramid
 
 
 class TestImageMagicComposer(unittest.TestCase):
 
     def setUp(self):
-        command = 'convert $1 $2 -compose lighten -composite png:-'.split()
-        self._composer = ImageMagickComposer('test', command)
+        command = '$1 $2 -compose lighten -composite'
+        self._composer = create_tile_composer('imagemagick', 'test',
+                                              command=command)
         self._pyramid = Pyramid()
-
-    def tearDown(self):
-        pass
 
     def testCompose(self):
         test_images = ['./input/test_compose1.tif',
@@ -35,11 +33,11 @@ class TestImageMagicComposer(unittest.TestCase):
             tile = self._pyramid.create_tile(0, 0, 0, data, metadata)
             tiles.append(tile)
 
-        data = self._composer.compose(tiles)
+        renderdata = self._composer.compose(tiles)
+        self.assert_(renderdata.data)
         with open(test_result, 'wb') as fp:
-            fp.write(data)
+            fp.write(renderdata.data)
 
-        self.assert_(data)
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

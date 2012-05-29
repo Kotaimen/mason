@@ -9,6 +9,7 @@ import sqlalchemy
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 from .cartographer import Raster
+from .datatype import RenderData
 from .gdalutil import gdal_hillshade, gdal_colorrelief, gdal_warp
 from .errors import GDALTypeError, GDALDataError
 
@@ -77,26 +78,28 @@ class GDALDEMRaster(Raster):
     The data retrieved will be projected to EPSG:3857.(GOOGLE MERCATOR)
 
     server
-        server string of postgresql in sqlalchemy format.
+        Server string of postgresql in sqlalchemy format.
 
     dem_table
-        table name in postgresql where dem data is stored
+        Table name in postgresql where dem data is stored
 
     image_type
-        type of output image
+        Type of output image
 
     image_parameters
-        a dictionary of parameters of image
+        A dictionary of parameters of image
     """
 
     def __init__(self,
                  server='',
                  pool_size=5,
                  dem_table='',
-                 image_type='gtiff',
-                 image_parameters=None,
+                 data_type=None
                  ):
-        Raster.__init__(self, image_type, image_parameters)
+        Raster.__init__(self, data_type)
+
+        if self._data_type.name not in ('gtiff', 'png', 'jpeg'):
+            raise GDALTypeError('Only support GTIFF/PNG/JPEG Format.')
 
         # Create session
         engine = sqlalchemy.create_engine(
@@ -127,11 +130,7 @@ class GDALDEMRaster(Raster):
             raise GDALDataError('No Dem Data Found. %s' % str(e))
 
     def doodle(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
-        """ Make raster image of a specified envelope """
         raise NotImplementedError
-
-    def close(self):
-        pass
 
 
 #==============================================================================
@@ -142,18 +141,18 @@ class GDALHillShade(GDALDEMRaster):
     """ Make Hill Shade
 
     zfactor
-        vertical scale factor.
+        Vertical scale factor.
 
     scale
-        horizontal scale factor:
-            feet:Latlong use scale=370400
-            Meters:LatLong use scale=111120
+        Horizontal scale factor:
+        Feet:Latlong      scale=370400
+        Meter:LatLong    scale=111120
 
     azimuth
-        azimuth of the light.
+        Azimuth of the light.
 
     altitude
-        altitude of the light, in degrees.
+        Altitude of the light, in degrees.
 
     image_type
         GTIFF is supported ONLY currently
@@ -167,24 +166,20 @@ class GDALHillShade(GDALDEMRaster):
                  server='',
                  pool_size=10,
                  dem_table='',
-                 image_type='gtiff',
-                 image_parameters=None,
+                 data_type=None
                  ):
 
         GDALDEMRaster.__init__(self,
                                server=server,
                                pool_size=pool_size,
                                dem_table=dem_table,
-                               image_type=image_type,
-                               image_parameters=image_parameters)
+                               data_type=data_type
+                               )
 
         self._zfactor = zfactor
         self._scale = scale
         self._azimuth = azimuth
         self._altitude = altitude
-
-        if self._image_type not in ('gtiff', 'png', 'jpeg'):
-            raise GDALTypeError('Hill Shade Only support GTIFF, PNG, JPEG.')
 
     def doodle(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
 
@@ -222,20 +217,21 @@ class GDALHillShade(GDALDEMRaster):
                       size=size)
 
             # create hill shade
+            data_type = self._data_type
             gdal_hillshade(wrp_tempname,
                            dst_tempname,
                            self._zfactor,
                            self._scale,
                            self._azimuth,
                            self._altitude,
-                           self._image_type,
-                           self._image_parameters)
+                           data_type.name,
+                           data_type.parameters)
 
             # get result data from temporary file
             with open(dst_tempname, 'rb') as fp:
                 data = fp.read()
 
-            return data
+            return RenderData(data, data_type)
 
         finally:
             os.remove(src_tempname)
@@ -251,13 +247,13 @@ class GDALColorRelief(GDALDEMRaster):
     """ Make color relief
 
     color_context
-        a text file with the following format
-            3500   white
-            2500   235:220:175
-            50%    190 185 35
-            700    240 250 150
-            0      50  180 50
-            nv     0   0   0      #nv: no data value
+        A text file with the following format
+        3500   white
+        2500   235:220:175
+        50%    190 185 35
+        700    240 250 150
+        0      50  180 50
+        nv     0   0   0      #nv: no data value
 
     """
 
@@ -266,20 +262,15 @@ class GDALColorRelief(GDALDEMRaster):
                  server='',
                  pool_size=10,
                  dem_table='',
-                 image_type='gtiff',
-                 image_parameters=None,
+                 data_type=None
                  ):
         GDALDEMRaster.__init__(self,
                                server=server,
                                pool_size=pool_size,
                                dem_table=dem_table,
-                               image_type=image_type,
-                               image_parameters=image_parameters)
+                               data_type=data_type)
 
         self._color_context = color_context
-
-        if self._image_type not in ('gtiff', 'png', 'jpeg'):
-            raise GDALTypeError('Hill Shade Only support GTIFF, PNG, JPEG.')
 
     def doodle(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
         # Please refer to the comment for Hillshade.
@@ -307,18 +298,19 @@ class GDALColorRelief(GDALDEMRaster):
                       srs=('EPSG:4326', 'EPSG:3857'),
                       size=size)
 
+            data_type = self._data_type
             gdal_colorrelief(wrp_tempname,
                              dst_tempname,
                              self._color_context,
-                             self._image_type,
-                             self._image_parameters
+                             data_type.name,
+                             data_type.parameters
                             )
 
             # get result data from temporary file
             with open(dst_tempname, 'rb') as fp:
                 data = fp.read()
 
-            return data
+            return RenderData(data, data_type)
 
         finally:
             os.remove(src_tempname)

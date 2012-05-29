@@ -30,7 +30,7 @@ LAYERS = [
         'prototype': 'mapnik',
         'theme_root': './samples/themes/',
         'theme_name': 'worldaltas',
-        'image_type': 'png',
+        'data_type': 'png',
         },
 
 #         {
