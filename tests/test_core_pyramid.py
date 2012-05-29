@@ -8,7 +8,7 @@ import hashlib
 import os, os.path
 
 import unittest
-from mason.tilelib.pyramid import *
+from mason.core.pyramid import *
 
 
 class TestPyramid(unittest.TestCase):

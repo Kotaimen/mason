@@ -5,8 +5,8 @@ Created on May 1, 2012
 '''
 import unittest
 
-from test_tilelib_geo import *
-from test_tilelib_pyramid import *
+from test_core_geo import *
+from test_core_pyramid import *
 from test_tilestorage import *
 from test_cartographer_gdalutil import *
 from test_cartographer_gdaldem import *

@@ -5,7 +5,7 @@ Created on May 1, 2012
 '''
 
 import unittest
-from mason.tilelib.geo import *
+from mason.core.geo import *
 
 
 class TestCoordinate(unittest.TestCase):

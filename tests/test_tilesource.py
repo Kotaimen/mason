@@ -5,7 +5,7 @@ Created on May 11, 2012
 '''
 import os
 import unittest
-from mason.tilelib.pyramid import Pyramid
+from mason.core.pyramid import Pyramid
 from mason.tilesource import create_tile_source
 
 

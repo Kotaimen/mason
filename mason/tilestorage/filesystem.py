@@ -13,7 +13,7 @@ import shutil
 import sys
 import tempfile
 
-from ..tilelib import Tile, tile_coordiante_to_dirname
+from ..core import Tile, tile_coordiante_to_dirname
 from .tilestorage import TileStorage, TileStorageError
 
 

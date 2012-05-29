@@ -6,7 +6,7 @@ Created on May 14, 2012
 
 from .tilesource import TileSourceFactory
 from .tilestorage import TileStorageFactory
-from .tilelib import Pyramid
+from .core import Pyramid
 from .utils import Timer
 
 

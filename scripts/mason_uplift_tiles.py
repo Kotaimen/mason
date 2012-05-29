@@ -19,7 +19,7 @@ import threading
 import argparse
 
 from mason.utils import Timer
-from mason.tilelib import tile_coordiante_to_dirname
+from mason.core import tile_coordiante_to_dirname
 
 
 #logger = multiprocessing.log_to_stderr(level=logging.INFO)

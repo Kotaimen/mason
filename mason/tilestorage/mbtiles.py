@@ -12,7 +12,7 @@ import itertools
 import threading
 
 from .tilestorage import TileStorage, TileStorageError
-from ..tilelib import Tile
+from ..core import Tile
 
 #===============================================================================
 # SQLite Helper Functions

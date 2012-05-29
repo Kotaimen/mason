@@ -5,7 +5,7 @@ Created on May 2, 2012
 '''
 
 
-from ..tilelib import Tile  # unused
+from ..core import Tile  # unused
 
 
 class TileStorageError(Exception):

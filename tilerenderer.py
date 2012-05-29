@@ -17,7 +17,7 @@ import ctypes
 import time
 
 from mason import create_mason_from_config
-from mason.tilelib import Envelope
+from mason.core import Envelope
 from mason.utils import Timer
 
 CPU_COUNT = multiprocessing.cpu_count()

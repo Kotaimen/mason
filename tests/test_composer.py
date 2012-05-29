@@ -5,7 +5,7 @@ Created on May 19, 2012
 '''
 import unittest
 from mason.composer import create_tile_composer
-from mason.tilelib.pyramid import Pyramid
+from mason.core.pyramid import Pyramid
 
 
 class TestImageMagicComposer(unittest.TestCase):

@@ -8,7 +8,7 @@ import os, os.path
 import mimetypes
 
 from .tilestorage import TileStorage, NullTileStorage, ReadOnlyTileStorage
-from ..tilelib import Tile
+from ..core import Tile
 
 
 class DefaultTileStorage(ReadOnlyTileStorage):

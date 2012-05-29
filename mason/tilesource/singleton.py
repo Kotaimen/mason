@@ -5,7 +5,7 @@ Created on May 21, 2012
 '''
 import time
 
-from ..tilelib import Tile, MetaTile
+from ..core import Tile, MetaTile
 from .tilesource import TileSource
 
 

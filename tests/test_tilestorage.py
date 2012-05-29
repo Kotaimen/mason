@@ -13,7 +13,7 @@ import threading
 import memcache
 
 from mason.tilestorage import TileStorageFactory
-from mason.tilelib import Pyramid
+from mason.core import Pyramid
 
 # Tile storage factory
 factory = TileStorageFactory()
