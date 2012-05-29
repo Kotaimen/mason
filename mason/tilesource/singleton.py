@@ -33,10 +33,9 @@ class CartographerTileSource(TileSource):
         renderdata = self._cartographer.doodle(envelope, size)
 
         # Generate some metadata
-        data_type = renderdata.data_type
-        metadata = dict(ext=data_type.ext,
-                        mimetype=data_type.mimetype,
-                        mtime=time.time())
+        ext = renderdata.data_type.ext
+        mimetype = renderdata.data_type.mimetype
+        metadata = dict(ext=ext, mimetype=mimetype, mtime=time.time())
 
         # Create a new Tile and return it
         tile = Tile.from_tile_index(tile_index, renderdata.data, metadata)
@@ -53,13 +52,12 @@ class CartographerTileSource(TileSource):
 
         renderdata = self._cartographer.doodle(envelope, size)
 
-        data_type = renderdata.data_type
-        metadata = dict(ext=data_type.ext,
-                        mimetype=data_type.mimetype,
-                        mtime=time.time())
+        ext = renderdata.data_type.ext
+        mimetype = renderdata.data_type.mimetype
+        metadata = dict(ext=ext, mimetype=mimetype, mtime=time.time())
 
         # Create a new Tile and return it
         metatile = MetaTile.from_tile_index(metatile_index,
-                                            renderdata,
+                                            renderdata.data,
                                             metadata)
         return metatile

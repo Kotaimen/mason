@@ -77,10 +77,9 @@ class ComposerTileSource(TileSource):
 
         renderdata = self._composer.compose(metatiles)
 
-        data_type = renderdata.data_type
-        metadata = dict(ext=data_type.ext,
-                        mimetype=data_type.mimetype,
-                        mtime=time.time())
+        ext = renderdata.data_type.ext
+        mimetype = renderdata.data_type.mimetype
+        metadata = dict(ext=ext, mimetype=mimetype, mtime=time.time())
 
         metatile = MetaTile.from_tile_index(metatile_index,
                                             renderdata.data,

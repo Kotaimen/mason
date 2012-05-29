@@ -145,7 +145,7 @@ class GDALHillShade(GDALDEMRaster):
 
     scale
         Horizontal scale factor:
-        Feet:Latlong      scale=370400
+        Feet:Latlong     scale=370400
         Meter:LatLong    scale=111120
 
     azimuth
