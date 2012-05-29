@@ -1,6 +1,8 @@
 import warnings
+
+from ..core import create_data_type
 from .errors import *
-from .datatype import create_data_type
+
 
 #==============================================================================
 # Cartographer Prototype

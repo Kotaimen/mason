@@ -8,7 +8,7 @@ import re
 import tempfile
 import subprocess
 
-from ..cartographer.datatype import RenderData
+from ..core import RenderData
 from .composer import TileComposer, TileComposerError
 
 try:

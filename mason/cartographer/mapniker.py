@@ -14,8 +14,8 @@ except ImportError:
     # In case of mapnik 2.0.0
     import mapnik2 as mapnik
 
+from ..core import RenderData
 from .cartographer import Raster
-from .datatype import RenderData
 from .errors import (MapnikVersionError,
                      MapnikThemeNotFound,
                      MapnikTypeError,

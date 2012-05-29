@@ -1,5 +1,5 @@
 
-from ..cartographer import create_data_type
+from ..core import create_data_type
 
 try:
     from .imagemagick import ImageMagickComposer

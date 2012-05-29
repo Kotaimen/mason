@@ -8,8 +8,8 @@ import tempfile
 import sqlalchemy
 from sqlalchemy.orm import scoped_session, sessionmaker
 
+from ..core import RenderData
 from .cartographer import Raster
-from .datatype import RenderData
 from .gdalutil import gdal_hillshade, gdal_colorrelief, gdal_warp
 from .errors import GDALTypeError, GDALDataError
 
