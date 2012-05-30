@@ -176,6 +176,9 @@ class GDALHillShade(GDALDEMRaster):
                                data_type=data_type
                                )
 
+        if data_type.name not in ['gtiff']:
+            raise GDALTypeError('Hillshade only support gtiff output.')
+
         self._zfactor = zfactor
         self._scale = scale
         self._azimuth = azimuth
@@ -209,23 +212,22 @@ class GDALHillShade(GDALDEMRaster):
             with open(src_tempname, 'wb') as fp:
                 fp.write(dem_data)
 
-            # warp to size
-            gdal_warp(src_tempname,
-                      wrp_tempname,
-                      envelope=envelope,
-                      srs=('EPSG:4326', 'EPSG:3857'),
-                      size=size)
-
             # create hill shade
             data_type = self._data_type
-            gdal_hillshade(wrp_tempname,
-                           dst_tempname,
+            gdal_hillshade(src_tempname,
+                           wrp_tempname,
                            self._zfactor,
                            self._scale,
                            self._azimuth,
-                           self._altitude,
-                           data_type.name,
-                           data_type.parameters)
+                           self._altitude
+                           )
+
+            # warp to size
+            gdal_warp(wrp_tempname,
+                      dst_tempname,
+                      envelope=envelope,
+                      srs=('EPSG:4326', 'EPSG:3857'),
+                      size=size)
 
             # get result data from temporary file
             with open(dst_tempname, 'rb') as fp:

@@ -29,6 +29,7 @@ class CartographerHillShadeTest(unittest.TestCase):
         cartographer = create_cartographer('hillshade',
                                            server=TEST_SVR,
                                            dem_table=TEST_TBL,
+                                           scale=111120,
                                            data_type='gtiff')
 
         size = (256, 256)
@@ -45,6 +46,7 @@ class CartographerHillShadeTest(unittest.TestCase):
         cartographer = create_cartographer('hillshade',
                                            server=TEST_SVR,
                                            dem_table=TEST_TBL,
+                                           scale=111120,
                                            data_type='gtiff')
 
         size = (512, 512)
@@ -57,38 +59,38 @@ class CartographerHillShadeTest(unittest.TestCase):
 
         cartographer.close()
 
-    def test_HillShade_PNG(self):
-        cartographer = create_cartographer('hillshade',
-                                           server=TEST_SVR,
-                                           dem_table=TEST_TBL,
-                                           data_type='png')
+#    def test_HillShade_PNG(self):
+#        cartographer = create_cartographer('hillshade',
+#                                           server=TEST_SVR,
+#                                           dem_table=TEST_TBL,
+#                                           data_type='png')
+#
+#        size = (256, 256)
+#        envelope = TEST_ENVELOPE
+#        render_data = cartographer.doodle(envelope, size)
+#
+#        data = render_data.data
+#        data_type = render_data.data_type
+#        save_to_file('hillshade_png', data_type.ext, data)
+#
+#        cartographer.close()
 
-        size = (256, 256)
-        envelope = TEST_ENVELOPE
-        render_data = cartographer.doodle(envelope, size)
-
-        data = render_data.data
-        data_type = render_data.data_type
-        save_to_file('hillshade_png', data_type.ext, data)
-
-        cartographer.close()
-
-    def test_HillShade_JPEG(self):
-        cartographer = create_cartographer('hillshade',
-                                           server=TEST_SVR,
-                                           dem_table=TEST_TBL,
-                                           data_type='jpeg',
-                                           data_parameters={'quality': 95})
-
-        size = (256, 256)
-        envelope = TEST_ENVELOPE
-        render_data = cartographer.doodle(envelope, size)
-
-        data = render_data.data
-        data_type = render_data.data_type
-        save_to_file('hillshade_jpeg95', data_type.ext, data)
-
-        cartographer.close()
+#    def test_HillShade_JPEG(self):
+#        cartographer = create_cartographer('hillshade',
+#                                           server=TEST_SVR,
+#                                           dem_table=TEST_TBL,
+#                                           data_type='jpeg',
+#                                           data_parameters={'quality': 95})
+#
+#        size = (256, 256)
+#        envelope = TEST_ENVELOPE
+#        render_data = cartographer.doodle(envelope, size)
+#
+#        data = render_data.data
+#        data_type = render_data.data_type
+#        save_to_file('hillshade_jpeg95', data_type.ext, data)
+#
+#        cartographer.close()
 
 
 class GDALColorReliefTest(unittest.TestCase):
