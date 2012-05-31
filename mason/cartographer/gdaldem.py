@@ -91,10 +91,10 @@ class GDALDEMRaster(Raster):
     """
 
     def __init__(self,
+                 data_type,
                  server='',
                  pool_size=5,
                  dem_table='',
-                 data_type=None
                  ):
         Raster.__init__(self, data_type)
 
@@ -159,6 +159,7 @@ class GDALHillShade(GDALDEMRaster):
     """
 
     def __init__(self,
+                 data_type,
                  zfactor=2,
                  scale=1,
                  azimuth=315,
@@ -166,14 +167,13 @@ class GDALHillShade(GDALDEMRaster):
                  server='',
                  pool_size=10,
                  dem_table='',
-                 data_type=None
                  ):
 
         GDALDEMRaster.__init__(self,
+                               data_type,
                                server=server,
                                pool_size=pool_size,
                                dem_table=dem_table,
-                               data_type=data_type
                                )
 
         if data_type.name not in ['gtiff']:
@@ -260,17 +260,18 @@ class GDALColorRelief(GDALDEMRaster):
     """
 
     def __init__(self,
+                 data_type,
                  color_context=None,
                  server='',
                  pool_size=10,
                  dem_table='',
-                 data_type=None
                  ):
         GDALDEMRaster.__init__(self,
+                               data_type,
                                server=server,
                                pool_size=pool_size,
                                dem_table=dem_table,
-                               data_type=data_type)
+                               )
 
         self._color_context = color_context
 

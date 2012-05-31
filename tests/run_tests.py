@@ -7,6 +7,7 @@ import unittest
 
 from test_core_geo import *
 from test_core_pyramid import *
+from test_core_tile import *
 from test_tilestorage import *
 from test_cartographer_gdalutil import *
 from test_cartographer_gdaldem import *

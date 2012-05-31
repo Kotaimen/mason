@@ -111,11 +111,11 @@ class MapnikRaster(Raster):
     """
 
     def __init__(self,
+                 data_type,
                  theme_root,
                  theme_name,
                  scale_factor=1.0,
                  buffer_size=0,
-                 data_type=None
                  ):
         Raster.__init__(self, data_type)
 
