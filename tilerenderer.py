@@ -67,7 +67,8 @@ def metatiles_from_envelope(pyramid, levels, envelope, stride):
 def spawner(queue, statics, layer, pyramid, levels, envelope, stride):
     for z, x, y, stride in metatiles_from_envelope(pyramid, levels, envelope,
                                                    stride):
-        queue.put((layer, z, x, y, stride))
+#        print 'queue.put',layer, z, x, y, stride
+        queue.put((z, x, y, stride))
 
 
 #===============================================================================
@@ -85,7 +86,7 @@ def slave(queue, statistics, options):
             mason.close()
             return
 
-        layer, z, x, y, stride = job
+        z, x, y, stride = job
         tag = 'MetaTile[%s/%d/%d/%d@%d]' % (options.layer, z, x, y, stride)
         logger.info('Rendering %s...', tag)
         with Timer('...%s rendered in %%(time)s' % tag, logger.info, False):
@@ -104,7 +105,6 @@ def slave(queue, statistics, options):
 #===============================================================================
 # Monitor
 #===============================================================================
-
 
 def boss(options, statistics):
     logger.info('===== Start Rendering =====')
@@ -184,7 +184,7 @@ globe down to level 20 contain zillions of tiles, literally!
     parser.add_argument('-e', '--envelope',
                         dest='envelope',
                         default='',
-                        help='''Envelope to render specify in left,top,right,bottom
+                        help='''Envelope to render specify in left,bottom,right,top
                         in layer CRS, by default, envelope in layer config will
                         be used.'''
                        )
@@ -337,7 +337,7 @@ def main():
     if options.test > 0:
         print 'Turn off testing to start rendering'
         return
-    timer = Timer('Rendering finished in %(times)s')
+    timer = Timer('Rendering finished in %(time)s')
 
     statistics = multiprocessing.sharedctypes.Value(Statics, 0, 0, 0)
 
@@ -347,6 +347,7 @@ def main():
     finally:
         timer.tac()
         print '=' * 70
+        print timer.get_message()
         print 'Rendered %d MetaTiles, skipped %d, failed %d.' % \
             (statistics.rendered, statistics.skipped, statistics.failed)
         if statistics.rendered > 0:
