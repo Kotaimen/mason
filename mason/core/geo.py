@@ -213,8 +213,8 @@ class GoogleMercatorProjection(object):
         return pixel_x % tile_size, pixel_y % tile_size
 
     def pixel2coord(self, z, x, y, pixel_x, pixel_y, tile_size=256):
-        wx = (x * tile_size + pixel_x) / (2 ** z * tile_size)
-        wy = (y * tile_size + pixel_y) / (2 ** z * tile_size)
+        wx = float(x * tile_size + pixel_x) / (2 ** z * tile_size)
+        wy = float(y * tile_size + pixel_y) / (2 ** z * tile_size)
         return self.unproject(Point(wx, wy))
 
     def tile_envelope(self, z, x, y):
