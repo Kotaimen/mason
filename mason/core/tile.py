@@ -27,6 +27,8 @@ class TileIndex(object):
         self._envelope = pyramid.calculate_tile_envelope(z, x, y)
         self._serial = pyramid.calculate_tile_serial(z, x, y)
         self._pixsize = pyramid.tile_size
+        self._proj = pyramid.projector
+
         # TODO: implement sharding hash 
         self._shard = 0
 
@@ -57,6 +59,21 @@ class TileIndex(object):
     @property
     def pixel_size(self):
         return self._pixsize
+
+    def buffer_envelope(self, buffer_size):
+        """ buffer the envelope of tile """
+        z, x, y = self._coord
+        tile_size = self._pixsize
+
+        # left top coordinate
+        pixel_x = pixel_y = -buffer_size
+        lt = self._proj.pixel2coord(z, x, y, pixel_x, pixel_y, tile_size)
+
+        # right bottom coordinate
+        pixel_x = pixel_y = tile_size + buffer_size
+        rb = self._proj.pixel2coord(z, x, y, pixel_x, pixel_y, tile_size)
+
+        return Envelope(left=lt.lon, bottom=rb.lat, right=rb.lon, top=lt.lat)
 
     def __hash__(self):
         return hash(self._serial)
@@ -168,6 +185,20 @@ class MetaTileIndex(TileIndex):
     def fission(self):
         """ Get a list of TileIndexes belongs to the MetaTileIndex """
         return self._indexes
+
+    def buffer_envelope(self, buffer_size):
+        """ buffer the envelope of metatile """
+        tile_size = self._pixsize / self._stride
+
+        z, x, y = self._indexes[0].coord
+        pixel_x = pixel_y = -buffer_size
+        lt = self._proj.pixel2coord(z, x, y, pixel_x, pixel_y, tile_size)
+
+        z, x, y = self._indexes[-1].coord
+        pixel_x = pixel_y = tile_size + buffer_size
+        rb = self._proj.pixel2coord(z, x, y, pixel_x, pixel_y, tile_size)
+
+        return Envelope(left=lt.lon, bottom=rb.lat, right=rb.lon, top=lt.lat)
 
 
 class MetaTile(Tile):
