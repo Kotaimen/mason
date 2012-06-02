@@ -90,9 +90,9 @@ def gridcrop_pil(image_data, rows, columns, ext):
             yield (row, column), buf.getvalue()
 
 
-MAGIC_HEADERS = {'png':b'\x89PNG\r\n\x1a\n',
-                 'jpg':b'\xff\xd8',
-                 'tif':b'II*\x00',
+MAGIC_HEADERS = {'png': b'\x89PNG\r\n\x1a\n',
+                 'jpg': b'\xff\xd8',
+                 'tif': b'II*\x00',
                  }
 
 
@@ -138,4 +138,56 @@ def gridcrop_magick(image_data, rows, columns, ext):
         yield (row, column), data
 
 
+def boxcrop(image_data, ext, size, crop_box):
+    if ext == 'jpg':
+        ext = 'jpeg'
 
+    if ext in ['jpeg', 'png']:
+        return boxcrop_pil(image_data, ext, size, crop_box)
+    else:
+        return boxcrop_imagemagick(image_data, ext, size, crop_box)
+
+
+def boxcrop_pil(image_data, ext, size, crop_box):
+    assert ext in ['jpeg', 'png']
+
+    big_image = Image.open(_BytesIO(image_data))
+
+    width, height = size
+    left, top, right, bottom = crop_box
+    assert (left < width and left < right and left > 0)
+    assert (top < height and top < bottom and top > 0)
+
+    crop_image = big_image.crop(crop_box)
+    buf = _BytesIO()
+    crop_image.save(buf, ext, quality=95)
+    return buf.getvalue()
+
+
+def boxcrop_imagemagick(image_data, ext, size, crop_box):
+
+    width, height = size
+    left, top, right, bottom = crop_box
+    assert (left < width and left < right and left > 0)
+    assert (top < height and top < bottom and top > 0)
+
+    width = right - left
+    height = bottom - top
+
+    args = ['convert',
+            '-quiet', '-limit', 'thread', '1',
+            '%s:-' % ext,
+            '-crop',
+            '%dx%d%+d%+d' % (width, height, left, top),
+            '%s:-' % ext,
+            ]
+    popen = subprocess.Popen(args, stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    stdout, stderr = popen.communicate(image_data)
+    retcode = popen.poll()
+
+    if retcode != 0:
+        raise subprocess.CalledProcessError(retcode, args, stderr)
+
+    return stdout
