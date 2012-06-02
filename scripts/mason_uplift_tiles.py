@@ -2,8 +2,7 @@
 
 """ Generate upper level tiles by scaling down lower level tiles (aka uplifting)
 
-This script requires ImageMagick and bypasses most TileStorage internals for
-efficiency.
+This script requires ImageMagick and bypasses most TileStorage internals.
 
 Created on May 18, 2012
 @author: kotaimen
@@ -22,13 +21,13 @@ from mason.utils import Timer
 from mason.core import tile_coordiante_to_dirname
 
 
-#logger = multiprocessing.log_to_stderr(level=logging.INFO)
-
-
-def walk_layer_hashed(root, level, ext):
+def gen_tasks_for_complex_storage(root, level, ext, default):
     level_root = os.path.join(root, '%02d' % level)
     pattern = re.compile(r'(\d+)-(\d+)-(\d+)\.' + ext)
-    n = 0
+
+    print 'Checking tiles in "%s"...' % level_root
+
+    target_tiles = dict()
 
     def tile_path(z, x, y):
         dirs = os.path.join(*tile_coordiante_to_dirname(z, x, y))
@@ -36,63 +35,76 @@ def walk_layer_hashed(root, level, ext):
         return os.path.join(root, dirs, basename)
 
     for base, dirs, files in os.walk(level_root):
-
         for filename in files:
             match = pattern.match(filename)
             if not match:
                 continue
-
             z, x, y = tuple(map(int, match.groups()))
-            if (x % 2) != 0 or (y % 2) != 0:
-                continue
 
-            input_names = [tile_path(z, x, y),
-                           tile_path(z, x + 1, y),
-                           tile_path(z, x, y + 1),
-                           tile_path(z, x + 1, y + 1), ]
-            output_name = tile_path(z - 1, x // 2, y // 2)
+            key = z - 1, x // 2, y // 2
+            if key not in target_tiles:
+                target_tiles[key] = 1
+            else:
+                target_tiles[key] += 1
 
-            n += 1
-            yield input_names, output_name
-    else:
-        print 'Found %d tiles to uplift' % (n * 4)
+    print '%d tiles can be uplifted.' % len(target_tiles)
 
+    for (z, x, y), n in target_tiles.iteritems():
 
-def walk_layer_simple(root, level, ext):
-    level_root = os.path.join(root, '%d' % level)
-    pattern = re.compile(r'\d+\.' + ext)
-    n = 0
-    for base, dirs, files in os.walk(level_root):
+        if not default and n < 4:
+            print 'Cannot uplift %d/%d/%d ' % (z, x, y)
+            continue
 
-        for filename in files:
-            # level_root/x/y.ext
-            if not pattern.match(filename):
-                continue
+        input_names = [tile_path(z + 1, x * 2, y * 2),
+                       tile_path(z + 1, x * 2 + 1, y * 2),
+                       tile_path(z + 1, x * 2, y * 2 + 1),
+                       tile_path(z + 1, x * 2 + 1, y * 2 + 1)]
 
-            head, tail = os.path.split(base)
-            z = level
-            x = int(tail)
-            y = int(filename.rsplit('.')[0])
-            if (x % 2) != 0 or (y % 2) != 0:
-                continue
+        output_name = tile_path(z, x, y)
 
-            input_names = [os.path.join(head, '%d' % x, '%d.%s' % (y, ext)),
-                           os.path.join(head, '%d' % (x + 1), '%d.%s' % (y, ext)),
-                           os.path.join(head, '%d' % x, '%d.%s' % (y + 1, ext)),
-                           os.path.join(head, '%d' % (x + 1), '%d.%s' % (y + 1, ext)),
-                           ]
+        for n in range(len(input_names)):
+            if not os.path.exists(input_names[n]):
+                if default:
+                    input_names[n] = default
+                else:
+                    continue
 
-            output_name = os.path.join(root,
-                                       '%d' % (z - 1),
-                                       '%d' % (x // 2),
-                                       '%d.%s' % (y // 2, ext))
-            n += 1
-            yield input_names, output_name
-    else:
-        print 'Found %d tiles to uplift' % (n * 4)
+        yield input_names, output_name, ext
 
+#def walk_layer_simple(root, level, ext):
+#    level_root = os.path.join(root, '%d' % level)
+#    pattern = re.compile(r'\d+\.' + ext)
+#    n = 0
+#    for base, dirs, files in os.walk(level_root):
+#
+#        for filename in files:
+#            # level_root/x/y.ext
+#            if not pattern.match(filename):
+#                continue
+#
+#            head, tail = os.path.split(base)
+#            z = level
+#            x = int(tail)
+#            y = int(filename.rsplit('.')[0])
+#            if (x % 2) != 0 or (y % 2) != 0:
+#                continue
+#
+#            input_names = [os.path.join(head, '%d' % x, '%d.%s' % (y, ext)),
+#                           os.path.join(head, '%d' % (x + 1), '%d.%s' % (y, ext)),
+#                           os.path.join(head, '%d' % x, '%d.%s' % (y + 1, ext)),
+#                           os.path.join(head, '%d' % (x + 1), '%d.%s' % (y + 1, ext)),
+#                           ]
+#
+#            output_name = os.path.join(root,
+#                                       '%d' % (z - 1),
+#                                       '%d' % (x // 2),
+#                                       '%d.%s' % (y // 2, ext))
+#            n += 1
+#            yield input_names, output_name
+#    else:
+#        print 'Found %d tiles to uplift' % (n * 4)
 
-def do_uplift(input_names, output_name, ext, sharpen):
+def process_task(input_names, output_name, ext, sharpen):
 
     output_dir = os.path.dirname(output_name)
     if not os.path.exists(output_dir):
@@ -111,27 +123,25 @@ def do_uplift(input_names, output_name, ext, sharpen):
         os.link(input_name, os.path.join(output_dir, link_name))
 
     args = ['montage',
-            '-quiet', '-limit', 'thread', '2',
+            '-quiet',
+            '-limit', 'thread', '1',
             '-mode', 'concatenate', '-tile', '2x2',
             ]
 
     args.extend(link_names)
-    args.extend(['-resize', '50%',
-                 '-unsharp', str(sharpen)])
+    args.extend(['-interpolate', 'bicubic', '-resize', '50%'])
+    if sharpen > 0:
+        args.extend(['-unsharp', str(sharpen)])
+    elif sharpen < 0:
+        args.extend(['-blur', str(-sharpen)])
     args.append(output_name)
 #    print ' '.join(args)
     try:
-        subprocess.check_call(args, cwd=output_dir)
+        with Timer('%s: %%(time)s' % os.path.basename(output_name)):
+            subprocess.check_call(args, cwd=output_dir)
     finally:
         for link_name in link_names:
             os.unlink(link_name)
-
-
-def do_uplift_one(args):
-    input_list, output, ext, sharpen = args
-#    print 'Uplifting "%s"' % output
-    with Timer('Uplifted "%s" in %%(time)s' % output):
-        do_uplift(input_list, output, ext, sharpen)
 
 
 def parse_args():
@@ -146,28 +156,40 @@ Note this script only supports uncompressed FileSystemTileCache.
 
     parser.add_argument('-r', '--root',
                         dest='root',
-                        help='''Root directory of the the cache''',
+                        help='''Root directory of the the filesystem
+                        tile storage''',
                         metavar='FILE',
                         )
 
     parser.add_argument('-e', '--ext',
                         dest='ext',
                         choices=['png', 'tif'],
-                        help='''Filename extension of the cache ''',
+                        help='''Filename extension of the filesystem
+                        storage ''',
                         )
 
-    parser.add_argument('-s', '--simple',
-                        dest='simple',
-                        default=False,
-                        action='store_true',
-                        help='''Whether the directory tree is simple, default
-                        is False ''',
+    parser.add_argument('-d', '--default',
+                        dest='default',
+                        default='',
+                        help='''Default transparent image if the adjacent tile
+                        is missing, if ignored, tiles without adjacent tiles
+                        will not be uplifted''',
+                        metavar='FILE',
                         )
+
+#    parser.add_argument('-s', '--simple',
+#                        dest='simple',
+#                        default=False,
+#                        action='store_true',
+#                        help='''Whether the directory tree is "simple",
+#                        which tile is stored as z/x/y.ext, default
+#                        is False ''',
+#                        )
 
     parser.add_argument('-v', '--level',
                         dest='level',
                         type=int,
-                        help='''Base level to uplift ''',
+                        help='''Tile level to uplift ''',
                         )
 
     parser.add_argument('-o', '--overwrite',
@@ -179,7 +201,7 @@ Note this script only supports uncompressed FileSystemTileCache.
 
     parser.add_argument('--sharpen',
                         dest='sharpen',
-                        default=0,
+                        default=0.0,
                         type=float,
                         help='''Apply sharpen after resampling, default is 0,
                         means no sharpening'''
@@ -198,36 +220,52 @@ Note this script only supports uncompressed FileSystemTileCache.
     return options
 
 
+import prodconsq
+
+
+class TestTask(object):
+
+    def __init__(self, args):
+        self.args = args
+
+
+class Producer(prodconsq.Producer):
+
+    def __init__(self, tasks):
+        self.tasks = tasks
+
+    def items(self):
+        for task in self.tasks:
+            yield task
+
+
+class Consumer(prodconsq.Consumer):
+
+    def consume(self, task):
+        process_task(*task)
+
+
 def main():
     options = parse_args()
-#    storage = create_tilestorage(prototype='filesystem',
-#                                 tag='dontcare',
-#                                 root=options.root,
-#                                 ext=options.ext,
-#                                 simple=options.simple
-#                                 )
-    if options.simple:
-        gen = walk_layer_simple(options.root, options.level, options.ext)
-    else:
-        gen = walk_layer_hashed(options.root, options.level, options.ext)
+    tasks = list()
+    for input, output, ext in gen_tasks_for_complex_storage(options.root,
+                                                            options.level,
+                                                            options.ext,
+                                                            options.default):
 
-    def task_gen():
-        for n, (input_list, output) in enumerate(gen):
-            if os.path.exists(output) and not options.overwrite:
-                continue
-            yield input_list, output, options.ext, options.sharpen
+        if os.path.exists(output) and (not options.overwrite):
+            continue
+        if options.workers == 1:
+            process_task(input, output, ext, options.sharpen)
+        else:
+            tasks.append((input, output, ext, options.sharpen))
 
-    if options.workers == 1:
-        map(do_uplift_one, task_gen())
-    else:
-        pool = multiprocessing.Pool(options.workers)
-        try:
-            for i in pool.imap(do_uplift_one, task_gen(), 256):
-                pass
-        except Exception:
-            pool.terminate()
-            pool.join()
+    if options.workers > 1:
+        producer = Producer(tasks)
+        consumer = Consumer()
+
+        with prodconsq.Mothership(producer, consumer, options.workers) as m:
+            m.start()
 
 if __name__ == '__main__':
     main()
-
