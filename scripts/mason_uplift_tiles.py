@@ -71,38 +71,6 @@ def gen_tasks_for_complex_storage(root, level, ext, default):
 
         yield input_names, output_name, ext
 
-#def walk_layer_simple(root, level, ext):
-#    level_root = os.path.join(root, '%d' % level)
-#    pattern = re.compile(r'\d+\.' + ext)
-#    n = 0
-#    for base, dirs, files in os.walk(level_root):
-#
-#        for filename in files:
-#            # level_root/x/y.ext
-#            if not pattern.match(filename):
-#                continue
-#
-#            head, tail = os.path.split(base)
-#            z = level
-#            x = int(tail)
-#            y = int(filename.rsplit('.')[0])
-#            if (x % 2) != 0 or (y % 2) != 0:
-#                continue
-#
-#            input_names = [os.path.join(head, '%d' % x, '%d.%s' % (y, ext)),
-#                           os.path.join(head, '%d' % (x + 1), '%d.%s' % (y, ext)),
-#                           os.path.join(head, '%d' % x, '%d.%s' % (y + 1, ext)),
-#                           os.path.join(head, '%d' % (x + 1), '%d.%s' % (y + 1, ext)),
-#                           ]
-#
-#            output_name = os.path.join(root,
-#                                       '%d' % (z - 1),
-#                                       '%d' % (x // 2),
-#                                       '%d.%s' % (y // 2, ext))
-#            n += 1
-#            yield input_names, output_name
-#    else:
-#        print 'Found %d tiles to uplift' % (n * 4)
 
 def process_task(input_names, output_name, ext, sharpen):
 
@@ -137,7 +105,7 @@ def process_task(input_names, output_name, ext, sharpen):
     args.append(output_name)
 #    print ' '.join(args)
     try:
-        with Timer('%s: %%(time)s' % os.path.basename(output_name)):
+        with Timer('Uplifted %s in %%(time)s' % os.path.basename(output_name)):
             subprocess.check_call(args, cwd=output_dir)
     finally:
         for link_name in link_names:
@@ -216,6 +184,12 @@ Note this script only supports uncompressed FileSystemTileCache.
                        )
 
     options = parser.parse_args()
+
+    if options.default:
+        assert os.path.exists(options.default)
+
+    assert options.ext
+    assert options.root
 
     return options
 
