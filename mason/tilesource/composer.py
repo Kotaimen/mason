@@ -67,23 +67,29 @@ class ComposerTileSource(TileSource):
 
     def get_metatile(self, metatile_index):
         """ Gets metatile """
+        tiles = list()
 
-        metatiles = list()
-        for source in self._sources:
-            metatile = source.get_metatile(metatile_index)
-            if metatile is None:
-                raise Exception('MetaTile Source is Missing!')
-            metatiles.append(metatile)
+        for tile_index in metatile_index.fission():
+            tile = tiles.append(self.get_tile(tile_index))
 
-        renderdata = self._composer.compose(metatiles)
-
-        ext = renderdata.data_type.ext
-        mimetype = renderdata.data_type.mimetype
-        metadata = dict(ext=ext, mimetype=mimetype, mtime=time.time())
-
-        metatile = MetaTile.from_tile_index(metatile_index,
-                                            renderdata.data,
-                                            metadata)
+        metatile = MetaTile(metatile_index, tiles, metadata=tiles[0].metadata)
+#
+#        metatiles = list()
+#        for source in self._sources:
+#            metatile = source.get_metatile(metatile_index)
+#            if metatile is None:
+#                raise Exception('MetaTile Source is Missing!')
+#            metatiles.append(metatile)
+#
+#        renderdata = self._composer.compose(metatiles)
+#
+#        ext = renderdata.data_type.ext
+#        mimetype = renderdata.data_type.mimetype
+#        metadata = dict(ext=ext, mimetype=mimetype, mtime=time.time())
+#
+#        metatile = MetaTile.from_tile_index(metatile_index,
+#                                            renderdata.data,
+#                                            metadata)
         return metatile
 
     def close(self):
