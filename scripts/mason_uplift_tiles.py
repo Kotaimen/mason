@@ -88,7 +88,11 @@ def process_task(input_names, output_name, ext, sharpen):
     for input_name, link_name in zip(input_names, link_names):
         if os.path.exists(link_name):
             os.unlink(link_name)
-        os.link(input_name, os.path.join(output_dir, link_name))
+        try:
+            os.link(input_name, os.path.join(output_dir, link_name))
+        except OSError:
+            print input_name
+            raise
 
     args = ['montage',
             '-quiet',
@@ -190,6 +194,8 @@ Note this script only supports uncompressed FileSystemTileCache.
 
     assert options.ext
     assert options.root
+
+    options.root = os.path.abspath(options.root)
 
     return options
 
