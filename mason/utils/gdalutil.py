@@ -3,7 +3,9 @@ Created on May 1, 2012
 
 @author: ray
 '''
+import os
 import re
+import tempfile
 import subprocess
 
 try:
@@ -31,20 +33,10 @@ except OSError:
 
 
 #==============================================================================
-# Errors
-#==============================================================================
-class GDALProcessError(Exception):
-    pass
-
-
-#==============================================================================
 # Simple Wrapper of GDAL utilities
 #==============================================================================
 def _subprocess_call(command_list):
-    try:
-        return subprocess.check_call(command_list) == 0
-    except subprocess.CalledProcessError as e:
-        raise GDALProcessError(str(e))
+    return subprocess.check_call(command_list) == 0
 
 
 def _make_control_params(image_type, image_parameters):
@@ -64,8 +56,18 @@ def _make_control_params(image_type, image_parameters):
     return control_params
 
 
-def gdal_hillshade(src,
-                   dst,
+def _make_tempfile_pair():
+    suffix = '_%d' % os.getpid()
+    fd1, srcname = tempfile.mkstemp(suffix)
+    fd2, dstname = tempfile.mkstemp(suffix)
+
+    os.close(fd1)
+    os.close(fd2)
+
+    return srcname, dstname
+
+
+def gdal_hillshade(data,
                    zfactor=1,
                    scale=1,
                    azimuth=315,
@@ -109,23 +111,34 @@ def gdal_hillshade(src,
     z, s, az, alt = map(str, (zfactor, scale, azimuth, altitude))
     control_params = _make_control_params(image_type, image_parameters)
 
-    command_list = ['gdaldem', 'hillshade', src, dst,
-                    '-z', z,
-                    '-s', s,
-                    '-az', az,
-                    '-alt', alt,
-                    '-compute_edges',
-                    '-of', image_type,
-                    '-q'
-                    ]
+    try:
+        src_name, dst_name = _make_tempfile_pair()
+        with open(src_name, 'wb') as fp:
+            fp.write(data)
 
-    command_list.extend(control_params)
+        command_list = ['gdaldem', 'hillshade',
+                        src_name,
+                        dst_name,
+                        '-z', z,
+                        '-s', s,
+                        '-az', az,
+                        '-alt', alt,
+                        '-compute_edges',
+                        '-of', image_type,
+                        '-q'
+                        ]
 
-    return _subprocess_call(command_list)
+        command_list.extend(control_params)
+
+        ret = _subprocess_call(command_list)
+        if not ret:
+            raise Exception('Failed to convert to hill shade.')
+    finally:
+        os.remove(src_name)
+        os.remove(dst_name)
 
 
-def gdal_colorrelief(src,
-                     dst,
+def gdal_colorrelief(data,
                      color_context,
                      image_type='gtiff',
                      image_parameters=None):
@@ -152,12 +165,26 @@ def gdal_colorrelief(src,
         output file format parameters
     """
     control_params = _make_control_params(image_type, image_parameters)
-    command_list = ['gdaldem', 'color-relief', src, color_context, dst,
-                    '-of', image_type,
-                    '-q']
 
-    command_list.extend(control_params)
-    return _subprocess_call(command_list)
+    try:
+        src_name, dst_name = _make_tempfile_pair()
+        with open(src_name, 'wb') as fp:
+            fp.write(data)
+
+        command_list = ['gdaldem', 'color-relief',
+                        src_name,
+                        color_context,
+                        dst_name,
+                        '-of', image_type,
+                        '-q']
+
+        command_list.extend(control_params)
+        ret = _subprocess_call(command_list)
+        if not ret:
+            raise Exception('Failed to convert to color relief.')
+    finally:
+        os.remove(src_name)
+        os.remove(dst_name)
 
 
 def gdal_transform(src_srs, dst_srs, coordinates):
@@ -179,24 +206,20 @@ def gdal_transform(src_srs, dst_srs, coordinates):
         coordinates = [coordinates, ]
 
     coodinates_str = '\n'.join('%f %f' % coord for coord in coordinates)
-    try:
-        stdout = subprocess.Popen(['gdaltransform',
-                                   '-s_srs', src_srs,
-                                   '-t_srs', dst_srs,
-                                   ],
-                                  stdin=subprocess.PIPE,
-                                  stdout=subprocess.PIPE
-                                  ).communicate(coodinates_str)[0]
+    stdout = subprocess.Popen(['gdaltransform',
+                               '-s_srs', src_srs,
+                               '-t_srs', dst_srs,
+                               ],
+                              stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE
+                              ).communicate(coodinates_str)[0]
 
-        for transformed_coords in stdout.splitlines():
-            x, y, _ = transformed_coords.split()
-            yield (float(x), float(y))
-
-    except Exception as e:
-        raise GDALProcessError(str(e))
+    for transformed_coords in stdout.splitlines():
+        x, y, _ = transformed_coords.split()
+        yield (float(x), float(y))
 
 
-def gdal_warp(src, dst,
+def gdal_warp(data,
               envelope=None,
               srs=None,
               size=None,
@@ -246,6 +269,16 @@ def gdal_warp(src, dst,
         command_list.extend(['-te',
                              str(xmin), str(ymin), str(xmax), str(ymax)])
 
-    command_list.extend([src, dst])
+    try:
+        src_name, dst_name = _make_tempfile_pair()
+        with open(src_name, 'wb') as fp:
+            fp.write(data)
 
-    return _subprocess_call(command_list)
+        command_list.extend([src_name, dst_name])
+
+        ret = _subprocess_call(command_list)
+        if not ret:
+            raise Exception('Failed to warp.')
+    finally:
+        os.remove(src_name)
+        os.remove(dst_name)

@@ -74,7 +74,7 @@ class ImageMagickComposer(TileComposer):
         lines.append('%s:-' % self._data_type.name)
         self._command = ' '.join(lines).split()
 
-    def compose(self, tiles):
+    def compose(self, tile_layers):
         """ Composes tiles according to the command"""
 
         # Copy a command list since we are going to modify it in place
@@ -84,7 +84,7 @@ class ImageMagickComposer(TileComposer):
 
         for cmd_no, tile_no in self._parse_command(command):
             try:
-                tile = tiles[tile_no - 1]
+                tile_layer = tile_layers[tile_no - 1]
             except KeyError:
                 TileComposerError('Invalid tile source "%s"' % tile_no)
 
@@ -92,7 +92,7 @@ class ImageMagickComposer(TileComposer):
             if tile_no not in files_to_delete:
 
                 # Image extension
-                ext = tile.metadata['ext']
+                ext = tile_layer.data_type.ext
 
                 # Generate a temp file name using mkstemp
                 fd, tempname = tempfile.mkstemp(suffix='.' + ext,
@@ -109,7 +109,7 @@ class ImageMagickComposer(TileComposer):
 
                 # Write image data to temp file
                 with open(tempname, 'wb') as fp:
-                    fp.write(tile.data)
+                    fp.write(tile_layer.data)
 
             # Replace '%n' with real filename
             command[cmd_no] = tempname

@@ -143,3 +143,15 @@ def create_data_type(name, parameters=None):
     """ Create Function """
 
     return DataTypeFactory()(name, parameters)
+
+
+def create_data_type_from_ext(ext, parameters=None):
+
+    if ext == 'tif':
+        data_type_name = 'gtiff'
+    elif ext == 'png':
+        data_type_name = 'png'
+    elif ext == 'jpg':
+        data_type_name = 'jpeg'
+
+    return create_data_type(data_type_name, parameters)

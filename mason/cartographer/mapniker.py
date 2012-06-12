@@ -15,11 +15,7 @@ except ImportError:
     import mapnik2 as mapnik
 
 from ..core import RenderData
-from .cartographer import Raster
-from .errors import (MapnikVersionError,
-                     MapnikThemeNotFound,
-                     MapnikTypeError,
-                     MapnikParamError)
+from .cartographer import Cartographer
 
 MAPNIK_AGG_RENDERER = True
 MAPNIK_CAIRO_RENDERER = mapnik.has_cairo()
@@ -27,7 +23,7 @@ MAPNIK_HAS_JPEG = mapnik.has_jpeg()
 MAPNIK_VERSION = mapnik.mapnik_version() / 100000
 
 if MAPNIK_VERSION < 2:
-    raise MapnikVersionError('Only Mapnik 2.0.0 and later is supported')
+    raise Exception('Only Mapnik 2.0.0 and later is supported')
 
 
 # Google mercator projection. alias to 'EPSG:3857'
@@ -51,7 +47,7 @@ elif sys.platform == 'win32':
 #==============================================================================
 # Raster Maker in Mapnik
 #==============================================================================
-class MapnikRaster(Raster):
+class MapnikRaster(Cartographer):
 
     """ Mapnik Raster Renderer
 
@@ -106,8 +102,6 @@ class MapnikRaster(Raster):
                     1-binary alpha(0 or 255),
                     2-full alpha range
 
-
-
     """
 
     def __init__(self,
@@ -117,12 +111,12 @@ class MapnikRaster(Raster):
                  scale_factor=1.0,
                  buffer_size=0,
                  ):
-        Raster.__init__(self, data_type)
+        Cartographer.__init__(self, data_type)
 
         # 'png', 'png24', 'png32' are equivalent to 'png32' in mapnik
         # 'png8', 'png256' are equivalent to 'png256' in mapnik
         if self._data_type.name not in ['png', 'png256', 'jpeg']:
-            raise MapnikTypeError('Only support PNG/PNG256/JPEG format.')
+            raise TypeError('Only support PNG/PNG256/JPEG format.')
 
         self._scale_factor = scale_factor
         self._buffer_size = buffer_size
@@ -132,7 +126,7 @@ class MapnikRaster(Raster):
         self._theme = os.path.abspath(os.path.join(theme_root,
                                                    '%s.xml' % theme_name))
         if not os.path.exists(self._theme):
-            raise MapnikThemeNotFound(self._theme)
+            raise Exception('Theme %s not found.' % self._theme)
 
         # convert image_type and parameters to mapnik format string
         image_type = self._data_type.name
@@ -148,9 +142,9 @@ class MapnikRaster(Raster):
                 # quality
                 quality = image_parameters.get('quality', None)
                 if not isinstance(quality, int):
-                    raise MapnikParamError('JPEG quality shall be an integer.')
+                    raise ValueError('JPEG quality shall be an integer.')
                 if quality < 1 or quality > 100:
-                    raise MapnikParamError('JPEG quality shall be 1-100.')
+                    raise ValueError('JPEG quality shall be 1-100.')
 
                 # no need to set quality 85, since it is the default value.
                 if quality != 85:
@@ -161,12 +155,9 @@ class MapnikRaster(Raster):
                 # palette
                 palette = image_parameters.get('palette', None)
                 if palette:
-                    if not os.path.exists(palette):
-                        raise MapnikParamError('Palette File does not exists.')
-
                     palette_type = os.path.splitext(palette)[1][1:].lower()
                     if palette_type not in ['rgba', 'rgb', 'act']:
-                        raise MapnikTypeError(
+                        raise ValueError(
                                         'Palette file should have suffix' \
                                         'rgba/rgb/act to indicate its type')
 
@@ -179,7 +170,7 @@ class MapnikRaster(Raster):
                     colors = image_parameters.get('colors', None)
                     if colors:
                         if colors < 2 or colors > 256:
-                            raise MapnikTypeError('Invalid color numbers')
+                            raise ValueError('Invalid color numbers')
                         image_type += (':c=%d' % colors)
 
                 # transparency

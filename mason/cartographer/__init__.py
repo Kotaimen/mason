@@ -1,7 +1,5 @@
-import warnings
 
 from ..core import create_data_type
-from .errors import *
 
 
 #==============================================================================
@@ -10,15 +8,36 @@ from .errors import *
 try:
     from .mapniker import MapnikRaster
 except ImportError:
-    warnings.warn('Can not import mapnik, mapnikmaker is not available')
     MapnikRaster = None
 
 try:
-    from .gdaldem import GDALHillShade, GDALColorRelief
+    from .gdaldem import DEMRaster
 except ImportError:
-    warnings.warn('Can not import gdal or sqlalchemy, gdalmaker not available')
-    GDALHillShade = None
-    GDALColorRelief = None
+    DEMRaster = None
+
+
+def create_mapnik_cartographer(tag, **params):
+    data_type_name = params.pop('data_type', None)
+    data_parameters = params.pop('data_parameters', None)
+
+    if data_type_name is None:
+        data_type_name = 'gtiff'
+
+    data_type = create_data_type(data_type_name, data_parameters)
+
+    return MapnikRaster(data_type, **params)
+
+
+def create_raster_cartographer(tag, **params):
+    data_type_name = params.pop('data_type', None)
+    data_parameters = params.pop('data_parameters', None)
+
+    if data_type_name is None:
+        data_type_name = 'png'
+
+    data_type = create_data_type(data_type_name, data_parameters)
+
+    return DEMRaster(data_type, **params)
 
 
 #==============================================================================
@@ -26,34 +45,18 @@ except ImportError:
 #==============================================================================
 class CartographerFactory(object):
 
-    CLASS_REGISTRY = dict(mapnik=MapnikRaster,
-                          hillshade=GDALHillShade,
-                          colorrelief=GDALColorRelief,)
+    CLASS_REGISTRY = dict(mapnik=create_mapnik_cartographer,
+                          raster=create_raster_cartographer,
+                          )
 
-    def __call__(self, prototype, **params):
-        class_prototype = self.CLASS_REGISTRY.get(prototype, None)
-        if class_prototype is None:
+    def __call__(self, prototype, tag, **params):
+        creator = self.CLASS_REGISTRY.get(prototype, None)
+        if creator is None:
             raise Exception('Unknown cartographer type "%s"' % prototype)
 
-        # custom values
-        if 'data_type' in params:
-            datatype_name = params['data_type']
-            del params['data_type']
-
-            data_parameters = None
-            if 'data_parameters' in params:
-                data_parameters = params['data_parameters']
-                del params['data_parameters']
-
-            data_type = create_data_type(datatype_name, data_parameters)
-        else:
-            data_type = create_data_type('png', None)
-
-        params['data_type'] = data_type
-
-        return class_prototype(**params)
+        return creator(tag, **params)
 
 
-def create_cartographer(prototype, **params):
+def create_cartographer(prototype, tag, **params):
     """ Create a cartographer """
-    return CartographerFactory()(prototype, **params)
+    return CartographerFactory()(prototype, tag, **params)

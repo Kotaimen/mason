@@ -6,4 +6,4 @@ from .geo import (Coordinate, Point, Envelope, create_projection,
                   )
 from .tile import Tile, TileIndex, MetaTile, MetaTileIndex
 from .pyramid import Pyramid
-from .datatype import create_data_type, RenderData
+from .datatype import create_data_type, create_data_type_from_ext, RenderData

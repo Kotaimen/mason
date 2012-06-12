@@ -2,6 +2,7 @@
 from ..cartographer import create_cartographer
 from ..tilestorage import create_tilestorage
 from ..composer import create_tile_composer
+from ..tilelayer import create_tile_layer
 
 from .singleton import CartographerTileSource
 from .composer import ComposerTileSource
@@ -52,36 +53,23 @@ class ComposerCreator(TileSourceCreator):
 
     def __call__(self, tag, **params):
 
-        sources = params['sources']
-        storages = params['storages']
+        tile_layer_cfgs = params.pop('tilelayers', None)
+        if not tile_layer_cfgs:
+            raise Exception('Missing Composite layers.')
 
-        # create sources
-        source_list = list()
-        for n, source_cfg in enumerate(sources):
-            if source_cfg is None:
-                source_cfg = {'prototype': 'null'}
-            if 'tag' not in source_cfg:
-                source_cfg['tag'] = '%s_%s' % (tag, n)
-            source = create_tile_source(**source_cfg)
-            source_list.append(source)
+        buffer_size = params.pop('buffer_size', 0)
 
-        # create storages
-        storage_list = list()
-        for n, storage_cfg in enumerate(storages):
-            if storage_cfg is None:
-                storage_cfg = {'prototype': 'null'}
-            if 'tag' not in storage_cfg:
-                storage_cfg['tag'] = '%s_%s' % (tag, n)
-            storage = create_tilestorage(**storage_cfg)
-            storage_list.append(storage)
-
-        del params['sources']
-        del params['storages']
+        tile_layer_list = list()
+        for layer_cfg in tile_layer_cfgs:
+            if 'tag' not in layer_cfg:
+                layer_cfg['tag'] = tag
+            tile_layer = create_tile_layer(**layer_cfg)
+            tile_layer_list.append(tile_layer)
 
         # create composer
         composer = create_tile_composer('imagemagick', tag, **params)
 
-        return ComposerTileSource(tag, source_list, storage_list, composer)
+        return ComposerTileSource(tag, tile_layer_list, composer, buffer_size)
 
 
 class NullTileSourceCreator(TileSourceCreator):

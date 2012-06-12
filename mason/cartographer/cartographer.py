@@ -33,19 +33,3 @@ class Cartographer(object):
     def close(self):
         pass
 
-
-#==============================================================================
-# Derived Types of Cartographer
-#==============================================================================
-class Raster(Cartographer):
-
-    """ Raster Cartographer """
-
-    pass
-
-
-class GeoJson(Cartographer):
-
-    """ GEO JSON Cartographer """
-
-    pass

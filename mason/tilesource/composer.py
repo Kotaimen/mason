@@ -6,6 +6,7 @@ Created on May 21, 2012
 import time
 
 from ..core import Tile, MetaTile
+from ..utils import boxcrop
 from .tilesource import TileSource
 
 
@@ -30,66 +31,67 @@ class ComposerTileSource(TileSource):
 
     """
 
-    def __init__(self, tag, sources, storages, composer):
+    def __init__(self, tag, sources, composer, buffer_size=0):
         TileSource.__init__(self, tag)
-        assert len(sources) == len(storages)
         self._sources = sources
-        self._storages = storages
         self._composer = composer
+        self._buffer_size = buffer_size
 
     def get_tile(self, tile_index):
         """ Gets tile """
 
-        tiles = list()
-        for source, storage in zip(self._sources, self._storages):
+        buffer_size = self._buffer_size
+
+        tile_layer_list = list()
+        for source in self._sources:
             # get tile from storage
-            tile = storage.get(tile_index)
+            layer = source.get_tile(tile_index, buffer_size)
 
-            if tile is None:
-                # get tile from source
-                tile = source.get_tile(tile_index)
-                if tile is None:
-                    raise Exception('Tile Source is Missing!')
+            if layer is None:
+                raise Exception('Tile Source is Missing!')
 
-                storage.put(tile)
+            tile_layer_list.append(layer)
 
-            tiles.append(tile)
+        renderdata = self._composer.compose(tile_layer_list)
 
-        renderdata = self._composer.compose(tiles)
-
+        data = renderdata.data
         data_type = renderdata.data_type
-        metadata = dict(ext=data_type.ext,
-                        mimetype=data_type.mimetype,
-                        mtime=time.time())
 
-        tile = Tile.from_tile_index(tile_index, renderdata.data, metadata)
+        ext = data_type.ext
+        mimetype = data_type.mimetype
+        mtime = time.time()
+
+        if buffer_size > 0:
+            side = tile_index.pixel_size
+            size = (side, side)
+
+            left = top = buffer_size
+            right = bottom = buffer_size + side
+
+            cropbox = (left, top, right, bottom)
+            data = boxcrop(data, ext, size, cropbox)
+
+        metadata = dict(ext=ext, mimetype=mimetype, mtime=mtime)
+
+        tile = Tile.from_tile_index(tile_index, data, metadata)
         return tile
 
     def get_metatile(self, metatile_index):
-        """ Gets metatile """
-        tiles = list()
 
+        tile_list = list()
         for tile_index in metatile_index.fission():
-            tile = tiles.append(self.get_tile(tile_index))
 
-        metatile = MetaTile(metatile_index, tiles, metadata=tiles[0].metadata)
-#
-#        metatiles = list()
-#        for source in self._sources:
-#            metatile = source.get_metatile(metatile_index)
-#            if metatile is None:
-#                raise Exception('MetaTile Source is Missing!')
-#            metatiles.append(metatile)
-#
-#        renderdata = self._composer.compose(metatiles)
-#
-#        ext = renderdata.data_type.ext
-#        mimetype = renderdata.data_type.mimetype
-#        metadata = dict(ext=ext, mimetype=mimetype, mtime=time.time())
-#
-#        metatile = MetaTile.from_tile_index(metatile_index,
-#                                            renderdata.data,
-#                                            metadata)
+            tile = self.get_tile(tile_index)
+
+            tile_list.append(tile)
+
+        ext = tile_list[0].metadata['ext']
+        mimetype = tile_list[0].metadata['mimetype']
+        mtime = time.time()
+
+        metadata = dict(ext=ext, mimetype=mimetype, mtime=mtime)
+        metatile = MetaTile(metatile_index, tile_list, metadata)
+
         return metatile
 
     def close(self):
