@@ -27,10 +27,15 @@ def create_sqlite_database(filename, tag, ext):
     conn.executescript('''
     CREATE TABLE IF NOT EXISTS metadata (name TEXT, value TEXT, PRIMARY KEY (name));
     INSERT INTO metadata VALUES('name', '%(name)s');
-    INSERT INTO metadata VALUES('type', 'overlay');
+    INSERT INTO metadata VALUES('type', 'map');
     INSERT INTO metadata VALUES('version', '');
     INSERT INTO metadata VALUES('description', '');
+    INSERT INTO metadata VALUES('attribution', '');
     INSERT INTO metadata VALUES('format', '%(format)s');
+    INSERT INTO metadata VALUES('bounds', '-180,-85,180,85');
+    INSERT INTO metadata VALUES('center', '0,0,4');
+    INSERT INTO metadata VALUES('minzoom', '1');
+    INSERT INTO metadata VALUES('maxzoom', '20');
 
     CREATE TABLE IF NOT EXISTS tiledata (hash TEXT NOT NULL PRIMARY KEY,
                                          data BLOB NOT NULL);
