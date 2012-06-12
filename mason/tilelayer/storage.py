@@ -6,6 +6,7 @@ Created on Jun 12, 2012
 from ..core import create_data_type
 from .base import TileLayer, TileLayerData
 
+import subprocess
 
 class StorageLayer(TileLayer):
 
@@ -27,11 +28,28 @@ class StorageLayer(TileLayer):
 
         data = self._process_tile_data(tile)
 
-        if buffer_size > 0:
-            # place to canvas center
-            raise NotImplementedError
-
         ext = tile.metadata['ext']
+
+        if buffer_size > 0:
+            # XXX: Need find a way to expand border pixels otherwise 
+            #      sharpen will have artifacts around original border
+            args = ['convert',
+                   '%s:-' % ext,
+                   '-bordercolor', 'transparent', '-border',
+                   '%dx%d' % (buffer_size, buffer_size),
+                   '%s:-' % ext,
+                   ]
+
+            popen = subprocess.Popen(args=args,
+                                     stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE)
+            stdout, stderr = popen.communicate(data)
+            retcode = popen.poll()
+            if retcode:
+                raise subprocess.CalledProcessError(retcode, args)
+
+            data = stdout
+
         data_type_name = ext
         data_type = create_data_type(data_type_name)
         layer = TileLayerData(data, data_type, size)
