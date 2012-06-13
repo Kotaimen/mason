@@ -58,7 +58,7 @@ def create_storage_layer(tag, **params):
 
     storage = create_tilestorage(**storage_cfg)
 
-    return StorageLayer(tag, storage)
+    return StorageLayer(tag, storage, **params)
 
 
 def create_cartographer_layer(tag, **params):
@@ -70,7 +70,7 @@ def create_cartographer_layer(tag, **params):
         cartographer_cfg['tag'] = tag
 
     cartographer = create_cartographer(**cartographer_cfg)
-    return CartographerLayer(tag, cartographer)
+    return CartographerLayer(tag, cartographer, **params)
 
 
 class TileLayerFactory(object):

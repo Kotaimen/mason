@@ -8,11 +8,14 @@ from .base import TileLayer, TileLayerData
 
 import subprocess
 
+
 class StorageLayer(TileLayer):
 
-    def __init__(self, tag, storage):
+    def __init__(self, tag, storage,
+                 border_color='transparent'):
         TileLayer.__init__(self, tag)
         self._storage = storage
+        self._border_color = border_color
 
     def _process_tile_data(self, tile):
         return tile.data
@@ -35,7 +38,8 @@ class StorageLayer(TileLayer):
             #      sharpen will have artifacts around original border
             args = ['convert',
                    '%s:-' % ext,
-                   '-bordercolor', 'transparent', '-border',
+                   '-bordercolor', self._border_color,
+                   '-border',
                    '%dx%d' % (buffer_size, buffer_size),
                    '%s:-' % ext,
                    ]
