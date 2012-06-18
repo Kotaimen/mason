@@ -45,7 +45,7 @@ class ComposerTileSource(TileSource):
         tile_layer_list = list()
         for source in self._sources:
             # get tile from storage
-            layer = source.get_tile(tile_index, buffer_size)
+            layer = source.get_layer(tile_index, buffer_size)
 
             if layer is None:
                 raise Exception('Tile Source is Missing!')
@@ -77,6 +77,8 @@ class ComposerTileSource(TileSource):
         return tile
 
     def get_metatile(self, metatile_index):
+
+        """ Gets metatile """
 
         tile_list = list()
         for tile_index in metatile_index.fission():

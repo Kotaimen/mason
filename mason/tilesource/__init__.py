@@ -25,25 +25,16 @@ class MapnikTileSourceCreator(TileSourceCreator):
     """ Cartographer Tile Source Creator """
 
     def __call__(self, tag, **params):
-        cartographer = create_cartographer('mapnik', **params)
+        cartographer = create_cartographer('mapnik', tag, **params)
         return CartographerTileSource(tag, cartographer)
 
 
-class HillShadeTileSourceCreator(TileSourceCreator):
+class RasterTileSourceCreator(TileSourceCreator):
 
     """ Cartographer Tile Source Creator """
 
     def __call__(self, tag, **params):
-        cartographer = create_cartographer('hillshade', **params)
-        return CartographerTileSource(tag, cartographer)
-
-
-class ColorReliefTileSourceCreator(TileSourceCreator):
-
-    """ Cartographer Tile Source Creator """
-
-    def __call__(self, tag, **params):
-        cartographer = create_cartographer('colorrelief', **params)
+        cartographer = create_cartographer('raster', tag, **params)
         return CartographerTileSource(tag, cartographer)
 
 
@@ -86,8 +77,7 @@ class TileSourceFactory(object):
     """ Tile Source Factory """
 
     CLASS_REGISTRY = dict(mapnik=MapnikTileSourceCreator(),
-                          hillshade=HillShadeTileSourceCreator(),
-                          colorrelief=ColorReliefTileSourceCreator(),
+                          raster=RasterTileSourceCreator(),
                           composer=ComposerCreator(),
                           null=NullTileSourceCreator(),
                           )

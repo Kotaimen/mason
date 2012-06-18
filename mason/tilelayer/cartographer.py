@@ -8,11 +8,13 @@ from .base import TileLayer, TileLayerData
 
 class CartographerLayer(TileLayer):
 
+    """ Cartographer Layer """
+
     def __init__(self, tag, cartographer):
         TileLayer.__init__(self, tag)
         self._cartographer = cartographer
 
-    def get_tile(self, tile_index, buffer_size):
+    def get_layer(self, tile_index, buffer_size):
 
         side = tile_index.pixel_size + buffer_size * 2
         size = (side, side)
@@ -26,4 +28,3 @@ class CartographerLayer(TileLayer):
                               size)
 
         return layer
-

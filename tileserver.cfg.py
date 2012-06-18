@@ -25,19 +25,25 @@ LAYERS = [
 
     'source':
         {
-         'prototype': 'composer',
-         'command': '$1 -virtual-pixel edge -spread 0x16',
-         'buffer_size': 0,
-         'tilelayers': [
-                        {
-                         'prototype': 'cartographer',
-                         'source': {
-                                    'prototype': 'mapnik',
-                                    'theme_root': './tests/input/',
-                                    'theme_name': 'worldaltas',
-                                    'data_type': 'png',
-                                    }
-                         },
+          'prototype': 'mapnik',
+          'theme_root': './tests/input/',
+          'theme_name': 'worldaltas',
+          'data_type': 'png',
+
+
+#         'prototype': 'composer',
+#         'command': '$1 -virtual-pixel edge -spread 0x16',
+#         'buffer_size': 0,
+#         'tilelayers': [
+#                        {
+#                         'prototype': 'cartographer',
+#                         'source': {
+#                                    'prototype': 'mapnik',
+#                                    'theme_root': './tests/input/',
+#                                    'theme_name': 'worldaltas',
+#                                    'data_type': 'png',
+#                                    }
+#                         },
 
 #                        {
 #                         'prototype': 'cartographer',
@@ -59,56 +65,10 @@ LAYERS = [
 #                                    }
 #                         },
 
-                        ]
+#                        ]
 
 
          },
-#         None,
-
-#        {
-#        'prototype': 'mapnik',
-#        'theme_root': './samples/themes/',
-#        'theme_name': 'worldaltas',
-#        'data_type': 'png',
-#        },
-
-#         {
-#          'prototype': 'composer',
-#          'command': '$1 $2 -compose overlay -composite',
-#          'sources': [
-#                    {
-#                    'prototype': 'colorrelief',
-#                    'server': TEST_SVR,
-#                    'dem_table': TEST_TBL,
-#                    'color_context': './samples/HypsometricColors(Dark).txt',
-#                    'image_type': 'png',
-#                    },
-#                    {
-#                    'prototype': 'hillshade',
-#                    'server': TEST_SVR,
-#                    'dem_table': TEST_TBL,
-#                    'image_type': 'png',
-#                    },
-#
-#                    ],
-#          'storages': [
-#                    {
-#                    'prototype': 'filesystem',
-#                    'tag': 'colorrelief',
-#                    'root': '/tmp/worldaltas/colorrelief/',
-#                    'ext': 'png',
-#                    'simple': True,
-#                    },
-#
-#                    {
-#                    'prototype': 'filesystem',
-#                    'tag': 'hillshade',
-#                    'root': '/tmp/worldaltas/hillshade/',
-#                    'ext': 'png',
-#                    'simple': True,
-#                    },
-#                    ]
-#         },
 
     # Data Storage -=-=-=-=-=-=-=-=-=
 

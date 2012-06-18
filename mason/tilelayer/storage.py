@@ -20,7 +20,7 @@ class StorageLayer(TileLayer):
     def _process_tile_data(self, tile):
         return tile.data
 
-    def get_tile(self, tile_index, buffer_size):
+    def get_layer(self, tile_index, buffer_size):
 
         side = tile_index.pixel_size + buffer_size * 2
         size = (side, side)
@@ -59,4 +59,3 @@ class StorageLayer(TileLayer):
         layer = TileLayerData(data, data_type, size)
 
         return layer
-

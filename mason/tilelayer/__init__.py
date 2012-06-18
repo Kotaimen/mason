@@ -1,6 +1,10 @@
 from ..cartographer import create_cartographer
 from ..tilestorage import create_tilestorage
 
+
+#==============================================================================
+# Tile Layers
+#==============================================================================
 try:
     from .colorrelief import ColorReliefStorageLayer
 except ImportError:
@@ -22,6 +26,9 @@ except ImportError:
     CartographerLayer = None
 
 
+#==============================================================================
+# Creators
+#==============================================================================
 def create_colorrelief_storage_layer(tag, **params):
     storage_cfg = params.pop('source', None)
     if storage_cfg is None:
@@ -73,6 +80,9 @@ def create_cartographer_layer(tag, **params):
     return CartographerLayer(tag, cartographer, **params)
 
 
+#==============================================================================
+# Tile Layer Factory
+#==============================================================================
 class TileLayerFactory(object):
 
     CREATOR_REGISTRY = dict(colorrelief_storage=create_colorrelief_storage_layer,

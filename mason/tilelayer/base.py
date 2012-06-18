@@ -7,6 +7,8 @@ Created on Jun 12, 2012
 
 class TileLayer(object):
 
+    """ Tile Layer Base Class """
+
     def __init__(self, tag):
         self._tag = tag
 
@@ -14,17 +16,17 @@ class TileLayer(object):
     def tag(self):
         return self._tag
 
-    def get_tile(self, tile_index, buffer_size):
+    def get_layer(self, tile_index, buffer_size):
+        """ Gets tile layer from tile index
+
+        returns TileLayerData if available, otherwise, returns None.
+        """
         raise NotImplementedError
-
-    def get_metatile(self, metatile_index, buffer_size):
-
-        for tile_index in metatile_index.fission():
-            layer = self.get_tile(tile_index, buffer_size)
-            yield layer
 
 
 class TileLayerData(object):
+
+    """ Tile Layer Data """
 
     def __init__(self, data, data_type, size):
         self._data = data
