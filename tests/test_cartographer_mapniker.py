@@ -21,6 +21,7 @@ class TestMapnikMaker(unittest.TestCase):
 
     def testTrueColor(self):
         cartographer = create_cartographer('mapnik',
+                                           tag='test',
                                            theme_root='./input/',
                                            theme_name='worldaltas',
                                            data_type='png')
@@ -37,6 +38,7 @@ class TestMapnikMaker(unittest.TestCase):
 
     def testIndexColor(self):
         cartographer = create_cartographer('mapnik',
+                                           tag='test',
                                            theme_root='./input/',
                                            theme_name='worldaltas',
                                            data_type='png256',
@@ -54,6 +56,7 @@ class TestMapnikMaker(unittest.TestCase):
 
     def testTransparency(self):
         cartographer = create_cartographer('mapnik',
+                                           tag='test',
                                            theme_root='./input/',
                                            theme_name='worldaltas',
                                            data_type='png256',
@@ -71,10 +74,11 @@ class TestMapnikMaker(unittest.TestCase):
 
     def testPalette(self):
         cartographer = create_cartographer('mapnik',
-                                            theme_root='./input/',
-                                            theme_name='worldaltas',
-                                            data_type='png256',
-                                            data_parameters={
+                                           tag='test',
+                                           theme_root='./input/',
+                                           theme_name='worldaltas',
+                                           data_type='png256',
+                                           data_parameters={
                                             'palette': './input/example-palette.act',
                                             'colors': 5,
                                             }
@@ -93,6 +97,7 @@ class TestMapnikMaker(unittest.TestCase):
     def testJPEG(self):
         jpeg_quality = 50
         cartographer = create_cartographer('mapnik',
+                                    tag='test',
                                     theme_root='./input/',
                                     theme_name='worldaltas',
                                     data_type='jpeg',

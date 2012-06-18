@@ -133,6 +133,12 @@ def gdal_hillshade(data,
         ret = _subprocess_call(command_list)
         if not ret:
             raise Exception('Failed to convert to hill shade.')
+
+        with open(dst_name, 'rb') as fp:
+            data = fp.read()
+
+        return data
+
     finally:
         os.remove(src_name)
         os.remove(dst_name)
@@ -182,6 +188,12 @@ def gdal_colorrelief(data,
         ret = _subprocess_call(command_list)
         if not ret:
             raise Exception('Failed to convert to color relief.')
+
+        with open(dst_name, 'rb') as fp:
+            data = fp.read()
+
+        return data
+
     finally:
         os.remove(src_name)
         os.remove(dst_name)
@@ -279,6 +291,12 @@ def gdal_warp(data,
         ret = _subprocess_call(command_list)
         if not ret:
             raise Exception('Failed to warp.')
+
+        with open(dst_name, 'rb') as fp:
+            data = fp.read()
+
+        return data
+
     finally:
         os.remove(src_name)
         os.remove(dst_name)
