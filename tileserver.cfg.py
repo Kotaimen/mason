@@ -26,89 +26,58 @@ LAYERS = [
     'source':
         {
          'prototype': 'composer',
-         'command': '$1 -virtual-pixel edge -spread 0x16',
-         'buffer_size': 0,
+         'command': '''
+         # Background
+         $1
+         # Land outer shadow
+         (
+             $2 -channel A
+             -blur 0x12 -spread 2
+             -evaluate Multiply 0.5
+             +channel
+             -fill black -colorize 100%
+         ) -compose Multiply -composite
+         # Landmass
+         $2 -compose over -composite
+         # Borders
+         (
+            $3 -channel A
+            -morphology erode disk:2
+            +channel
+         ) -compose over -composite
+         -fill blue -tint 96
+         ''',
+         'buffer_size': 32,
          'tilelayers': [
                         {
                          'prototype': 'cartographer',
                          'source': {
                                     'prototype': 'mapnik',
-                                    'theme_root': './tests/input/',
-                                    'theme_name': 'worldaltas',
+                                    'theme_root': './samples/themes',
+                                    'theme_name': 'worldaltas_sea',
                                     'data_type': 'png',
                                     }
                          },
-
-#                        {
-#                         'prototype': 'cartographer',
-#                         'source': {
-#                                    'prototype': 'raster',
-#                                    'server': 'postgresql+psycopg2://postgres:123456@172.26.179.98:5432/world_dem_10m',
-#                                    'table': 'srtm30',
-#                                    'data_type': 'gtiff',
-#                                    }
-#                         },
-
-#                        {
-#                         'prototype': 'storage',
-#                         'source': {
-#                                    'prototype': 'filesystem',
-#                                    'root': '/home/ray/data/hillshade/',
-#                                    'ext': 'png',
-#                                    'simple': False,
-#                                    }
-#                         },
-
+                        {
+                         'prototype': 'cartographer',
+                         'source': {
+                                    'prototype': 'mapnik',
+                                    'theme_root': './samples/themes/',
+                                    'theme_name': 'worldaltas_land',
+                                    'data_type': 'png',
+                                    }
+                         },
+                        {
+                         'prototype': 'cartographer',
+                         'source': {
+                                    'prototype': 'mapnik',
+                                    'theme_root': './samples/themes/',
+                                    'theme_name': 'worldaltas_line',
+                                    'data_type': 'png',
+                                    }
+                         },
                         ]
-
-
          },
-#         None,
-
-#        {
-#        'prototype': 'mapnik',
-#        'theme_root': './samples/themes/',
-#        'theme_name': 'worldaltas',
-#        'data_type': 'png',
-#        },
-
-#         {
-#          'prototype': 'composer',
-#          'command': '$1 $2 -compose overlay -composite',
-#          'sources': [
-#                    {
-#                    'prototype': 'colorrelief',
-#                    'server': TEST_SVR,
-#                    'dem_table': TEST_TBL,
-#                    'color_context': './samples/HypsometricColors(Dark).txt',
-#                    'image_type': 'png',
-#                    },
-#                    {
-#                    'prototype': 'hillshade',
-#                    'server': TEST_SVR,
-#                    'dem_table': TEST_TBL,
-#                    'image_type': 'png',
-#                    },
-#
-#                    ],
-#          'storages': [
-#                    {
-#                    'prototype': 'filesystem',
-#                    'tag': 'colorrelief',
-#                    'root': '/tmp/worldaltas/colorrelief/',
-#                    'ext': 'png',
-#                    'simple': True,
-#                    },
-#
-#                    {
-#                    'prototype': 'filesystem',
-#                    'tag': 'hillshade',
-#                    'root': '/tmp/worldaltas/hillshade/',
-#                    'ext': 'png',
-#                    'simple': True,
-#                    },
-#                    ]
-#         },
 
     # Data Storage -=-=-=-=-=-=-=-=-=
 
@@ -136,15 +105,6 @@ LAYERS = [
 #            },
 #            ],
 #        },
-
-#         {
-#         'prototype': 'mbtiles',
-#         'tag': 'worldaltas',
-#         'database': '/tmp/worldaltas.mbtiles',
-#         'ext': 'png',
-#         },
-
-
     'metadata':
         {
         'Description': 'Sample Map',
