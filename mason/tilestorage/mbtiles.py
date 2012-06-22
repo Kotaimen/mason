@@ -19,23 +19,13 @@ from ..core import Tile
 #===============================================================================
 
 
-def create_sqlite_database(filename, tag, ext):
+def create_sqlite_database(filename, tag, ext, metadata=None):
     if os.path.exists(filename):
         return
 
     conn = sqlite3.connect(filename)
     conn.executescript('''
     CREATE TABLE IF NOT EXISTS metadata (name TEXT, value TEXT, PRIMARY KEY (name));
-    INSERT INTO metadata VALUES('name', '%(name)s');
-    INSERT INTO metadata VALUES('type', 'map');
-    INSERT INTO metadata VALUES('version', '');
-    INSERT INTO metadata VALUES('description', '');
-    INSERT INTO metadata VALUES('attribution', '');
-    INSERT INTO metadata VALUES('format', '%(format)s');
-    INSERT INTO metadata VALUES('bounds', '-180,-85,180,85');
-    INSERT INTO metadata VALUES('center', '0,0,4');
-    INSERT INTO metadata VALUES('minzoom', '1');
-    INSERT INTO metadata VALUES('maxzoom', '20');
 
     CREATE TABLE IF NOT EXISTS tiledata (hash TEXT NOT NULL PRIMARY KEY,
                                          data BLOB NOT NULL);
@@ -65,7 +55,35 @@ def create_sqlite_database(filename, tag, ext):
                     WHERE tileindex.tilehash=tiledata.hash;
 
 
-    ''' % {'format':ext, 'name':tag})
+    '''
+
+     % {'format':ext, 'name':tag})
+
+    metadata = dict(metadata) if metadata else dict()
+    if 'name' not in metadata:
+        metadata['name'] = tag
+    if 'format' not in metadata:
+        metadata['format'] = ext
+
+    if 'type' not in metadata:
+        metadata['type'] = 'basemap'
+    if 'version' not in metadata:
+        metadata['version'] = '1'
+    if 'description' not in metadata:
+        metadata['description'] = ''
+    if 'attribution' not in metadata:
+        metadata['attribution'] = ''
+    if 'bounds' not in metadata:
+        metadata['bounds'] = '-180,-85,180,85'
+    if 'center' not in metadata:
+        metadata['center'] = '0,0,4'
+    if 'minzoom' not in metadata:
+        metadata['minzoom'] = '0'
+    if 'maxzoom' not in metadata:
+        metadata['maxzoom'] = '20'
+
+    conn.executemany('INSERT INTO metadata VALUES (?, ?)', metadata.iteritems())
+
     conn.commit()
     conn.close()
 
@@ -133,6 +151,7 @@ class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
                  ext='png',
                  mimetype=None,
                  timeout=30,
+                 metadata=None,
                  ):
         TileStorage.__init__(self, tag)
 
@@ -148,7 +167,7 @@ class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
             self._mimetype = mimetype
 
         # Create the database when necessary
-        create_sqlite_database(self._database, tag, ext)
+        create_sqlite_database(self._database, tag, ext, metadata)
 
         # Connect to database
         self._timeout = timeout
