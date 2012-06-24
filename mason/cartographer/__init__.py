@@ -21,7 +21,7 @@ def create_mapnik_cartographer(tag, **params):
     data_parameters = params.pop('data_parameters', None)
 
     if data_type_name is None:
-        data_type_name = 'gtiff'
+        data_type_name = 'png'
 
     data_type = create_data_type(data_type_name, data_parameters)
 

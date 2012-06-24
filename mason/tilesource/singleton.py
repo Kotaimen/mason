@@ -14,14 +14,13 @@ from .tilesource import TileSource
 #==============================================================================
 class CartographerTileSource(TileSource):
 
-    """ Tile Source of Cartographer """
+    """ Generate a tile using cartographer """
 
     def __init__(self, tag, cartographer):
         TileSource.__init__(self, tag)
         self._cartographer = cartographer
 
-    def get_tile(self, tile_index):
-        """ Generate specified tile """
+    def _get_tile(self, tile_index):
 
         # Tile is always square
         width = height = tile_index.pixel_size
@@ -38,26 +37,13 @@ class CartographerTileSource(TileSource):
         metadata = dict(ext=ext, mimetype=mimetype, mtime=time.time())
 
         # Create a new Tile and return it
-        tile = Tile.from_tile_index(tile_index, renderdata.data, metadata)
+        tile = tile_index.make_tile(renderdata.data, metadata)
         return tile
 
+    def get_tile(self, tile_index):
+        """ Generate specified tile """
+        return self._get_tile(tile_index)
+
     def get_metatile(self, metatile_index):
-        """ Generate specified metatile """
-        # XXX: This is almost same as get_tile...
-
-        width = height = metatile_index.pixel_size
-        size = (width, height)
-
-        envelope = metatile_index.envelope.make_tuple()
-
-        renderdata = self._cartographer.doodle(envelope, size)
-
-        ext = renderdata.data_type.ext
-        mimetype = renderdata.data_type.mimetype
-        metadata = dict(ext=ext, mimetype=mimetype, mtime=time.time())
-
-        # Create a new Tile and return it
-        metatile = MetaTile.from_tile_index(metatile_index,
-                                            renderdata.data,
-                                            metadata)
-        return metatile
+        """ Generate specified tile """
+        return self._get_tile(metatile_index)

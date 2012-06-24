@@ -75,6 +75,9 @@ class TileIndex(object):
 
         return Envelope(left=lt.lon, bottom=rb.lat, right=rb.lon, top=lt.lat)
 
+    def make_tile(self, data, metadata):
+        return Tile.from_tile_index(self, data, metadata)
+
     def __hash__(self):
         return hash(self._serial)
 
@@ -199,6 +202,9 @@ class MetaTileIndex(TileIndex):
         rb = self._proj.pixel2coord(z, x, y, pixel_x, pixel_y, tile_size)
 
         return Envelope(left=lt.lon, bottom=rb.lat, right=rb.lon, top=lt.lat)
+
+    def make_tile(self, data, metadata):
+        return MetaTile.from_tile_index(self, data, metadata)
 
 
 class MetaTile(Tile):
