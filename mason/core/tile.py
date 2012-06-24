@@ -84,6 +84,9 @@ class TileIndex(object):
     def __cmp__(self, other):
         return self._serial - other._serial
 
+    def __repr__(self):
+        return 'TileIndex(%d/%d/%d)' % self._coord
+
 
 class Tile(object):
 
