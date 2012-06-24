@@ -10,7 +10,7 @@ Created on Apr 30, 2012
 #==============================================================================
 class Cartographer(object):
 
-    """ Base class of map cartographer
+    """ Render a map of given area to specified size
 
     Cartographer takes a bounding box to generate geographic data
     related to that given area.

@@ -17,10 +17,7 @@ class TileSourceError(Exception):
 #==============================================================================
 class TileSource(object):
 
-    """ Tile Source Base Class
-
-    Tile Source is a tile-based map data resource that receives a tile/metatile
-    index to create a tile/metatile.
+    """ Generate a new tile by rendering, reading from storage or combine tiles
 
     get_tile
         get a tile with specified tile index

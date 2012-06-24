@@ -11,14 +11,14 @@ from ..core import RenderData
 from .cartographer import Cartographer
 
 
-DEM_DATA_QUERY = """
+DEM_DATA_QUERY = '''
 SELECT
 ST_ASGDALRASTER(
 ST_UNION(ST_CLIP(the_rast, %(bbox)s, true)), 'GTIFF')
 AS dem_data
 FROM %(table)s
 WHERE ST_INTERSECTS(the_rast, %(bbox)s)
-"""
+'''
 
 
 #==============================================================================
@@ -26,20 +26,19 @@ WHERE ST_INTERSECTS(the_rast, %(bbox)s)
 #==============================================================================
 class DEMRaster(Cartographer):
 
-    """ GDAL raster maker
+    """ Render a raster map from PostGIS 2.0
 
     GDALDemRaster will get data from postgresql(postgis 2.0)
-    and use gdal utility to generate a specified type of image.
+    and use GDAL utility to generate a specified type of image.
 
-    The dem data stored in database must be in EPSG:4326 and
-    The data retrieved will be projected to EPSG:3857.(GOOGLE MERCATOR)
+    The DEM data stored in the database must be using EPSG:4326 and
+    the data rendered will be projected to EPSG:3857.
 
     server
         Server string of postgresql in sqlalchemy format.
 
     table
         Table name in postgresql where dem data is stored
-
     """
 
     def __init__(self, data_type, server='', table=''):

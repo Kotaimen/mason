@@ -17,7 +17,7 @@ class TileComposerError(object):
 #==============================================================================
 class TileComposer(object):
 
-    """ Compose a list of tiles """
+    """ Compose tiles using image processing engine """
 
     def __init__(self, tag, data_type=None):
         assert data_type is not None
