@@ -5,7 +5,7 @@ Created on May 14, 2012
 '''
 
 
-class InvalidLayer(Exception):
+class InvalidNamespace(Exception):
     pass
 
 
@@ -15,7 +15,7 @@ class TileNotFound(Exception):
 
 class Mason(object):
 
-    """ The "TileLayerManager", create and manage one or more Tile layers
+    """ The "TileNamespaceManager", create and manage one or more Tile namespaces
 
     This is the "facade" class and hides details of tilesource/storage, and is
     supposed be used by server frontend and rendering scripts.
@@ -25,19 +25,19 @@ class Mason(object):
     """
 
     def __init__(self):
-        self._layers = dict()
+        self._namespaces = dict()
 
-    def add_layer(self, layer):
-        """ Add a layer to Mason """
-        self._layers[layer.tag] = layer
+    def add_namespace(self, ns):
+        """ Add a namespace to Mason """
+        self._namespaces[ns.tag] = ns
 
-    def delete_layer(self, tag):
-        """ Remove existing layer from Mason """
-        del self._layers[tag]
+    def del_namespace(self, tag):
+        """ Remove existing namespace from Mason """
+        del self._namespaces[tag]
 
-    def get_layer(self, alias):
-        """ Returns a layer object """
-        return self._layers[alias]
+    def get_namespace(self, tag):
+        """ Returns a namespace object """
+        return self._namespaces[tag]
 
     def craft_tile(self, alias, z, x, y):
         """ Craft a tile from tilesource or retrive one from tile storage.
@@ -46,28 +46,29 @@ class Mason(object):
         data (usually an image), metadata is a dict of key-value pairs.
         """
         try:
-            layer = self._layers[alias]
+            namespace = self._namespaces[alias]
         except KeyError:
-            raise InvalidLayer(alias)
+            raise InvalidNamespace(alias)
 
-        tile = layer.get_tile(z, x, y)
+        tile = namespace.get_tile(z, x, y)
         if tile is None:
             raise TileNotFound('%s/%d/%d/%d' % (alias, z, x, y))
 
         return tile.data, tile.metadata
 
-    def get_layers(self):
+    def get_namespaces(self):
         """ Get a list of tile aliases """
-        return self._layers.keys()
+        return self._namespaces.keys()
 
-    def get_layer_metadata(self, alias):
-        """ Get layer metadata, return empty dict if the layer does not exist """
+    def get_namespace_metadata(self, alias):
+        """ Get namespace metadata, return empty dict if the namespace
+            does not exist
+        """
         try:
-            return self._layers[alias].metadata
+            return self._namespaces[alias].metadata
         except KeyError:
             return {}
 
     def close(self):
-        for layer in self._layers.itervalues():
-            layer.close()
-
+        for namespace in self._namespaces.itervalues():
+            namespace.close()
