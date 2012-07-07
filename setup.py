@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''
 Created on Apr 29, 2012
 
@@ -6,9 +7,18 @@ Created on Apr 29, 2012
 
 from distutils.core import setup
 
-packages = []
+packages = ['mason',
+            'mason.cartographer',
+            'mason.composer',
+            'mason.core',
+            'mason.tilelayer',
+            'mason.tilesource',
+            'mason.tilestorage',
+            'mason.utils']
+
 data_files = []
-scripts = []
+
+scripts = ['tileserver.py', 'tilerenderer.py']
 
 setup(name='mason',
     version='0.8.0',
