@@ -14,12 +14,30 @@ from .cartographer import Cartographer
 DEM_DATA_QUERY = '''
 SELECT
 ST_ASGDALRASTER(
-ST_UNION(ST_CLIP(the_rast, %(bbox)s, true)), 'GTIFF')
+ST_UNION(ST_CLIP(the_rast, %(bbox)s, true)), 
+'GTIFF', ARRAY['PIXELTYPE=SIGNEDBYTE','PROFILE=GeoTIFF'])
 AS dem_data
 FROM %(table)s
 WHERE ST_INTERSECTS(the_rast, %(bbox)s)
 '''
 
+def _buffer_envelope(envelope, size, buffer_size):
+    width, height = size
+    minx, miny, maxx, maxy = envelope
+    
+    diff_x = abs(maxx - minx)
+    diff_y = abs(maxy - miny)
+    
+    buffer_x = diff_x / width * buffer_size
+    buffer_y = diff_y / height * buffer_size
+    
+    new_envelope = (minx - buffer_x,
+                    miny - buffer_y,
+                    maxx + buffer_x,
+                    maxy + buffer_y)
+    
+    return new_envelope
+    
 
 #==============================================================================
 # Base class of GDAL DEM Raster Maker
@@ -57,7 +75,9 @@ class DEMRaster(Cartographer):
     def doodle(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
         """ Get dem data in the area of envelope from database """
 
-        bbox_sql = "ST_MakeEnvelope(%f, %f, %f, %f, 4326)" % envelope
+        buffered_envelope = _buffer_envelope(envelope, size, 5)
+
+        bbox_sql = "ST_MakeEnvelope(%f, %f, %f, %f, 4326)" % buffered_envelope
         querysql = DEM_DATA_QUERY % {'bbox': bbox_sql, 'table': self._table}
 
         try:
