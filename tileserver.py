@@ -17,7 +17,7 @@ import cherrypy
 import mason
 from mason.utils import Timer
 
-VERSION = '0.8'
+VERSION = '0.8.0'
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 
 WEEKDAY_NAME = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']

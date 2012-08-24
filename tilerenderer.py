@@ -21,7 +21,7 @@ from mason.core import Envelope
 from mason.utils import Timer
 
 CPU_COUNT = multiprocessing.cpu_count()
-VERSION = '0.8'
+VERSION = '0.8.0'
 QUEUE_LIMIT = 1024
 
 # Global logger object, init in main()
