@@ -126,7 +126,7 @@ use supplied wsgi.py)
 
     parser.add_argument('-b', '--bind',
                         dest='bind',
-                        default='127.0.0.1:8080',
+                        default='0.0.0.0:8080',
                         help='''Specify host:port server listens to, default to
                         127.0.0.1:8080
                         ''',
@@ -210,6 +210,7 @@ def main():
 
     # Add tile server configuration to auto reload list
     cherrypy.engine.autoreload.files.add(options.config)
+    cherrypy.engine.autoreload.frequency = 0.5
 
     # Mount application
     root = create_root_object(options)

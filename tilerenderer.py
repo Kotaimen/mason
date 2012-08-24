@@ -58,7 +58,7 @@ def metatiles_from_envelope(pyramid, levels, envelope, stride):
         if top == bottom:
             bottom += 1
 
-        for x in xrange(left, right, stride):
+        for x in xrange(left, right + 1, stride):
             for y in xrange(top, bottom, stride):
 #                print z, x, y, stride
                 yield z, x, y, stride
@@ -198,7 +198,7 @@ globe down to level 20 contain zillions of tiles, literally!
 
     parser.add_argument('-s', '--metatile-stride',
                         dest='stride',
-                        default=4,
+                        default=1,
                         type=int,
                         help='''Stride of MetaTile, which is minim render units, must be
                         power of 2.  Larger value takes more memory while rendering,
