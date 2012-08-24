@@ -97,6 +97,10 @@ MAGIC_HEADERS = {'png': b'\x89PNG\r\n\x1a\n',
 
 
 def gridcrop_magick(image_data, rows, columns, ext):
+    
+    if rows == columns == 1:
+        yield (0, 0), bytes(image_data)
+        return
 
     """ For imagemagick command, see
 
