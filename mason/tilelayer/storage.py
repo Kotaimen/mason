@@ -3,7 +3,7 @@ Created on Jun 12, 2012
 
 @author: ray
 '''
-from ..core import create_data_type
+from ..core import create_data_type, create_data_type_from_ext
 from .base import TileLayer, TileLayerData
 
 import subprocess
@@ -54,8 +54,7 @@ class StorageLayer(TileLayer):
 
             data = stdout
 
-        data_type_name = ext
-        data_type = create_data_type(data_type_name)
+        data_type = create_data_type_from_ext(ext)
         layer = TileLayerData(data, data_type, size)
 
         return layer
