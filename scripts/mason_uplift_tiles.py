@@ -97,6 +97,7 @@ def process_task(input_names, output_name, ext, sharpen):
     args = ['montage',
             '-quiet',
             '-limit', 'thread', '1',
+            '-background', 'transparent',
             '-mode', 'concatenate', '-tile', '2x2',
             ]
 
