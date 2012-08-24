@@ -125,6 +125,7 @@ def gdal_hillshade(data,
                         '-alt', alt,
                         '-compute_edges',
                         '-of', image_type,
+#                        '-alg', 'ZevenbergenThorne',
                         '-q'
                         ]
 
@@ -177,11 +178,13 @@ def gdal_colorrelief(data,
         with open(src_name, 'wb') as fp:
             fp.write(data)
 
-        command_list = ['gdaldem', 'color-relief',
+        command_list = ['gdaldem',
+                         'color-relief',
                         src_name,
                         color_context,
                         dst_name,
                         '-of', image_type,
+                        '-alpha',
                         '-q']
 
         command_list.extend(control_params)
@@ -251,12 +254,16 @@ def gdal_warp(data,
     Make sure gdaltransform amd gdalwarp is available on your system.
     """
     assert any((envelope is not None, srs is not None, size is not None))
+    
+#    return data
 
     nodata = '-32768'
     command_list = ['gdalwarp',
                     '-srcnodata', nodata,
                     '-dstnodata', nodata,
-                    '-r', 'cubicspline',
+#                    '-ot', 'Int16',
+#                    '-wt', 'Float64',
+                    '-r', 'cubic',
                     '-q',
                     ]
     if srs:
