@@ -13,6 +13,8 @@ Similar wheels:
 
 Reinvented the wheel because we need the extra power to render eveb more beautiful maps.
 
+Version 0.8.0
+
 Features
 --------
 * Render, storage, manage map tiles.
