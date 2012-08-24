@@ -10,9 +10,9 @@ from .core import Pyramid
 from .utils import Timer
 
 
-class Layer(object):
+class Namespace(object):
 
-    """ A layer of tiles """
+    """ A namespace of tiles """
 
     def __init__(self,
                  tag,
@@ -43,7 +43,7 @@ class Layer(object):
         return self._metadata
 
     def get_tile(self, z, x, y):
-        """ Get a tile from this layer, returns Tile object """
+        """ Get a tile from this namespace, returns Tile object """
         tile_index = self._pyramid.create_tile_index(z, x, y)
 
         # Read from storage first
@@ -107,7 +107,7 @@ class Layer(object):
         self._storage.close()
 
 
-def create_layer(tag,
+def create_namespace(tag,
                  ext='png',
                  mimetype='image/png',
                  levels=range(0, 21),
@@ -121,10 +121,10 @@ def create_layer(tag,
                  storage={},
                  metadata={},
                  ):
-    """ Create a Layer object
+    """ Create a Namespace object
 
     tag
-        Name of the layer, must be valid Python identifier
+        Name of the Namespace, must be valid Python identifier
 
     ext
         File extension of the tile, eg "png"
@@ -136,7 +136,7 @@ def create_layer(tag,
         Pixel size of tile images
 
     levels
-        A list of valid layers
+        A list of valid levels
 
     envelope
         Envelope of valid tile range in (left, bottom, right, top)
@@ -207,5 +207,5 @@ def create_layer(tag,
                          crs=crs,
                          projection=proj))
 
-    return Layer(tag, pyramid, source_object, storage_object, metadata,
-                 mode=mode)
+    return Namespace(tag, pyramid, source_object, storage_object, metadata,
+                     mode=mode)

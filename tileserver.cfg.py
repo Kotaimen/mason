@@ -32,10 +32,9 @@ LAYERS = [
          # Land outer shadow
          (
              $2 -channel A
-             -blur 0x12 -spread 2
+             -blur 0x12
              -evaluate Multiply 0.5
              +channel
-             -fill black -colorize 100%
          ) -compose Multiply -composite
          # Landmass
          $2 -compose over -composite
@@ -83,7 +82,6 @@ LAYERS = [
 
     'storage':
          None,
-#
 #        {
 #        'prototype': 'cascade',
 #        'storages':
@@ -112,5 +110,32 @@ LAYERS = [
     },
 
     # LAYER 2 -------------------------------------------------------------------
+    {
+    'tag': 'worldatlas2',
+    'ext': 'png',
+    'mimetype': 'image/png',
+    'levels':  range(0, 10),
+    'tile_size': 256,
+    'envelope': (-180, -85.06, 180, 85.06),
+    'center': (0, 0),
+    'crs': 'ESPG:4326',
+    'proj': 'ESPG:3857',
+    'mode': 'default',
+    'source':   {
+                'prototype': 'mapnik',
+                'theme_root': './samples/themes/',
+                'theme_name': 'worldaltas',
+                'data_type': 'png',
+                'data_parameters': {'colors':32},
+                },
+    'storage':
+           {
+            'prototype': 'filesystem',
+            'root': '/tmp/worldaltas/',
+            'ext': 'png',
+            'simple': False,
+           },
+    }
+    # Data Source -=-=-=-=-=-=-=-=-=
 
 ]

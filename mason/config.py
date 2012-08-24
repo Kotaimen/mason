@@ -5,14 +5,14 @@ Created on Apr 28, 2012
 '''
 
 from .mason import Mason
-from .layer import Layer, create_layer
+from .namespace import Namespace, create_namespace
 
 
 from pprint import pprint
 
 
 def create_mason_from_config(config_file, mode):
-    """ Load a configuration file and setup Mason (Tile Layer Manager)
+    """ Load a configuration file and setup Mason (Tile Namespace Manager)
 
     """
 
@@ -21,17 +21,17 @@ def create_mason_from_config(config_file, mode):
     globals, locals = {}, {}
     execfile(config_file, globals, locals)
 
-    layers_config = locals['LAYERS']
+    namespace_configs = locals['LAYERS']
 
-#    print pprint(layers_config)
+#    print pprint(namespace_configs)
 
     mason = Mason()
 
-    for layer_config in layers_config:
-        # Inject "mode" parameter into layer configuration
-        layer_config = dict(layer_config)
-        layer_config['mode'] = mode
-        layer = create_layer(**layer_config)
-        mason.add_layer(layer)
+    for namespace_config in namespace_configs:
+        # Inject "mode" parameter into namespace configuration
+        namespace_config = dict(namespace_config)
+        namespace_config['mode'] = mode
+        namespace = create_namespace(**namespace_config)
+        mason.add_namespace(namespace)
 
     return mason

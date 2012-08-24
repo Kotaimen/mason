@@ -4,7 +4,7 @@ from ..tilestorage import create_tilestorage
 from ..composer import create_tile_composer
 from ..tilelayer import create_tile_layer
 
-from .singleton import CartographerTileSource
+from .carto import CartographerTileSource
 from .composer import ComposerTileSource
 from .null import NullTileSource
 

@@ -64,10 +64,10 @@ def metatiles_from_envelope(pyramid, levels, envelope, stride):
                 yield z, x, y, stride
 
 
-def spawner(queue, statics, layer, pyramid, levels, envelope, stride):
+def spawner(queue, statics, namespace, pyramid, levels, envelope, stride):
     for z, x, y, stride in metatiles_from_envelope(pyramid, levels, envelope,
                                                    stride):
-#        print 'queue.put',layer, z, x, y, stride
+#        print 'queue.put',alias, z, x, y, stride
         queue.put((z, x, y, stride))
 
 
@@ -78,7 +78,7 @@ def spawner(queue, statics, layer, pyramid, levels, envelope, stride):
 def slave(queue, statistics, options):
     setup_logger(options.logfile)
     mason = create_mason_from_config(options.config, options.mode)
-    layer = mason.get_layer(options.layer)
+    namespace = mason.get_namespace(options.alias)
     while True:
         job = queue.get()
 
@@ -87,11 +87,11 @@ def slave(queue, statistics, options):
             return
 
         z, x, y, stride = job
-        tag = 'MetaTile[%s/%d/%d/%d@%d]' % (options.layer, z, x, y, stride)
+        tag = 'MetaTile[%s/%d/%d/%d@%d]' % (options.alias, z, x, y, stride)
         logger.info('Rendering %s...', tag)
         with Timer('...%s rendered in %%(time)s' % tag, logger.info, False):
             try:
-                rendered = layer.render_metatile(z, x, y, stride, logger)
+                rendered = namespace.render_metatile(z, x, y, stride, logger)
                 if rendered:
                     statistics.rendered += 1
                 else:
@@ -106,11 +106,12 @@ def slave(queue, statistics, options):
 # Monitor
 #===============================================================================
 
+
 def boss(options, statistics):
     logger.info('===== Start Rendering =====')
     mason = create_mason_from_config(options.config, options.mode)
-    layer = mason.get_layer(options.layer)
-    pyramid = layer.pyramid
+    namespace = mason.get_namespace(options.alias)
+    pyramid = namespace.pyramid
     queue = multiprocessing.JoinableQueue(maxsize=QUEUE_LIMIT)
 
     # Start all workers
@@ -127,7 +128,7 @@ def boss(options, statistics):
     # Start producer
     producer = multiprocessing.Process(name='tilespawner',
                                        target=spawner,
-                                       args=(queue, statistics, layer, pyramid,
+                                       args=(queue, statistics, namespace, pyramid,
                                              options.levels, options.envelope,
                                              options.stride))
     producer.daemon = True
@@ -167,17 +168,17 @@ globe down to level 20 contain zillions of tiles, literally!
     parser.add_argument('-c', '--config',
                         dest='config',
                         default='tileserver.cfg.py',
-                        help='''Specify location of the layer config file, default
+                        help='''Specify location of the namespace config file, default
                         is tileserver.cfg.py in current script directory, config
                         format is same as tileserver.''',
                         metavar='FILE',
                        )
 
-    parser.add_argument('-l', '--layer',
-                        dest='layer',
+    parser.add_argument('-a', '--alias',
+                        dest='alias',
                         default='',
-                        help='''Alias of tile layer to render, must be present in the
-                        config file, by default, the first layer found in the config
+                        help='''Alias of tile namespace to render, must be present in the
+                        config file, by default, the first namespace found in the config
                         will be used.'''
                        )
 
@@ -189,7 +190,7 @@ globe down to level 20 contain zillions of tiles, literally!
                         be used.'''
                        )
 
-    parser.add_argument('-v', '--levels',
+    parser.add_argument('-l', '--levels',
                         dest='levels',
                         default='',
                         help='''Tile layers to render as a list: (eg:1,2,3), by default
@@ -271,14 +272,14 @@ def verify_config(options):
     logger.info('Saving log to: "%s"', options.logfile)
 
     mason = create_mason_from_config(options.config, 'overwrite')
-    layers = mason.get_layers()
+    namespaces = mason.get_namespaces()
 
-    logger.info('Config has %d layer(s): %r', len(layers), layers)
-    if not options.layer:
-        options.layer = layers[0]
-    logger.info('Rendering layer: "%s"', options.layer)
+    logger.info('Config has %d nemspace(s): %r', len(namespaces), namespaces)
+    if not options.alias:
+        options.alias = namespaces[0]
+    logger.info('Rendering namespace: "%s"', options.alias)
 
-    metadata = mason.get_layer_metadata(options.layer)
+    metadata = mason.get_namespace_metadata(options.alias)
 
     if not options.levels:
         options.levels = metadata['levels']
@@ -308,8 +309,8 @@ def verify_config(options):
     logger.info('===== Configuration is OK =====')
 
     logger.info('===== Test Rendering %d Tiles =====' % options.test)
-    layer = mason.get_layer(options.layer)
-    gen = metatiles_from_envelope(layer.pyramid,
+    namespace = mason.get_namespace(options.alias)
+    gen = metatiles_from_envelope(namespace.pyramid,
                                   options.levels,
                                   options.envelope,
                                   options.stride,
@@ -317,10 +318,10 @@ def verify_config(options):
     for n, (z, x, y, stride) in enumerate(gen):
         if n >= options.test:
             break
-        tag = 'MetaTile[%s/%d/%d/%d@%d]' % (options.layer, z, x, y, stride)
+        tag = 'MetaTile[%s/%d/%d/%d@%d]' % (options.alias, z, x, y, stride)
         logger.info('Rendering %s...', tag)
         with Timer('...%s rendered in %%(time)s' % tag, logger.info, False):
-            layer.render_metatile(z, x, y, stride)
+            namespace.render_metatile(z, x, y, stride)
     logger.info('===== Done =====')
 
     return options

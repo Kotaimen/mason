@@ -22,8 +22,8 @@ class ComposerTileSource(TileSource):
     tag
         composer tag
 
-    sources
-        list of instances of tile source
+    layers
+        list of instances of tile layers
 
     storages
         list of instances of tile storage
@@ -33,18 +33,17 @@ class ComposerTileSource(TileSource):
 
     """
 
-    def __init__(self, tag, sources, composer, buffer_size=0):
+    def __init__(self, tag, layers, composer, buffer_size=0):
 
         TileSource.__init__(self, tag)
 
-        self._sources = sources
+        self._layers = layers
         self._composer = composer
         self._buffer_size = buffer_size
 
         # HACK: Support meta rendering only if there is no 'storage' source
-        # TODO: 'sources' are actually instance of TileLayers... bad name
-        for source in self._sources:
-            if isinstance(source, StorageLayer):
+        for layer in self._layers:
+            if isinstance(layer, StorageLayer):
                 self._supports_metarendering = False
                 break
         else:
@@ -55,18 +54,18 @@ class ComposerTileSource(TileSource):
         buffer_size = self._buffer_size
 
         # Get all tile layers
-        layers = list()
-        for n, source in enumerate(self._sources):
+        layer_datas = list()
+        for n, layer in enumerate(self._layers):
             # get tile from storage
 #            with Timer('%s-Layer(#%d) generated in %%(time)s' % (tile_index, n)):
-            layer = source.get_layer(tile_index, buffer_size)
-            if layers is None:
+            layer_data = layer.get_layer(tile_index, buffer_size)
+            if layer_data is None:
                 raise Exception('Invalid tile source #%d' % n)
-            layers.append(layer)
+            layer_datas.append(layer_data)
 
         # Call composer to compose
 #        with Timer('%s composed in %%(time)s' % (tile_index)):
-        renderdata = self._composer.compose(layers)
+        renderdata = self._composer.compose(layer_datas)
 
         # Make data and metadata
         data = renderdata.data

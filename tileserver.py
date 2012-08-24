@@ -75,12 +75,12 @@ def create_root_object(options):
 
         @cherrypy.expose
         @cherrypy.tools.json_out()
-        def layers(self, alias):
+        def namespaces(self, alias):
             if alias == '*':
 
-                return self.mason.get_layers()
+                return self.mason.get_namespaces()
             else:
-                return self.mason.get_layer_metadata(alias)
+                return self.mason.get_namespace_metadata(alias)
 
 
     class Root(object):
@@ -142,7 +142,7 @@ use supplied wsgi.py)
     parser.add_argument('--mode', '-m',
                         dest='mode',
                         choices=['readonly', 'readwrite', 'r', 'rw'],
-                        default='readonly',
+                        default='readwrite',
                         help='''Operate mode, set to "readonly" (the default value)
                         for read tile only from storage; set to "readwrite" enables
                         online rendering.
