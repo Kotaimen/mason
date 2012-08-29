@@ -18,7 +18,7 @@ class Coordinate(object):
 
     __slots__ = '_longitude', '_latitude', '_crs'
 
-    def __init__(self, longitude=0.0, latitude=0.0, crs='ESPG:4326'):
+    def __init__(self, longitude=0.0, latitude=0.0, crs='EPSG:4326'):
         self._longitude = longitude
         self._latitude = latitude
         self._crs = crs
@@ -62,7 +62,7 @@ class Envelope(object):
 
     __slots__ = '_left', '_bottom', '_right', '_top', '_crs'
 
-    def __init__(self, left, bottom, right, top, crs='ESPG:4326'):
+    def __init__(self, left, bottom, right, top, crs='EPSG:4326'):
         self._left = left
         self._bottom = bottom
         self._right = right
@@ -149,12 +149,13 @@ class Point(collections.namedtuple('Point', 'x y')):
 
 
 class GoogleMercatorProjection(object):
+    # XXX: Replace impl with 
 
-    """ Project ESPG:4326 (WGS84) to ESPG:3857 (Google Mercator)
+    """ Project EPSG:4326 (WGS84) to EPSG:3857 (Google Mercator)
 
     The defacto standard web map projection Google Mercator is formerly
-    known as ESPG:900913, which is a actually a joke for "google", so in
-    PostGIS 2.0 the projections is replaced by standard name ESPG:3857.
+    known as EPSG:900913, which is a actually a joke for "google", so in
+    PostGIS 2.0 the projections is replaced by standard name EPSG:3857.
 
     Note: This is reinvented so we don't have to depend on gdal-python
     when just deploying a read only tile server.
@@ -162,14 +163,14 @@ class GoogleMercatorProjection(object):
 
     def __init__(self):
         self.name = 'Google Mercator'
-        self.crs = 'ESPG:3857'
+        self.crs = 'EPSG:3857'
 
     def project(self, coordinate):
         """ Project a WGS84 coordinate to GoogleMercator
 
         Note the result point is in normalized ((0, 0), (1, 1)) plane.
         """
-        assert coordinate.crs == 'ESPG:4326'
+        assert coordinate.crs == 'EPSG:4326'
         lon, lat = coordinate.make_tuple()
         x = lon / 360. + 0.5
         y = math.log(math.tan(math.pi / 4. + math.radians(lat) / 2.))
@@ -227,7 +228,7 @@ class GoogleMercatorProjection(object):
 def create_projection(input, output, **args):
     """ Dummy factory function, in case other projection is added later """
     # Only supports WGS84 lonlat to GoogleMecartor projection
-    assert input == 'ESPG:4326' and output == 'ESPG:3857'
+    assert input == 'EPSG:4326' and output == 'EPSG:3857'
     return GoogleMercatorProjection()
 
 
