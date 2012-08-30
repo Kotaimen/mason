@@ -11,6 +11,7 @@ import unittest
 
 from mason.core.pyramid import Pyramid
 from mason.core.tile import Tile, MetaTile
+from mason.core.format import Format
 
 
 class TestPyramid(unittest.TestCase):
@@ -22,9 +23,14 @@ class TestPyramid(unittest.TestCase):
         self.assertEqual(pyramid.tile_size, 256)
         self.assertEqual(pyramid.buffer, 0)
         self.assertEqual(pyramid.format['name'], 'ANY')
-        self.assertEqual(pyramid.center, (121.3, 31.1))
+        self.assertEqual(pyramid.center.make_tuple(), (121.3, 31.1))
         self.assertEqual(pyramid.zoom, 7)
         self.assertEqual(pyramid.envelope.make_tuple(), (-180, -85.06, 180, 85.06))
+
+    def testSummarize(self):
+        pyramid = Pyramid(buffer=16, format=Format.PNG)
+        pyramid2 = Pyramid.from_summary(pyramid.summarize())
+        self.assertEqual(pyramid.format, pyramid2.format)
 
     def testCreateTile(self):
         pyramid = Pyramid(levels=list(range(0, 10)),

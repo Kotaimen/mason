@@ -5,7 +5,7 @@ Created on Apr 29, 2012
 '''
 
 from .tile import TileIndex, MetaTileIndex
-from .geo import Envelope, create_projection, tile_coordinate_to_serial
+from .geo import Envelope, Coordinate, create_projection, tile_coordinate_to_serial
 from .format import Format
 
 #===============================================================================
@@ -86,7 +86,7 @@ class Pyramid(object):
         self._format = format
 
         self._envelope = Envelope.from_tuple(envelope)
-        self._center = center
+        self._center = Coordinate.from_tuple(center)
         self._zoom = zoom
         self._crs = crs
         self._proj = proj
@@ -173,8 +173,8 @@ class Pyramid(object):
                     tile_size=self._tile_size,
                     buffer=self._buffer,
                     format=self._format,
-                    envelope=self._envelope,
-                    center=self._center,
+                    envelope=self._envelope.make_tuple(),
+                    center=self._center.make_tuple(),
                     zoom=self._zoom,
                     crs=self._crs,
                     proj=self._proj
@@ -184,14 +184,8 @@ class Pyramid(object):
         return 'Pyramid%r' % self.summarize()
 
     @staticmethod
-    def from_summary(**argv):
-        return Pyramid(**argv)
-
-    # Tile Iterator ------------------------------------------------------------
-
-    def walk(self, z, stride=1):
-        # TODO: Return MetaTileIndexes
-        raise NotImplementedError
+    def from_summary(args):
+        return Pyramid(**args)
 
     # Tile Factory Methods -----------------------------------------------------
 
@@ -239,3 +233,6 @@ class Pyramid(object):
             stride = dim
 
         return MetaTileIndex(self, z, x, y, stride)
+
+
+
