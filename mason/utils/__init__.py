@@ -1,2 +1,5 @@
 from .timer import Timer
-from .gridcrop import gridcrop, boxcrop
+
+# XXX: Dummy
+boxcrop = None
+gridcrop = None

@@ -1,197 +1,172 @@
 """
-Crop given image data into smaller tiled images
+Crop Metatile into smaller Tiles
+
+Requires imagemagick 6.5+, Q16 for TIFF 16 images.
 
 Created on May 13, 2012
-
 @author: Kotaimen
 """
-
 
 import io
 import subprocess
 
-try:
-    import Image
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
-try:
-    output = subprocess.check_output(['convert', '-version'])
-    # XXX: Check version? requires 6.5+.
-    HAS_IMAGEMAGICK = True
-except Exception:
-    HAS_IMAGEMAGICK = False
-
-if not (HAS_PIL or HAS_IMAGEMAGICK):
-    raise ImportError('Requires ImageMagick or PIL but got nothing')
+from .format import Format
+from .tile import Tile, MetaTile
+#===============================================================================
+# Imagemagick version check
+#===============================================================================
 
 
-def gridcrop(image_data, rows, columns, ext):
+def check_imagemagick():
+    # Check image magick version
+    try:
+        output = subprocess.check_output(['convert', '-version'])
+    except Exception as e:
+        raise ImportError('Requires imagemagick to crop images (convert).\n%r' % e)
+    import re
+    match = re.search(r'Version: ImageMagick (\d+\.\d+)\.(\d+)-(\d+)', output)
+    if not match:
+        raise ImportError("Don't understand 'convert -version' output ")
 
-    if HAS_PIL and ext in ['png', 'jpg']:
-        return dict(gridcrop_pil(image_data, rows, columns, ext))
+    version = float(match.group(1)) + float(match.group(2)) * 0.01
+    if version < 6.5:
+        # Not sure lowest supported version, ubuntu 12.04 comes with 6.6.9
+        raise ImportError('Requires ImageMagick 6.6.9 or higher')
+
+
+# XXX: Check at first usage... 
+check_imagemagick()
+
+
+#===============================================================================
+# ImageMagick commands
+#===============================================================================
+
+
+# Magic bytes for separating image byte streams
+MAGIC_NUMBER = dict(PNG=b'\x89PNG\r\n\x1a\n',
+                    JPG=b'\xff\xd8',
+                    TIFF=b'II*\x00',)
+
+
+def convert(input_data, command, input_format, output_format=None):
+
+    """ Call 'convert' with one input image from stdin and one output image as
+    stdout """
+
+    input_extension = input_format['extension'][1:]
+    if output_format is None:
+        output_extension = input_extension
     else:
-        return dict(gridcrop_magick(image_data, rows, columns, ext))
-
-
-class _BytesIO(io.BytesIO):
-    # HACK: PIL expects file like object throw "AttributeError" when its 
-    #       not really a file.  This works for StringIO but not BytesIO:
-    #
-    #           >>> buf=StringIO.StringIO()
-    #           >>> buf.fileno()
-    #           Traceback (most recent call last):
-    #           File "<stdin>", line 1, in <module>
-    #           AttributeError: StringIO instance has no attribute 'fileno'
-    #
-    #           >>> buf=io.BytesIO()
-    #           >>> buf.fileno()
-    #           Traceback (most recent call last):
-    #           File "<stdin>", line 1, in <module>
-    #           io.UnsupportedOperation: fileno
-    #
-    #      So we restore the good-old behavior here, and hope someone patch
-    #      this in the future... (strangely this only happens when you try
-    #      save jpeg images to BytesIO)
-    def fileno(self):
-        raise AttributeError
-
-
-def gridcrop_pil(image_data, rows, columns, ext):
-
-    if ext == 'jpg':
-        ext = 'jpeg'
-    elif ext == 'tif':
-        ext = 'tiff'
-
-    big_image = Image.open(_BytesIO(image_data))
-
-    width, height = big_image.size
-    assert width % rows == 0
-    assert height % columns == 0
-
-    grid_width = width // rows
-    grid_height = height // rows
-
-    for row in range(0, rows):
-        for column in range(0, columns):
-            left = row * grid_width
-            top = column * grid_height
-            right = left + grid_width
-            bottom = top + grid_height
-
-            crop_box = (left, top, right, bottom)
-
-            grid_image = big_image.crop(crop_box)
-            buf = _BytesIO()
-            # XXX: Can't find way to "preserve input quality"
-            grid_image.save(buf, ext, quality=95)
-            yield (row, column), buf.getvalue()
-
-
-MAGIC_HEADERS = {'png': b'\x89PNG\r\n\x1a\n',
-                 'jpg': b'\xff\xd8',
-                 'tif': b'II*\x00',
-                 }
-
-
-def gridcrop_magick(image_data, rows, columns, ext):
-    
-    if rows == columns == 1:
-        yield (0, 0), bytes(image_data)
-        return
-
-    """ For imagemagick command, see
-
-    http://www.imagemagick.org/Usage/crop/#crop_equal
-
-    Imagemagick 6.5+ is required, Q8 takes less memory but is less accurate
-    """
+        output_extension = output_format['extension'][1:]
 
     args = ['convert',
             '-quiet', '-limit', 'thread', '1',
-            '%s:-' % ext,
-            '-crop',
-            '%dx%d@' % (rows, columns),
-            '+repage',
-            '+adjoin',
-            '-',
-            ]
+            '%s:-' % input_extension, ]
+
+    if input_format == output_format == Format.JPG:
+        # Preserve JPG quality settings
+        command.extend(['-define', 'jpeg:preserve-settings', ])
+
+    args.extend(command)
+    args.extend(['%s:-' % output_extension, ])
+
     popen = subprocess.Popen(args, stdin=subprocess.PIPE,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
-    stdout, stderr = popen.communicate(image_data)
+    output_data, stderr = popen.communicate(input_data)
     retcode = popen.poll()
 
     if retcode != 0:
         raise subprocess.CalledProcessError(retcode, args, stderr)
 
-    # Imagemagick simply join image datas together when asked to write to stdout,
-    # Have to separate image data using magic headers here...
-    magic = MAGIC_HEADERS[ext]
-
-    bodies = stdout.split(magic)
-    assert len(bodies) == rows * columns + 1
-
-    for n, body in enumerate(bodies[1:]):
-        column = n // rows
-        row = n % columns
-        data = b''.join([magic, body])
-
-        yield (row, column), data
+    return output_data
 
 
-def boxcrop(image_data, ext, size, crop_box):
-    if ext == 'jpg':
-        ext = 'jpeg'
+def buffer_crop(image_data, size, buffer, format):
 
-    if ext in ['jpeg', 'png']:
-        return boxcrop_pil(image_data, ext, size, crop_box)
-    else:
-        return boxcrop_imagemagick(image_data, ext, size, crop_box)
-
-
-def boxcrop_pil(image_data, ext, size, crop_box):
-    assert ext in ['jpeg', 'png']
-
-    big_image = Image.open(_BytesIO(image_data))
-
-    width, height = size
-    left, top, right, bottom = crop_box
-    assert (left < width and left < right and left > 0)
-    assert (top < height and top < bottom and top > 0)
-
-    crop_image = big_image.crop(crop_box)
-    buf = _BytesIO()
-    crop_image.save(buf, ext, quality=95)
-    return buf.getvalue()
-
-
-def boxcrop_imagemagick(image_data, ext, size, crop_box):
-
-    width, height = size
-    left, top, right, bottom = crop_box
+    width = height = size
+    left, top, right, bottom = buffer, buffer, width - buffer, height - buffer
     assert (left < width and left < right and left > 0)
     assert (top < height and top < bottom and top > 0)
 
     width = right - left
     height = bottom - top
 
-    args = ['convert',
-            '-quiet', '-limit', 'thread', '1',
-            '%s:-' % ext,
-            '-crop',
-            '%dx%d%+d%+d' % (width, height, left, top),
-            '%s:-' % ext,
+    command = ['-crop', '%dx%d%+d%+d' % (width, height, left, top), ]
+
+    return convert(image_data, command, format)
+
+
+def grid_crop(image_data, stride, size, buffer, format):
+
+    width = height = size
+    left, top, right, bottom = buffer, buffer, width - buffer, height - buffer
+
+    command = [
+            '-crop', '%dx%d%+d%+d' % (width, height, left, top),
+            '-crop', '%dx%d@' % (stride, stride),
+            '+repage', '+adjoin',
             ]
-    popen = subprocess.Popen(args, stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-    stdout, stderr = popen.communicate(image_data)
-    retcode = popen.poll()
 
-    if retcode != 0:
-        raise subprocess.CalledProcessError(retcode, args, stderr)
+    image_stream = convert(image_data, command, format)
 
-    return stdout
+    # Imagemagick simply join several image datas together when asked to
+    # write to stdout... have to separate images using magic number here
+    magic = MAGIC_NUMBER[format['name']]
+
+    bodies = image_stream.split(magic)
+    assert len(bodies) == stride * stride + 1
+
+    cropped = dict()
+
+    for n, body in enumerate(bodies[1:]):
+        column = n // stride
+        row = n % stride
+        # split() throws separator away so add it back here
+        data = b''.join([magic, body])
+
+        cropped[(row, column)] = data
+
+    return cropped
+
+
+#===============================================================================
+# Cropper
+#===============================================================================
+
+def metatile_fission(metatile):
+
+    format = metatile.index.format
+    # Only supports clip/crop JPG/PNG, since crop GeoTIFF/TIFF may  
+    # lose color depth and geo reference information
+    assert format in [Format.PNG, Format.JPG, Format.TIF]
+    stride = metatile.index.stride
+    size = metatile.index.tile_size
+    buffer = metatile.index.buffer
+
+    tile_indexes = metatile.fission()
+
+    cropped = grid_crop(metatile.data, stride, size, buffer, format)
+    tiles = list()
+
+    for tile_index in tile_indexes:
+        x = tile_index.index.x - metatile.index.x
+        y = tile_index.index.y - metatile.index.y
+        data = tile_indexes[(x, y)]
+        tile = Tile.from_tile_index(tile_index,
+                                   data,
+                                   fmt=format,
+                                   mtime=metatile.mtime)
+        tiles.append(tile)
+
+    return tiles
+
+
+
+
+
+
+
+
+

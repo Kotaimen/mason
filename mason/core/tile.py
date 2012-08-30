@@ -15,12 +15,18 @@ class TileIndex(object):
 
     """ Coordinate & index of a Tile object """
 
-    def __init__(self, pyramid, z, x, y):
+    def __init__(self, pyramid, z, x, y, buffered=True):
         self._coord = z, x, y
-        self._buffer = pyramid.buffer
+        if buffered:
+            self._buffer = pyramid.buffer
+        else:
+            self._buffer = 0
         self._tile_size = pyramid.tile_size
         # Calculate envelope and serial so Tile can be detached from Pyramid
-        self._envelope = pyramid.calculate_tile_envelope(z, x, y)
+        if not buffered:
+            self._envelope = pyramid.calculate_tile_envelope(z, x, y)
+        else:
+            self._envelope = pyramid.calculate_tile_buffered_envelope(z, x, y)
         self._serial = pyramid.calculate_tile_serial(z, x, y)
 
     @property
@@ -138,20 +144,25 @@ class MetaTileIndex(TileIndex):
 
         self._stride = stride
 
-        # A list of TileIndexes in the MetaTile
+        # A list of TileIndexes in the MetaTile 
         self._indexes = list()
         for i in range(x, x + stride):
             for j in range(y, y + stride):
-                self._indexes.append(pyramid.create_tile_index(z, i, j,
-                                                               range_check=False))
+                # Ignore range check and buffer here
+                index = pyramid.create_tile_index(z, i, j,
+                                                  range_check=False,
+                                                  buffered=False)
+                self._indexes.append(index)
 
-        # Modify properties calculated in base class
-        # XXX: Really NG...
+        # Use buffered left_bottom and right_top tile index to calculate envelope
         z, x, y = self._coord
-        left_bottom = self._indexes[stride - 1].envelope.leftbottom
-        right_top = self._indexes[-stride].envelope.righttop
+        left_bottom_index = pyramid.create_tile_index(z, x, y + stride - 1)
+        left_bottom = left_bottom_index.envelope.leftbottom
+        right_top_index = pyramid.create_tile_index(z, x + stride - 1, y)
+        right_top = right_top_index.envelope.righttop
         self._envelope = Envelope(left_bottom.lon, left_bottom.lat,
                                   right_top.lon, right_top.lat)
+        # Overwrite tilesize
         self._tile_size = self._tile_size * stride
 
     @property
@@ -161,9 +172,6 @@ class MetaTileIndex(TileIndex):
     def fission(self):
         """ Get a list of TileIndexes belongs to the MetaTileIndex """
         return self._indexes
-
-    def make_tile(self, data, metadata):
-        return MetaTile.from_tile_index(self, data, metadata)
 
 
 class MetaTile(Tile):

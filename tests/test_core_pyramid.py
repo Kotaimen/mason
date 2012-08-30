@@ -46,7 +46,7 @@ class TestPyramid(unittest.TestCase):
         self.assertEqual(tile.index.serial, 14)
         self.assertEqual(tile.index.tile_size, 256)
 
-        self.assertAlmostEqual(tile.index.envelope.make_tuple(),
+        self.assertEqual(tile.index.envelope.make_tuple(),
                                (-90.0, -66.51326044311185, 0.0, 0.0))
 
         self.assertEqual(tile.data, b'data')
@@ -68,7 +68,7 @@ class TestPyramid(unittest.TestCase):
         self.assertEqual(tile.index.serial, 11)
         self.assertEqual(tile.index.tile_size, 512)
 
-        self.assertAlmostEqual(tile.index.envelope.make_tuple(),
+        self.assertEqual(tile.index.envelope.make_tuple(),
                                (-5.625, -5.615985819155327, 95.625, 68.65655498475735))
 
         self.assertEqual(tile.data, b'data2')

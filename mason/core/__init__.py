@@ -6,7 +6,7 @@ from .geo import (Coordinate, Point, Envelope, create_projection,
 from .tile import Tile, TileIndex, MetaTile, MetaTileIndex
 from .pyramid import Pyramid
 from .format import Format
-
+from .gridcrop import metatile_fission, grid_crop, buffer_crop
 
 # XXX: Dummy items make unittest runnable during refactoring
 create_data_type = None

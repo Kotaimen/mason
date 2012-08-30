@@ -129,7 +129,7 @@ class Pyramid(object):
 
     # Aux Tile Methods ---------------------------------------------------------
 
-    def _buffered_envelope(self, z, x, y):
+    def calculate_tile_buffered_envelope(self, z, x, y):
         # XXX: This does not check whether tile is already clipping world boundary
         tile_size = self._tile_size
         buffer_size = self._buffer
@@ -158,10 +158,7 @@ class Pyramid(object):
         return buffered
 
     def calculate_tile_envelope(self, z, x, y):
-        if self._buffer == 0:
-            return self._projector.tile_envelope(z, x, y)
-        else:
-            return self._buffered_envelope(z, x, y)
+        return self._projector.tile_envelope(z, x, y)
 
     def calculate_tile_serial(self, z, x, y):
         return tile_coordinate_to_serial(z, x, y)
@@ -189,7 +186,7 @@ class Pyramid(object):
 
     # Tile Factory Methods -----------------------------------------------------
 
-    def create_tile_index(self, z, x, y, range_check=True):
+    def create_tile_index(self, z, x, y, range_check=True, buffered=True):
         """ Create TileIndex object using current pyramid projection and range
         constraints """
 
@@ -203,7 +200,8 @@ class Pyramid(object):
         if y < 0 or y >= dim:
             y = y % dim
 
-        tile_index = TileIndex(self, z, x, y)
+        tile_index = TileIndex(self, z, x, y, buffered=True)
+        # XXX: Should check unbuffered envelope, but it doesn't matter now...
         if range_check and not tile_index.envelope.intersects(self._envelope):
             raise TileOutOfRange('Tile out of range')
 
