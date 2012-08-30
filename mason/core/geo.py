@@ -131,7 +131,7 @@ class Envelope(object):
         return Envelope(*t)
 
     def __repr__(self):
-        return 'Envelope(%r)' % (self.make_tuple())
+        return 'Envelope%r' % (self.make_tuple(),)
 
     def __eq__(self, other):
         return self.make_tuple() == other.make_tuple()
@@ -149,7 +149,7 @@ class Point(collections.namedtuple('Point', 'x y')):
 
 
 class GoogleMercatorProjection(object):
-    # XXX: Replace impl with 
+    # XXX: Replace impl with proj?
 
     """ Project EPSG:4326 (WGS84) to EPSG:3857 (Google Mercator)
 
@@ -163,7 +163,8 @@ class GoogleMercatorProjection(object):
 
     def __init__(self):
         self.name = 'Google Mercator'
-        self.crs = 'EPSG:3857'
+        self.from_crs = 'EPSG:4326'
+        self.to_crs = 'EPSG:3857'
 
     def project(self, coordinate):
         """ Project a WGS84 coordinate to GoogleMercator
@@ -204,13 +205,7 @@ class GoogleMercatorProjection(object):
         return x, y
 
     def coord2pixel(self, coordinate, z, tile_size=256):
-
-        world_x, world_y = self.project(coordinate)
-
-        pixel_size = 2 ** z * tile_size  # total pixel size
-        pixel_x = world_x * pixel_size
-        pixel_y = world_y * pixel_size
-
+        pixel_x, pixel_y = self.coord2worldpixel(coordinate, z, tile_size)
         return pixel_x % tile_size, pixel_y % tile_size
 
     def pixel2coord(self, z, x, y, pixel_x, pixel_y, tile_size=256):
@@ -223,6 +218,21 @@ class GoogleMercatorProjection(object):
         right_top = self.pixel2coord(z, x, y, 1., 0., 1.)
         return Envelope(left=left_bottom.lon, bottom=left_bottom.lat,
                         right=right_top.lon, top=right_top.lat)
+
+    def coord2worldpixel(self, coordinate, z, tile_size=256):
+
+        world_x, world_y = self.project(coordinate)
+
+        pixel_size = 2 ** z * tile_size  # total pixel size
+        pixel_x = world_x * pixel_size
+        pixel_y = world_y * pixel_size
+
+        return pixel_x, pixel_y
+
+    def worldpixel2coord(self, z, pixel_x, pixel_y, tile_size=256):
+        wx = float(pixel_x) / (2 ** z * tile_size)
+        wy = float(pixel_y) / (2 ** z * tile_size)
+        return self.unproject(Point(wx, wy))
 
 
 def create_projection(input, output, **args):

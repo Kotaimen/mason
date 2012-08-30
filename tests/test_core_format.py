@@ -35,7 +35,7 @@ class TestFormat(unittest.TestCase):
         fmt1 = json.loads('''{
         "mimetype": "image/jpeg",
         "name": "JPG",
-        "extenson": ".jpg",
+        "extension": ".jpg",
         "type": "raster",
         "georeferenced": "no",
         "driver": "JPEG"
@@ -43,7 +43,7 @@ class TestFormat(unittest.TestCase):
         fmt2 = json.loads('''{
         "mimetype": "image/jpeg",
         "name": "JPG",
-        "extenson": ".jpeg",
+        "extension": ".jpeg",
         "type": "raster",
         "georeferenced": "no",
         "driver": "JPEG"
