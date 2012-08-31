@@ -83,6 +83,7 @@ class Format(object):
         return fmt['georeferenced'] == 'yes'
 
 
+# Inject formats into class
 for k, v in KNOWN_FORMATS.iteritems():
     setattr(Format, k, v)
-#Format..update(KNOWN_FORMATS)
+

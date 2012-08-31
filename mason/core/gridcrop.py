@@ -137,36 +137,28 @@ def grid_crop(image_data, stride, size, buffer, format):
 
 def metatile_fission(metatile):
 
-    format = metatile.index.format
+    format = metatile.format
     # Only supports clip/crop JPG/PNG, since crop GeoTIFF/TIFF may  
     # lose color depth and geo reference information
-    assert format in [Format.PNG, Format.JPG, Format.TIF]
+    assert format in [Format.PNG, Format.JPG, Format.TIFF]
     stride = metatile.index.stride
     size = metatile.index.tile_size
     buffer = metatile.index.buffer
 
-    tile_indexes = metatile.fission()
+    tile_indexes = metatile.index.fission()
 
     cropped = grid_crop(metatile.data, stride, size, buffer, format)
     tiles = list()
 
     for tile_index in tile_indexes:
-        x = tile_index.index.x - metatile.index.x
-        y = tile_index.index.y - metatile.index.y
-        data = tile_indexes[(x, y)]
+        x = tile_index.x - metatile.index.x
+        y = tile_index.y - metatile.index.y
+        data = cropped[(x, y)]
         tile = Tile.from_tile_index(tile_index,
-                                   data,
-                                   fmt=format,
-                                   mtime=metatile.mtime)
+                                    data,
+                                    fmt=format,
+                                    mtime=metatile.mtime)
         tiles.append(tile)
 
     return tiles
-
-
-
-
-
-
-
-
 

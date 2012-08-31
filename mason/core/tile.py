@@ -46,6 +46,10 @@ class TileIndex(object):
         return self._coord
 
     @property
+    def buffer(self):
+        return self._buffer
+
+    @property
     def envelope(self):
         return self._envelope
 

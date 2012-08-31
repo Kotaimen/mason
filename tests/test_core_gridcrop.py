@@ -6,8 +6,9 @@ Created on Jun 3, 2012
 import unittest
 import os
 
-from mason.core import Format
-from mason.core.gridcrop import grid_crop, buffer_crop
+from mason.core import (Format, Pyramid, MetaTile,
+                        grid_crop, buffer_crop,
+                        metatile_fission)
 
 
 class TestBufferCrop(unittest.TestCase):
@@ -81,9 +82,6 @@ class TestGridCropBuffered(unittest.TestCase):
         with open('./input/test_core_gridcrop_grid.png', 'r') as fp:
             data = fp.read()
 
-        size = (1024, 1024)
-        crop_box = (256, 256, 768, 768)
-
         datas = grid_crop(data, 2, 512, 256, Format.PNG)
         self.assertEqual(len(datas), 4)
 
@@ -96,9 +94,6 @@ class TestGridCropBuffered(unittest.TestCase):
         with open('./input/test_core_gridcrop_grid.jpg', 'r') as fp:
             data = fp.read()
 
-        size = (1024, 1024)
-        crop_box = (256, 256, 768, 768)
-
         datas = grid_crop(data, 2, 512, 256, Format.JPG)
         self.assertEqual(len(datas), 4)
 
@@ -109,7 +104,16 @@ class TestGridCropBuffered(unittest.TestCase):
 
 
 class TestMetatileFission(unittest.TestCase):
-    pass
+
+    def testFission(self):
+        with open('./input/test_core_gridcrop_grid.png', 'r') as fp:
+            data = fp.read()
+        pyramid = Pyramid(buffer=256)
+        metatile_index = pyramid.create_metatile_index(4, 0, 0, stride=2)
+        metatile = MetaTile.from_tile_index(metatile_index, data, Format.PNG)
+
+        tiles = metatile_fission(metatile)
+        self.assertEqual(len(tiles), 4)
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
