@@ -6,15 +6,15 @@ Created on May 3, 2012
 
 import errno
 import gzip
-import mimetypes
 import os
-import os.path
 import shutil
 import sys
 import tempfile
+import json
 
-from ..core import Tile, tile_coordiante_to_dirname
 from .tilestorage import TileStorage, TileStorageError
+from ..core import Tile, tile_coordiante_to_dirname, Pyramid, Metadata
+from ..utils.adhoc import create_temp_filename
 
 
 class FileSystemTileStorageError(TileStorageError):
@@ -25,69 +25,93 @@ class FileSystemTileStorage(TileStorage):
 
     """ Store Tiles on file system as individual files
 
-    File system storage does *NOT* save tile metadata. However, mimetype, ext,
-    mimetype will be retrieved from file system.
-
     Parameters:
-
-    tag
-        Name tag of the storage.
 
     root
         Root directory of the storage tree, the directory will be created if
         it does not exist on file system.
 
-    ext
-        filename extension which will be used on disk, this always
-        overwrite specified in tile metadata.
-
-    mimetype
-        Optional, mimetype of tile data, always overwrite specified in
-        tile metadata, by default, it is guessed from extension.
-
     compress
-        Optional, whether to compress file using gzip (the written file will
-        have .ext.gz as extension), default value is False.
+        Optional, whether to compress file using gzip (file will
+        use .ext.gz as extension), default value is None.
 
     simple
-        Optional, whether to use simple directory theme (z/x/y.ext), recommended
+        Optional, whether to use simple directory theme (z/x/y.ext), useful
         when serving small number of tiles (or serve direct from a static file
-        server).
+        server), default is False.
+
     """
 
+    CONFIG_VERSION = 1
+    CONFIG_FILENAME = 'metadata.json'
+
     def __init__(self,
-                 tag,
-                 root=r'.',
-                 ext='dat',
-                 mimetype=None,
+                 pyramid=None,
+                 metadata=None,
+                 root=None,
                  compress=False,
                  simple=False,
                  ):
-        TileStorage.__init__(self, tag)
+        assert pyramid is not None
+        assert metadata is not None
 
-        # Create root directory if necessary
-        if not root:
-            raise FileSystemTileStorageError('Must specify directory root')
+        TileStorage.__init__(self, pyramid, metadata)
+        assert root is not None
+
         self._root = root
-
         if not os.path.exists(self._root):
             os.mkdir(self._root)
 
-        # Guess mimetype from extension
-        if mimetype is None:
-            self._mimetype, _bar = mimetypes.guess_type('foo.%s' % ext)
-            if self._mimetype is None:
-                raise FileSystemTileStorageError("Can't guess mimetype from .%s" % ext)
-        else:
-            self._mimetype = mimetype
-        self._ext = ext
-
-        # Append .gz to extension if compression is on
         self._use_gzip = bool(compress)
-
-        # Decide which basename to use accordion to directory name mode
         self._simple = simple
+
+        self._config = os.path.join(self._root, self.CONFIG_FILENAME)
+        if os.path.exists(self._config):
+            if self.compare_config():
+                raise FileSystemTileStorageError('Given config does not match existing one')
+        else:
+            self.write_config()
+
+        self._ext = pyramid.format.extension[1:]
+        self._use_gzip = bool(compress)
         self._basename = '%d-%d-%d.' + self._ext
+
+    # Config serialization -----------------------------------------------------
+    def summarize(self):
+        return dict(version=self.CONFIG_VERSION,
+                    pyramid=self._pyramid.summarize(),
+                    metadata=self._metadata.make_dict(),
+                    compress=self._use_gzip,
+                    simple=self._simple,
+                    )
+
+    @staticmethod
+    def from_summary(summary, root):
+        summary = dict(summary)  # copy dict object
+        summary['root'] = root
+        summary['pyramid'] = Pyramid.from_summary(summary['pyramid'])
+        summary['metadata'] = Metadata.from_dict(summary['metadata'])
+        return FileSystemTileStorage(**summary)
+
+    def write_config(self):
+        summary = self.summarize()
+        with open(self._config, 'w') as fp:
+            json.dump(summary, fp, indent=4)
+
+    def compare_config(self):
+        with open(self._config, 'r') as fp:
+            disk_summary = json.loads(fp)
+            my_summary = self.summarize()
+            return my_summary == disk_summary
+
+    @staticmethod
+    def from_config(self, config_filename):
+        with open(self._config, 'r') as fp:
+            summary = json.loads(fp)
+            root = os.path.dirname(config_filename)
+            return FileSystemTileStorage(summary, root)
+
+    # Aux --------------------------------------------------------------------
 
     def _make_pathname(self, tile_index):
 
@@ -117,17 +141,14 @@ class FileSystemTileStorage(TileStorage):
             with open(pathname, 'rb') as fp:
                 data = fp.read()
 
-        # Construct metadata form file status
-        metadata = dict(ext=self._ext,
-                        mimetype=self._mimetype,
-                        mtime=os.stat(pathname).st_mtime,
-                        )
+        mtime = os.stat(pathname).st_mtime,
+
         # Create tile object and return it
-        return Tile(tile_index, data, metadata)
+        return Tile.from_tile_index(tile_index, data,
+                                    fmt=self.pyramid.format,
+                                    mtime=mtime)
 
     def put(self, tile):
-        if 'ext' in tile.metadata:
-            assert tile.metadata['ext'] == self._ext
 
         pathname = self._make_pathname(tile.index)
 
@@ -145,13 +166,10 @@ class FileSystemTileStorage(TileStorage):
                 else:
                     raise
 
-        # Make a temp file first
-        fd, tempname = tempfile.mkstemp(suffix='tmp',
+        tempname = create_temp_filename(suffix='.tmp~',
                                         prefix=basename,
-                                        dir=dirname)
-        # Close os file handle, we will write using standard file io
-        os.close(fd)
-
+                                        folder=dirname,
+                                        )
         if self._use_gzip:
             with gzip.GzipFile(tempname, 'wb') as fp:
                 fp.write(tile.data)
@@ -164,7 +182,6 @@ class FileSystemTileStorage(TileStorage):
                 # os.rename is not atomic and requires target
                 # file not exist on windows
                 os.remove(pathname)
-
         os.rename(tempname, pathname)
 
     def has(self, tile_index):

@@ -11,8 +11,11 @@ Created on Aug 28, 2012
 
 import collections
 
-_Format = collections.namedtuple('_Format',
-                                 'name driver type extension mimetype georeferenced')
+class _Format(collections.namedtuple('_Format',
+                                     '''name driver type extension
+                                        mimetype georeferenced''')):
+    def make_dict(self):
+        return self._asdict()
 
 KNOWN_FORMATS = {
     'ANY': _Format(name='ANY',
@@ -23,45 +26,61 @@ KNOWN_FORMATS = {
                    georeferenced='no',
                    ),
 
+    'DATA': _Format(name='DATA',
+                    driver='Any binary data',
+                    type='binary',
+                    extension='.dat',
+                    mimetype='application/data',
+                    georeferenced='no',
+                    ),
+
+    'GEOJSON': _Format(name='GEOJSON',
+                    driver='Any binary data',
+                    type='text',
+                    extension='.json',
+                    mimetype='application/json',
+                    georeferenced='yes',
+                    ),
+
     'PNG': _Format(name='PNG',
-                driver='Portable Network Graphics, RGBA',
-                type='raster',
-                extension='.png',
-                mimetype='image/png',
-                georeferenced='no',
-                ),
+                   driver='Portable Network Graphics, RGBA',
+                   type='raster',
+                   extension='.png',
+                   mimetype='image/png',
+                   georeferenced='no',
+                   ),
 
     'PNG256': _Format(name='PNG256',
-                driver='Portable Network Graphics, indexed',
-                type='raster',
-                extension='.png',
-                mimetype='image/png',
-                georeferenced='no',
-                ),
+                      driver='Portable Network Graphics, indexed',
+                      type='raster',
+                      extension='.png',
+                      mimetype='image/png',
+                      georeferenced='no',
+                      ),
 
     'JPG': _Format(name='JPG',
-                driver='JPEG',
-                type='raster',
-                extension='.jpg',
-                mimetype='image/jpeg',
-                georeferenced='no',
-                ),
+                   driver='JPEG',
+                   type='raster',
+                   extension='.jpg',
+                   mimetype='image/jpeg',
+                   georeferenced='no',
+                   ),
 
     'GTIFF': _Format(name='GTIFF',
-                driver='Geo TIFF',
-                type='raster',
-                extension='.tif',
-                mimetype='image/tiff',
-                georeferenced='yes',
-                ),
+                     driver='Geo TIFF',
+                     type='raster',
+                     extension='.tif',
+                     mimetype='image/tiff',
+                     georeferenced='yes',
+                     ),
 
     'TIFF': _Format(name='TIFF',
-                driver='TIFF',
-                type='raster',
-                extension='.tif',
-                mimetype='image/tiff',
-                georeferenced='no',
-                ),
+                    driver='TIFF',
+                    type='raster',
+                    extension='.tif',
+                    mimetype='image/tiff',
+                    georeferenced='no',
+                    ),
 }
 
 
