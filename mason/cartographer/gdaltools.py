@@ -1,21 +1,44 @@
 # -*- coding:utf-8 -*-
 '''
-Created on Aug 30, 2012
+Wrapper for GDAL tools
 
+Created on Aug 30, 2012
 @author: ray
 '''
+import os
 import subprocess
 from osgeo import osr
 
-from ..core.format import Format
-from .gdalraster import GDALTempFileRaster
+from ..core import Format
+from .gdalraster import GDALRaster, GDALTempFileRaster
 
 
+#==============================================================================
+# Spatial Reference Converter
+#==============================================================================
 class SpatialReference(object):
 
+    """ A spatial reference system converter
+
+    Convert coordinates between different spatial reference system.
+    Spatial reference system can be designated by EPSG code.
+
+    src_epsg:
+        source spatial reference system in EPSG.
+
+    dst_epsg:
+        target spatial reference system in EPSG.
+
+    place:
+        valid digit number. no more than 15.
+
+    """
+
     def __init__(self, src_epsg, dst_epsg, place=12):
+        """ create a converter """
         assert isinstance(src_epsg, int)
         assert isinstance(dst_epsg, int)
+        assert place < 15
 
         src_srs = osr.SpatialReference()
         src_srs.ImportFromEPSG(src_epsg)
@@ -30,6 +53,7 @@ class SpatialReference(object):
         self._round_digit = place + 1
 
     def forward(self, x, y, z=0):
+        """ convert srs of coordinates from source to target """
         x, y, z = self._forward.TransformPoint(x, y, z)
         x = round(x, self._round_digit)
         y = round(y, self._round_digit)
@@ -37,6 +61,7 @@ class SpatialReference(object):
         return (x, y, z)
 
     def reverse(self, x, y, z=0):
+        """ convert srs of coordinates from target to source """
         x, y, z = self._reverse.TransformPoint(x, y, z)
         x = round(x, self._round_digit)
         y = round(y, self._round_digit)
@@ -44,49 +69,37 @@ class SpatialReference(object):
         return (x, y, z)
 
 
-class GDALRaster(object):
-
-    def __init__(self,
-                 filename=None,
-                 raster_format=None,
-                 raster_data=None):
-        self._filename = filename
-        self._format = raster_format
-        self._data = raster_data
-
-    @property
-    def filename(self):
-        return self._filename
-
-    @property
-    def data(self):
-        return self._data
-
-    @property
-    def format(self):
-        return self._format
-
-    def close(self):
-        pass
-
-
+#==============================================================================
+# GDAL Processors
+#==============================================================================
 def _subprocess_call(command_list):
     return subprocess.check_call(command_list) == 0
 
 
 class GDALProcess(object):
 
+    """ Base Class of GDAL processors
+
+    A template class that holds the procedure of GDAL processing.
+    Dedicated GDAL processors will derive from this base class
+    and override the _do_process function.
+    """
+
     def __init__(self):
         # default format for both input and output
+        self._process_type = ''
         self._accept_format = Format.GTIFF
         self._expect_format = Format.GTIFF
 
     def convert(self, raster):
-        assert raster.format is self._accept_format
+        """ convert the raster """
+        assert raster.data_format is self._accept_format
 
         # input and output rasters
-        source_raster = GDALTempFileRaster(data_format=self._accept_format)
-        target_raster = GDALTempFileRaster(data_format=self._expect_format)
+        source_raster = GDALTempFileRaster(data_format=self._accept_format,
+                                           prefix=self._process_type)
+        target_raster = GDALTempFileRaster(data_format=self._expect_format,
+                                           prefix=self._process_type)
         # save data to the temporary file
         source_raster.save(raster.data)
 
@@ -105,41 +118,90 @@ class GDALProcess(object):
         return output
 
     def _do_process(self, source_file, target_file):
+        """ GDAL commands """
         raise NotImplementedError
 
 
 class GDALHillShading(GDALProcess):
 
-    def __init__(self, zfactor, scale, altitude, azimuth):
+    """ HillShading Processor
+
+    zfactor:
+        vertical exaggeration used to pre-multiply the elevations
+
+    scale:
+        ratio of vertical units to horizontal.
+        Feet:Latlong use scale=370400
+        Meters:LatLong use scale=111120
+
+    azimuth:
+        azimuth of the light.
+
+    altitude:
+        altitude of the light, in degrees.
+
+    """
+
+    def __init__(self, zfactor=1, scale=1, altitude=45, azimuth=315):
         GDALProcess.__init__(self)
-        self._zfactor = str(zfactor)
-        self._scale = str(scale)
-        self._altitude = str(altitude)
-        self._azimuth = str(azimuth)
+        self._process_type = 'hillshading'
+        assert isinstance(zfactor, int)
+        assert isinstance(scale, int)
+        assert isinstance(altitude, int)
+        assert isinstance(azimuth, int)
+
+        # set parameters
+        self._parameter_list = [
+                                # shading parameters
+                                '-z', str(zfactor),
+                                '-s', str(scale),
+                                '-alt', str(altitude),
+                                '-az', str(azimuth),
+
+                                # compute pixel on edges
+                                '-compute_edges',
+                                # quite mode
+                                '-q',
+                                ]
 
     def _do_process(self, source_file, target_file):
         command_list = ['gdaldem', 'hillshade',
                         # input and output
                         source_file, target_file,
-
-                        # parameters
-                        '-z', self._zfactor,
-                        '-s', self._scale,
-                        '-alt', self._altitude,
-                        '-az', self._azimuth,
-
-                        # compute pixel on edges
-                        '-compute_edges',
-                        # quite mode
-                        '-q',
                        ]
+        command_list.extend(self._parameter_list)
         _subprocess_call(command_list)
 
 
 class GDALColorRelief(GDALProcess):
 
+    """ Color-relief Processor
+
+    color_context:
+        text file with the following format (nv: no data value):
+            3500   white
+            2500   235:220:175
+            50%    190 185 135
+            700    240 250 150
+            0      50  180  50
+            nv     0   0   0
+
+    """
+
     def __init__(self, color_context):
         GDALProcess.__init__(self)
+        self._process_type = 'colorrelief'
+
+        if not os.path.exists(color_context):
+            raise Exception('Color context not found %s' % color_context)
+
+        # set parameters
+        self._parameter_list = [
+                                # add an alpha channel
+                                '-alpha',
+                                # quite mode
+                                '-q'
+                                ]
         self._color_context = color_context
 
     def _do_process(self, source_file, target_file):
@@ -148,82 +210,108 @@ class GDALColorRelief(GDALProcess):
                         source_file,
                         self._color_context,
                         target_file,
-
-                        # add an alpha channel
-                        '-alpha',
-                        # quite mode
-                        '-q'
                         ]
+        command_list.extend(self._parameter_list)
         _subprocess_call(command_list)
 
 
 class GDALRasterToPNG(GDALProcess):
 
+    """ Raster to PNG processor """
+
     def __init__(self):
         GDALProcess.__init__(self)
-        self._to_format = Format.PNG
+        self._process_type = 'topng'
+        self._expect_format = Format.PNG
+
+        # set parameters
+        self._parameter_list = [
+                                '-of', 'PNG',
+                                '-q',
+                                ]
 
     def _do_process(self, source_file, target_file):
-        command_list = ['gdal_translate',
-                        '-of', 'PNG',
-                        source_file,
-                        target_file,
-                        ]
+        command_list = ['gdal_translate', ]
+        command_list.extend(self._parameter_list)
+        command_list.extend([source_file, target_file])
         _subprocess_call(command_list)
 
 
 class GDALRasterMetaData(GDALProcess):
+
+    """ Set GEO meta data to raster
+
+    to_srs:
+        EPSG code. eg, 4326.
+
+    to_envelope:
+        a tuple. eg, (minx, miny, maxx, maxy).
+
+    nodata:
+        nodata value. eg, -32768.
+    """
 
     def __init__(self, to_srs=None,
                        to_envelope=None,
                        to_tiled=False,
                        to_compressed=False,
                        nodata=None):
-        self._to_srs = to_srs
-        self._to_envelope = to_envelope
-        self._to_tiled = to_tiled
-        self._to_compressed = to_compressed
-        self._nodata = str(nodata)
+        GDALProcess.__init__(self)
+        self._process_type = 'metadata'
+
+        # set parameters
+        parameter_list = ['-q', ]
+        if to_srs:
+            assert isinstance(to_srs, int)
+            parameter_list.extend(['-a_srs', 'EPSG:%d' % to_srs])
+        if to_envelope:
+            assert isinstance(to_envelope, tuple) and len(to_envelope) == 4
+            minx, miny, maxx, maxy = map(str, to_envelope)
+            parameter_list.extend(['-a_ullr', minx, miny, maxx, maxy])
+        if nodata:
+            assert isinstance(nodata, int)
+            parameter_list.extend(['-a_nodata', str(nodata)])
+
+        if len(parameter_list) == 1:
+            raise Exception('Insufficient parameters')
+
+        self._parameter_list = parameter_list
 
     def _do_process(self, source_file, target_file):
-        command_list = ['gdal_translate',
-                        # set parameters
-                        '-a_srs', self._to_srs,
-                        '-a_ullr', self._to_envelope,
-                        '-a_nodata', self._nodata,
-
-                        # input and output
-                        source_file,
-                        target_file,
-                        ]
-
+        command_list = ['gdal_translate', ]
+        command_list.extend(self._parameter_list)
+        command_list.extend([source_file, target_file])
         _subprocess_call(command_list)
 
 
 class GDALWarper(GDALProcess):
 
+    """ Warp raster from different spatial reference system """
+
     def __init__(self, src_epsg, dst_epsg):
         GDALProcess.__init__(self)
         assert isinstance(src_epsg, int)
         assert isinstance(dst_epsg, int)
-        self._src_srs = 'EPSG:%d' % src_epsg
-        self._dst_srs = 'EPSG:%d' % dst_epsg
+        self._process_type = 'warp'
+
+        # set parameters
+        self._parameter_list = [
+                                # warp parameters
+                                '-s_srs', 'EPSG:%d' % src_epsg,
+                                '-t_srs', 'EPSG:%d' % dst_epsg,
+
+                                # resample method
+                                '-r', 'cubic',
+                                # set work memory to 512M, the default is small
+                                '-wm', '512M',
+                                # enable multi-threaded
+                                '-multi',
+                                # quite mode
+                                '-q',
+                                ]
 
     def _do_process(self, source_file, target_file):
-        command_list = ['gdalwarp',
-                        # parameters
-                        '-s_srs', self._src_srs,
-                        '-t_srs', self._dst_srs,
-
-                        # set work memory to 512M, default is small
-                        '-wm', '512M',
-                        # enable multi-threaded
-                        '-multi',
-                        # quite mode
-                        '-q',
-
-                        # input and output
-                        source_file,
-                        target_file,
-                        ]
+        command_list = ['gdalwarp', ]
+        command_list.extend(self._parameter_list)
+        command_list.extend([source_file, target_file])
         _subprocess_call(command_list)

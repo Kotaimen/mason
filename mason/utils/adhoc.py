@@ -9,10 +9,12 @@ import errno
 import tempfile
 
 
-def create_temp_filename(suffix='', prefix='', folder=None):
+def create_temp_filename(prefix='', suffix='', folder=None):
     """ Create a temporary file name with specified suffix and prefix.
         System temp folder will be used if folder is None.
     """
+    assert isinstance(suffix, str)
+    assert isinstance(prefix, str)
 
     if not folder:
         folder = tempfile.gettempdir()
