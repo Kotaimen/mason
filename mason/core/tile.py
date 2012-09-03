@@ -1,8 +1,9 @@
-'''
-Created on Apr 29, 2012
+"""
+Tile object
 
+Created on Apr 29, 2012
 @author: Kotaimen
-'''
+"""
 
 import hashlib
 import time

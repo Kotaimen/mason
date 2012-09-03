@@ -54,11 +54,11 @@ def convert(input_data, command, input_format, output_format=None):
     """ Call 'convert' with one input image from stdin and one output image as
     stdout """
 
-    input_extension = input_format['extension'][1:]
+    input_extension = input_format.extension[1:]
     if output_format is None:
         output_extension = input_extension
     else:
-        output_extension = output_format['extension'][1:]
+        output_extension = output_format.extension[1:]
 
     args = ['convert',
             '-quiet', '-limit', 'thread', '1',
@@ -113,7 +113,7 @@ def grid_crop(image_data, stride, size, buffer, format):
 
     # Imagemagick simply join several image datas together when asked to
     # write to stdout... have to separate images using magic number here
-    magic = MAGIC_NUMBER[format['name']]
+    magic = MAGIC_NUMBER[format.name]
 
     bodies = image_stream.split(magic)
     assert len(bodies) == stride * stride + 1

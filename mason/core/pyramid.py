@@ -1,8 +1,8 @@
-'''
+""" Tile pyramid
 Created on Apr 29, 2012
 
 @author: Kotaimen
-'''
+"""
 
 from .tile import TileIndex, MetaTileIndex
 from .geo import Envelope, Coordinate, create_projection, tile_coordinate_to_serial
@@ -169,7 +169,7 @@ class Pyramid(object):
         return dict(levels=self._levels,
                     tile_size=self._tile_size,
                     buffer=self._buffer,
-                    format=self._format,
+                    format=self._format._asdict(),
                     envelope=self._envelope.make_tuple(),
                     center=self._center.make_tuple(),
                     zoom=self._zoom,
@@ -182,6 +182,7 @@ class Pyramid(object):
 
     @staticmethod
     def from_summary(args):
+        args['format'] = Format.from_dict(args['format'])
         return Pyramid(**args)
 
     # Tile Factory Methods -----------------------------------------------------
