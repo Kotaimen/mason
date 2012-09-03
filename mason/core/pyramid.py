@@ -1,10 +1,10 @@
-'''
+""" Tile pyramid
 Created on Apr 29, 2012
 
 @author: Kotaimen
-'''
+"""
 
-from .tile import TileIndex, MetaTileIndex
+from .tile import TileIndex, Tile, MetaTileIndex
 from .geo import Envelope, Coordinate, create_projection, tile_coordinate_to_serial
 from .format import Format
 
@@ -166,10 +166,11 @@ class Pyramid(object):
     # Persistence --------------------------------------------------------------
 
     def summarize(self):
-        return dict(levels=self._levels,
+        return dict(
+                    levels=self._levels,
                     tile_size=self._tile_size,
                     buffer=self._buffer,
-                    format=self._format,
+                    format=self._format.make_dict(),
                     envelope=self._envelope.make_tuple(),
                     center=self._center.make_tuple(),
                     zoom=self._zoom,
@@ -181,8 +182,10 @@ class Pyramid(object):
         return 'Pyramid%r' % self.summarize()
 
     @staticmethod
-    def from_summary(args):
-        return Pyramid(**args)
+    def from_summary(summary):
+        summary = dict(summary) # copy dict object
+        summary['format'] = Format.from_dict(summary['format'])
+        return Pyramid(**summary)
 
     # Tile Factory Methods -----------------------------------------------------
 
@@ -206,6 +209,10 @@ class Pyramid(object):
             raise TileOutOfRange('Tile out of range')
 
         return tile_index
+
+    def create_tile(self, z, x, y, data, mtime=None):
+        tile_index = self.create_tile_index(z, x, y)
+        return Tile.from_tile_index(tile_index, data, self.format, mtime)
 
     def create_metatile_index(self, z, x, y, stride):
 

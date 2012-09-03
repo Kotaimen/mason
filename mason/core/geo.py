@@ -1,8 +1,9 @@
-'''
-Created on Apr 30, 2012
+"""
+Geographic calculations
 
+Created on Apr 30, 2012
 @author: Kotaimen
-'''
+"""
 
 import collections
 import math

@@ -9,54 +9,78 @@ Created on Aug 28, 2012
 @author: Kotaimen
 """
 
+import collections
+
+class _Format(collections.namedtuple('_Format',
+                                     '''name driver type extension
+                                        mimetype georeferenced''')):
+    def make_dict(self):
+        return self._asdict()
+
 KNOWN_FORMATS = {
-    'ANY': dict(name='ANY',
-                driver='',
-                type='',
-                extension='',
-                mimetype='',
-                georeferenced='no',
-                ),
+    'ANY': _Format(name='ANY',
+                   driver='',
+                   type='',
+                   extension='',
+                   mimetype='',
+                   georeferenced='no',
+                   ),
 
-    'PNG': dict(name='PNG',
-                driver='Portable Network Graphics, RGBA',
-                type='raster',
-                extension='.png',
-                mimetype='image/png',
-                georeferenced='no',
-                ),
+    'DATA': _Format(name='DATA',
+                    driver='Any binary data',
+                    type='binary',
+                    extension='.dat',
+                    mimetype='application/data',
+                    georeferenced='no',
+                    ),
 
-    'PNG256': dict(name='PNG256',
-                driver='Portable Network Graphics, indexed',
-                type='raster',
-                extension='.png',
-                mimetype='image/png',
-                georeferenced='no',
-                ),
+    'GEOJSON': _Format(name='GEOJSON',
+                    driver='Any binary data',
+                    type='text',
+                    extension='.json',
+                    mimetype='application/json',
+                    georeferenced='yes',
+                    ),
 
-    'JPG': dict(name='JPG',
-                driver='JPEG',
-                type='raster',
-                extension='.jpg',
-                mimetype='image/jpeg',
-                georeferenced='no',
-                ),
+    'PNG': _Format(name='PNG',
+                   driver='Portable Network Graphics, RGBA',
+                   type='raster',
+                   extension='.png',
+                   mimetype='image/png',
+                   georeferenced='no',
+                   ),
 
-    'GTIFF': dict(name='GTIFF',
-                driver='Geo TIFF',
-                type='raster',
-                extension='.tif',
-                mimetype='image/tiff',
-                georeferenced='yes',
-                ),
+    'PNG256': _Format(name='PNG256',
+                      driver='Portable Network Graphics, indexed',
+                      type='raster',
+                      extension='.png',
+                      mimetype='image/png',
+                      georeferenced='no',
+                      ),
 
-    'TIFF': dict(name='TIFF',
-                driver='TIFF',
-                type='raster',
-                extension='.tif',
-                mimetype='image/tiff',
-                georeferenced='no',
-                ),
+    'JPG': _Format(name='JPG',
+                   driver='JPEG',
+                   type='raster',
+                   extension='.jpg',
+                   mimetype='image/jpeg',
+                   georeferenced='no',
+                   ),
+
+    'GTIFF': _Format(name='GTIFF',
+                     driver='Geo TIFF',
+                     type='raster',
+                     extension='.tif',
+                     mimetype='image/tiff',
+                     georeferenced='yes',
+                     ),
+
+    'TIFF': _Format(name='TIFF',
+                    driver='TIFF',
+                    type='raster',
+                    extension='.tif',
+                    mimetype='image/tiff',
+                    georeferenced='no',
+                    ),
 }
 
 
@@ -68,6 +92,7 @@ class Format(object):
 
     @staticmethod
     def is_known_format(fmt):
+        assert isinstance(fmt, _Format)
         for known_fmt in KNOWN_FORMATS.itervalues():
             if fmt == known_fmt:
                 return True
@@ -76,14 +101,17 @@ class Format(object):
 
     @staticmethod
     def is_raster(fmt):
-        return fmt['type'] == 'raster'
+        return fmt.type == 'raster'
 
     @staticmethod
     def is_georeferenced(fmt):
-        return fmt['georeferenced'] == 'yes'
+        return fmt.georeferenced == 'yes'
 
+    @staticmethod
+    def from_dict(mapping):
+        return _Format(**mapping)
 
-# Inject formats into class
+# Inject formats into class so can use them like Enum
 for k, v in KNOWN_FORMATS.iteritems():
     setattr(Format, k, v)
 

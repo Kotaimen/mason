@@ -48,8 +48,8 @@ class TestFormat(unittest.TestCase):
         "georeferenced": "no",
         "driver": "JPEG"
         } ''')
-        self.assertTrue(Format.is_known_format(fmt1))
-        self.assertFalse(Format.is_known_format(fmt2))
+        self.assertTrue(Format.is_known_format(Format.from_dict(fmt1)))
+        self.assertFalse(Format.is_known_format(Format.from_dict(fmt2)))
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
