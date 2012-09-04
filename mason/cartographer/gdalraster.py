@@ -66,7 +66,7 @@ class GDALTempFileRaster(GDALRaster):
                  suffix=str(os.getpid())):
         """ create a temporary raster file """
         GDALRaster.__init__(self, data_format=data_format)
-        self._filename = adhoc.create_temp_filename(prefix, suffix)
+        self._filename = adhoc.create_temp_filename(suffix, prefix)
 
     @property
     def filename(self):
@@ -87,3 +87,7 @@ class GDALTempFileRaster(GDALRaster):
         """ remove temporary file """
         if os.path.exists(self._filename):
             os.remove(self._filename)
+
+        aux_filename = '%s.aux.xml' % self._filename
+        if os.path.exists(aux_filename):
+            os.remove(aux_filename)

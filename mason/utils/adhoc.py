@@ -9,25 +9,24 @@ import errno
 import tempfile
 
 
-def create_temp_filename(prefix='', suffix='', folder=None):
+def create_temp_filename(suffix='', prefix='tmp', dir=None):
     """ Create a temporary file name with specified suffix and prefix.
         System temp folder will be used if folder is None.
     """
     assert isinstance(suffix, str)
     assert isinstance(prefix, str)
 
-    if not folder:
-        folder = tempfile.gettempdir()
+    if not dir:
+        dir = tempfile.gettempdir()
 
-    if not os.path.exists(folder):
-        raise IOError(errno.EEXIST, "Folder %s not exists" % folder)
+    if not os.path.exists(dir):
+        raise IOError(errno.EEXIST, "Folder %s not exists" % dir)
 
     names = tempfile._get_candidate_names()
     for _seq in xrange(tempfile.TMP_MAX):
         name = names.next()
-        filename = os.path.join(folder, prefix + name + suffix)
+        filename = os.path.join(dir, prefix + name + suffix)
         if not os.path.exists(filename):
             return filename
 
     raise IOError(errno.EEXIST, "No usable temporary filename found")
-

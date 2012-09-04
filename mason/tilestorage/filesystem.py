@@ -168,7 +168,7 @@ class FileSystemTileStorage(TileStorage):
 
         tempname = create_temp_filename(suffix='.tmp~',
                                         prefix=basename,
-                                        folder=dirname,
+                                        dir=dirname,
                                         )
         if self._use_gzip:
             with gzip.GzipFile(tempname, 'wb') as fp:
