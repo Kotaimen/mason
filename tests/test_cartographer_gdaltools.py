@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*- 
+# -*- coding:utf-8 -*-
 '''
 UnitTest for GDALtools
 
@@ -74,49 +74,98 @@ class TestSpatialReference(unittest.TestCase):
         self.assertAlmostEqual(z3, z1, place)
 
 
-class TestGDALProcess(unittest.TestCase):
+def load_raster_file(filename, data_format):
+    with open(filename, 'rb') as fp:
+        test_data = fp.read()
+    return gdaltools.GDALRaster(test_data, data_format)
+
+
+def save_raster_file(filename, raster):
+    with open(filename, 'wb') as fp:
+        fp.write(raster.data)
+
+
+class TestHillShading(unittest.TestCase):
 
     def setUp(self):
-        test_filename = './input/hailey.tiff'
-        with open(test_filename, 'rb') as fp:
-            test_data = fp.read()
+        self._input_filename = './input/hailey.tiff'
+        self._output_filename = './output/test_hailey_hillshading.tif'
+        self._data_format = Format.GTIFF
 
-        test_format = Format.GTIFF
+    def testHillShading(self):
+        test_raster = load_raster_file(self._input_filename, self._data_format)
+        processor = gdaltools.GDALHillShading(zfactor=2,
+                                              scale=111120,
+                                              altitude=45,
+                                              azimuth=315,
+                                              )
+        hillshading = processor.convert(test_raster)
+        save_raster_file(self._output_filename, hillshading)
 
-        self._test_raster = gdaltools.GDALRaster(test_data, test_format)
 
-    def tearDown(self):
-        pass
+class TestColorRelief(unittest.TestCase):
 
-    def test_hillshade(self):
-        hillshading = gdaltools.GDALHillShading(zfactor=2,
-                                                scale=111120,
-                                                altitude=45,
-                                                azimuth=315,
-                                                )
-        hillshading.convert(self._test_raster)
+    def setUp(self):
+        self._input_filename = './input/hailey.tiff'
+        self._output_filename = './output/test_hailey_colorrelief.tif'
+        self._color_context = './input/hypsometric-map-world.txt'
+        self._data_format = Format.GTIFF
 
-    def test_colorrelief(self):
-        color_context = './input/hypsometric-map-world.txt'
-        colorrelief = gdaltools.GDALColorRelief(color_context)
-        colorrelief.convert(self._test_raster)
+    def testColorRelief(self):
+        test_raster = load_raster_file(self._input_filename, self._data_format)
+        processor = gdaltools.GDALColorRelief(self._color_context)
+        colorrelief = processor.convert(test_raster)
+        save_raster_file(self._output_filename, colorrelief)
 
-    def test_warp(self):
-        warper = gdaltools.GDALWarper(src_epsg=4267, dst_epsg=3857)
-        warper.convert(self._test_raster)
 
-    def test_metadata(self):
-        meta_convertor = gdaltools.GDALRasterMetaData(to_srs=4326,
-                                                      to_envelope=(-180, -90, 180, 90),
-                                                      to_tiled=False,
-                                                      to_compressed=False,
-                                                      nodata= -32768,
-                                                     )
-        meta_convertor.convert(self._test_raster)
+class TestWarp(unittest.TestCase):
 
-    def test_to_png(self):
-        png_convertor = gdaltools.GDALRasterToPNG()
-        png_convertor.convert(self._test_raster)
+    def setUp(self):
+        self._input_filename = './input/hailey.tiff'
+        self._output_filename = './output/test_hailey_warp.tif'
+        self._data_format = Format.GTIFF
+
+    def testWarp(self):
+        test_raster = load_raster_file(self._input_filename, self._data_format)
+        processor = gdaltools.GDALWarper(dst_epsg=3857)
+        warp = processor.convert(test_raster)
+        save_raster_file(self._output_filename, warp)
+
+
+class TestMetaData(unittest.TestCase):
+
+    def setUp(self):
+        self._input_filename = './input/hailey.tiff'
+        self._output_filename = './output/test_hailey_metadata.tif'
+        self._data_format = Format.GTIFF
+
+    def testMetaData(self):
+        test_raster = load_raster_file(self._input_filename, self._data_format)
+        set_srs = 4326
+        set_envelope = (-180, -90, 180, 90)
+        set_nodata = -32768
+        processor = gdaltools.GDALRasterMetaData(to_srs=set_srs,
+                                                 to_envelope=set_envelope,
+                                                 to_tiled=False,
+                                                 to_compressed=False,
+                                                 nodata=set_nodata,
+                                                 )
+        metadata = processor.convert(test_raster)
+        save_raster_file(self._output_filename, metadata)
+
+
+class TestToPNG(unittest.TestCase):
+
+    def setUp(self):
+        self._input_filename = './output/test_hailey_colorrelief.tif'
+        self._output_filename = './output/test_hailey_png.png'
+        self._data_format = Format.GTIFF
+
+    def testToPNG(self):
+        test_raster = load_raster_file(self._input_filename, self._data_format)
+        processor = gdaltools.GDALRasterToPNG()
+        png = processor.convert(test_raster)
+        save_raster_file(self._output_filename, png)
 
 
 if __name__ == "__main__":
