@@ -10,7 +10,7 @@ from .tilestorage import TileStorage, NullTileStorage
 # ===== Storage Backend ========================================================
 
 from .filesystem import FileSystemTileStorage
-
+from .metatilecache import MetaTileCache
 # ===== Storage Factory ========================================================
 
 
@@ -20,6 +20,7 @@ class TileStorageFactory(object):
 
     CLASS_REGISTRY = dict(null=NullTileStorage,
                           filesystem=FileSystemTileStorage,
+                          metacache=MetaTileCache,
                           )
 
     def __call__(self, prototype, pyramid, metadata, **params):

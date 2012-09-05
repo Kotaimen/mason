@@ -34,12 +34,6 @@ class TileStorageTestMixin(object):
 
         self.assertEqual(tile1.index, tile3.index)
         self.assertEqual(tile1.data, tile3.data)
-#        self.assertEqual(tile3.metadata['ext'], 'txt')
-#        self.assertEqual(tile3.metadata['mimetype'], 'text/plain')
-#        self.assertTrue(time.time() -
-#                        tile3.metadata['mtime'] < 1,
-#                        "it really should'nt take so long"
-#                        )
 
         self.assertTrue(self.storage.has(tileindex1))
         self.storage.delete(tileindex1)
@@ -175,6 +169,46 @@ class TestFileSystemTileStorageSimpleCompressed(TileStorageTestMixin, unittest.T
     def tearDown(self):
 #        self.storage.flush_all()
         self.storage.close()
+
+
+class TestMetaTileCache(unittest.TestCase):
+
+    def setUp(self):
+        self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
+        self.metadata = Metadata.make_metadata(tag='TestMetaTileCache',
+                                               version='1.0.0.0.0.0')
+        self.output_dir = os.path.join('output', 'TestMetaTileCache')
+
+        if os.path.exists(self.output_dir):
+            shutil.rmtree(self.output_dir, ignore_errors=True)
+
+        self.storage = factory('metacache',
+                               self.pyramid,
+                               self.metadata,
+                               root=self.output_dir,
+                               )
+
+    def tearDown(self):
+#        self.storage.flush_all()
+        self.storage.close()
+
+    def testGetPut(self):
+        tile1 = self.pyramid.create_metatile(3, 4, 5, 4, b'tile1')
+        self.storage.put(tile1)
+
+        tileindex1 = self.pyramid.create_metatile_index(3, 4, 5, 4)
+        tileindex2 = self.pyramid.create_metatile_index(3, 3, 6, 4)
+        self.assertTrue(self.storage.get(tileindex1) is not None)
+        self.assertTrue(self.storage.get(tileindex2) is None)
+
+        tile3 = self.storage.get(tileindex1)
+
+        self.assertEqual(tile1.index, tile3.index)
+        self.assertEqual(tile1.data, tile3.data)
+
+        self.assertTrue(self.storage.has(tileindex1))
+        self.storage.delete(tileindex1)
+        self.assertFalse(self.storage.has(tileindex1))
 
 
 if __name__ == "__main__":

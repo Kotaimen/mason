@@ -72,9 +72,9 @@ class FileSystemTileStorage(TileStorage):
         else:
             self.write_config()
 
-        self._ext = pyramid.format.extension[1:]
+        self._ext = pyramid.format.extension
         self._use_gzip = bool(compress)
-        self._basename = '%d-%d-%d.' + self._ext
+#        self._basename = '%d-%d-%d' + self._ext
 
     # Config serialization -----------------------------------------------------
     def summarize(self):
@@ -116,10 +116,10 @@ class FileSystemTileStorage(TileStorage):
     def _make_pathname(self, tile_index):
 
         if self._simple:
-            basename = '%d.%s' % (tile_index.y, self._ext)
+            basename = '%d%s' % (tile_index.y, self._ext)
             dirname = os.path.join(str(tile_index.z), str(tile_index.x))
         else:
-            basename = self._basename % tile_index.coord
+            basename = '%d-%d-%d%s' % (tile_index.z, tile_index.x, tile_index.y, self._ext)
             dirname = os.path.join(*tile_coordiante_to_dirname(*tile_index.coord))
         if self._use_gzip:
             basename += '.gz'

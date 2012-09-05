@@ -4,7 +4,7 @@ Created on Apr 29, 2012
 @author: Kotaimen
 """
 
-from .tile import TileIndex, Tile, MetaTileIndex
+from .tile import TileIndex, Tile, MetaTileIndex, MetaTile
 from .geo import Envelope, Coordinate, create_projection, tile_coordinate_to_serial
 from .format import Format
 
@@ -239,5 +239,8 @@ class Pyramid(object):
 
         return MetaTileIndex(self, z, x, y, stride)
 
+    def create_metatile(self, z, x, y, stride, data, mtime=None):
+        tile_index = self.create_metatile_index(z, x, y, stride)
+        return MetaTile.from_tile_index(tile_index, data, self.format, mtime)
 
 
