@@ -5,12 +5,22 @@ Wrapper for GDAL tools
 Created on Aug 30, 2012
 @author: ray
 '''
+import re
 import os
 import subprocess
 from osgeo import osr
 
 from ..core import Format
 from .gdalraster import GDALRaster, GDALTempFileRaster
+
+try:
+    stdout = subprocess.Popen(['gdalwarp', '--version'],
+                              stdout=subprocess.PIPE).communicate()[0]
+except OSError:
+    raise ImportError("Can't find gdalwarp, please install GDAL")
+gdal_version = float(re.search(r'^GDAL (\d\.\d)\.\d', stdout).group(1))
+if gdal_version < 1.8:
+    raise ImportError('Requires gdal 1.8 or later')
 
 
 #==============================================================================
@@ -288,16 +298,14 @@ class GDALWarper(GDALProcess):
 
     """ Warp raster from different spatial reference system """
 
-    def __init__(self, src_epsg, dst_epsg):
+    def __init__(self, dst_epsg, src_epsg=None):
         GDALProcess.__init__(self)
-        assert isinstance(src_epsg, int)
-        assert isinstance(dst_epsg, int)
         self._process_type = 'warp'
+        assert isinstance(dst_epsg, int)
 
         # set parameters
         self._parameter_list = [
                                 # warp parameters
-                                '-s_srs', 'EPSG:%d' % src_epsg,
                                 '-t_srs', 'EPSG:%d' % dst_epsg,
 
                                 # resample method
@@ -309,6 +317,10 @@ class GDALWarper(GDALProcess):
                                 # quite mode
                                 '-q',
                                 ]
+        if src_epsg:
+            assert isinstance(src_epsg, int)
+            self._parameter_list.extend(['-s_srs', 'EPSG:%d' % src_epsg])
+
 
     def _do_process(self, source_file, target_file):
         command_list = ['gdalwarp', ]
