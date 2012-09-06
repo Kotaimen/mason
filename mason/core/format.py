@@ -11,6 +11,7 @@ Created on Aug 28, 2012
 
 import collections
 
+
 class _Format(collections.namedtuple('_Format',
                                      '''name driver type extension
                                         mimetype georeferenced''')):
@@ -66,6 +67,15 @@ KNOWN_FORMATS = {
                    georeferenced='no',
                    ),
 
+    'JPEG': _Format(name='JPG',
+                   driver='JPEG',
+                   type='raster',
+                   extension='.jpg',
+                   mimetype='image/jpeg',
+                   georeferenced='no',
+                   ),
+
+
     'GTIFF': _Format(name='GTIFF',
                      driver='Geo TIFF',
                      type='raster',
@@ -110,6 +120,10 @@ class Format(object):
     @staticmethod
     def from_dict(mapping):
         return _Format(**mapping)
+
+    @staticmethod
+    def from_name(name):
+        return KNOWN_FORMATS[name]
 
 # Inject formats into class so can use them like Enum
 for k, v in KNOWN_FORMATS.iteritems():
