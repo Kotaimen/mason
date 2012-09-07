@@ -7,7 +7,8 @@ Created on Sep 2, 2012
 import collections
 
 
-class Metadata(collections.namedtuple('_Metadata', 'tag description version attribution')):
+class Metadata(collections.namedtuple('_Metadata', '''tag description version
+    attribution maptype''')):
 
     def make_dict(self):
         return self._asdict()
@@ -17,6 +18,7 @@ class Metadata(collections.namedtuple('_Metadata', 'tag description version attr
                       description=None,
                       version=None,
                       attribution=None,
+                      maptype='basemap',
                       ):
         if description is None:
             description = ''
@@ -24,7 +26,7 @@ class Metadata(collections.namedtuple('_Metadata', 'tag description version attr
             version = '1'
         if attribution is None:
             attribution = ''
-        return Metadata(tag, description, version, attribution)
+        return Metadata(tag, description, version, attribution, maptype)
 
     @staticmethod
     def from_dict(mapping):

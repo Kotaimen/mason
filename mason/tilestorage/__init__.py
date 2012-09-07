@@ -17,6 +17,7 @@ try:
 except ImportError:
     MemcachedTileStorage = None
 
+from .mbtiles import MBTilesTileStorage
 
 # ===== Storage Factory ========================================================
 
@@ -29,6 +30,7 @@ class TileStorageFactory(object):
                           filesystem=FileSystemTileStorage,
                           metacache=MetaTileCache,
                           memcache=MemcachedTileStorage,
+                          mbtiles=MBTilesTileStorage,
                           )
 
     def __call__(self, prototype, pyramid, metadata, **params):

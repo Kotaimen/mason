@@ -1,7 +1,3 @@
-###
-### XXX : NEED REWRITTEN TO CONFRONT NEW IF
-###
-
 '''
 Created on May 3, 2012
 

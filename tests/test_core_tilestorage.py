@@ -186,6 +186,25 @@ class TestMemcachedTileStorage(TileStorageTestMixin, unittest.TestCase):
         self.storage.close()
 
 
+class TestMBTilesTileStorage(TileStorageTestMixin, unittest.TestCase):
+
+    def setUp(self):
+        self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
+
+        self.metadata = Metadata.make_metadata(tag='TestMBTilesTileStorage',
+                                               )
+        if os.path.exists('./output/TestMBTilesTileStorage.db'):
+            os.unlink('./output/TestMBTilesTileStorage.db')
+        self.storage = factory('mbtiles',
+                               self.pyramid,
+                               self.metadata,
+                               database='./output/TestMBTilesTileStorage.db')
+
+    def tearDown(self):
+#        self.storage.flush_all()
+        self.storage.close()
+
+
 class TestMetaTileCache(unittest.TestCase):
 
     def setUp(self):

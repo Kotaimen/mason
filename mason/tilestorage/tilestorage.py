@@ -15,7 +15,6 @@ class TileStorage(object):
     def __init__(self,
                  pyramid,
                  metadata,
-#                 flush=False,
                  ):
         """ Create a new tile storage or attaching to an existing one.
 
