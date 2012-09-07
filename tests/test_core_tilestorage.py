@@ -171,6 +171,21 @@ class TestFileSystemTileStorageSimpleCompressed(TileStorageTestMixin, unittest.T
         self.storage.close()
 
 
+class TestMemcachedTileStorage(TileStorageTestMixin, unittest.TestCase):
+
+    def setUp(self):
+        self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
+        self.metadata = Metadata.make_metadata(tag='TestMemcachedTileStorage')
+
+        self.storage = factory('memcache',
+                               self.pyramid,
+                               self.metadata)
+
+    def tearDown(self):
+#        self.storage.flush_all()
+        self.storage.close()
+
+
 class TestMetaTileCache(unittest.TestCase):
 
     def setUp(self):

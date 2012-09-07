@@ -11,6 +11,13 @@ from .tilestorage import TileStorage, NullTileStorage
 
 from .filesystem import FileSystemTileStorage
 from .metatilecache import MetaTileCache
+
+try:
+    from .memcached import MemcachedTileStorage
+except ImportError:
+    MemcachedTileStorage = None
+
+
 # ===== Storage Factory ========================================================
 
 
@@ -21,6 +28,7 @@ class TileStorageFactory(object):
     CLASS_REGISTRY = dict(null=NullTileStorage,
                           filesystem=FileSystemTileStorage,
                           metacache=MetaTileCache,
+                          memcache=MemcachedTileStorage,
                           )
 
     def __call__(self, prototype, pyramid, metadata, **params):
