@@ -6,7 +6,6 @@ Created on Sep 1, 2012
 @author: ray
 '''
 import os
-from ..core import Format
 from ..utils import adhoc
 
 
@@ -20,11 +19,11 @@ class GDALRaster(object):
         raster data
 
     data_format:
-        format of raster data. default, Format.ANY.
+        format of raster data. default, 'ANY'.
 
     """
 
-    def __init__(self, data=None, data_format=Format.ANY):
+    def __init__(self, data=None, data_format='ANY'):
         """ create a raster object """
         self._data = data
         self._data_format = data_format
@@ -61,7 +60,7 @@ class GDALTempFileRaster(GDALRaster):
     """
 
     def __init__(self,
-                 data_format=Format.ANY,
+                 data_format='ANY',
                  prefix='',
                  suffix=str(os.getpid())):
         """ create a temporary raster file """

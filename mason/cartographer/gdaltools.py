@@ -10,7 +10,6 @@ import os
 import subprocess
 from osgeo import osr
 
-from ..core import Format
 from .gdalraster import GDALRaster, GDALTempFileRaster
 
 try:
@@ -98,8 +97,8 @@ class GDALProcess(object):
     def __init__(self):
         # default format for both input and output
         self._process_type = ''
-        self._accept_format = Format.GTIFF
-        self._expect_format = Format.GTIFF
+        self._accept_format = 'GTIFF'
+        self._expect_format = 'GTIFF'
 
     def convert(self, raster):
         """ convert the raster """
@@ -232,11 +231,11 @@ class GDALRasterToPNG(GDALProcess):
     def __init__(self):
         GDALProcess.__init__(self)
         self._process_type = 'topng'
-        self._expect_format = Format.PNG
+        self._expect_format = 'PNG'
 
         # set parameters
         self._parameter_list = [
-                                '-of', 'PNG',
+                                '-of', self._expect_format,
                                 '-q',
                                 ]
 
@@ -320,7 +319,6 @@ class GDALWarper(GDALProcess):
         if src_epsg:
             assert isinstance(src_epsg, int)
             self._parameter_list.extend(['-s_srs', 'EPSG:%d' % src_epsg])
-
 
     def _do_process(self, source_file, target_file):
         command_list = ['gdalwarp', ]

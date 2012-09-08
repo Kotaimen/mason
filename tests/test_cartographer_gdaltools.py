@@ -90,7 +90,7 @@ class TestHillShading(unittest.TestCase):
     def setUp(self):
         self._input_filename = './input/hailey.tif'
         self._output_filename = './output/test_hailey_hillshading.tif'
-        self._data_format = Format.GTIFF
+        self._data_format = 'GTIFF'
 
     def testHillShading(self):
         test_raster = load_raster_file(self._input_filename, self._data_format)
@@ -109,7 +109,7 @@ class TestColorRelief(unittest.TestCase):
         self._input_filename = './input/hailey.tif'
         self._output_filename = './output/test_hailey_colorrelief.tif'
         self._color_context = './input/hypsometric-map-world.txt'
-        self._data_format = Format.GTIFF
+        self._data_format = 'GTIFF'
 
     def testColorRelief(self):
         test_raster = load_raster_file(self._input_filename, self._data_format)
@@ -123,7 +123,7 @@ class TestWarp(unittest.TestCase):
     def setUp(self):
         self._input_filename = './input/hailey.tif'
         self._output_filename = './output/test_hailey_warp.tif'
-        self._data_format = Format.GTIFF
+        self._data_format = 'GTIFF'
 
     def testWarp(self):
         test_raster = load_raster_file(self._input_filename, self._data_format)
@@ -137,7 +137,7 @@ class TestMetaData(unittest.TestCase):
     def setUp(self):
         self._input_filename = './input/hailey.tif'
         self._output_filename = './output/test_hailey_metadata.tif'
-        self._data_format = Format.GTIFF
+        self._data_format = 'GTIFF'
 
     def testMetaData(self):
         test_raster = load_raster_file(self._input_filename, self._data_format)
@@ -159,7 +159,7 @@ class TestToPNG(unittest.TestCase):
     def setUp(self):
         self._input_filename = './output/test_hailey_colorrelief.tif'
         self._output_filename = './output/test_hailey_png.png'
-        self._data_format = Format.GTIFF
+        self._data_format = 'GTIFF'
 
     def testToPNG(self):
         test_raster = load_raster_file(self._input_filename, self._data_format)
