@@ -4,11 +4,10 @@ Created on Apr 30, 2012
 @author: ray
 '''
 
-from ..core import Format
-
 #==============================================================================
 # Cartographer Base Class
 #==============================================================================
+
 
 class Cartographer(object):
 

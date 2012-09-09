@@ -9,6 +9,7 @@ except ImportError:
 #==============================================================================
 # Cartographer Factory
 #==============================================================================
+
 class CartographerFactory(object):
 
     CLASS_REGISTRY = dict(mapnik=Mapnik,

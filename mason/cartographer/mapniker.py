@@ -99,8 +99,6 @@ class Mapnik(Cartographer):
                  image_type='png',
                  image_parameters=None,
                  ):
-#        Cartographer.__init__(self, data_type)
-
         if image_type not in ['png', 'png256', 'jpeg']:
             raise TypeError('Only support PNG/PNG256/JPEG format.')
 
@@ -113,11 +111,10 @@ class Mapnik(Cartographer):
         if not os.path.exists(self._theme):
             raise Exception('Theme %s not found.' % self._theme)
 
-        Cartographer.__init__(self, Format.from_name(image_type.upper()))
+        Cartographer.__init__(self, image_type.upper())
 
         # convert image_type and parameter to mapnik format string
         self._image_type = self._init_image_type(image_type, image_parameters)
-        self._output_format = image_type.upper()
         self._proj = None
         self._map = self._init_mapnik(projection)
 
