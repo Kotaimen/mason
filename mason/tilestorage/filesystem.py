@@ -78,7 +78,7 @@ class FileSystemTileStorage(TileStorage):
 
     # Config serialization -----------------------------------------------------
     def summarize(self):
-        return dict(version=self.CONFIG_VERSION,
+        return dict(#version=self.CONFIG_VERSION,
                     pyramid=self._pyramid.summarize(),
                     metadata=self._metadata.make_dict(),
                     compress=self._use_gzip,
@@ -100,16 +100,16 @@ class FileSystemTileStorage(TileStorage):
 
     def compare_config(self):
         with open(self._config, 'r') as fp:
-            disk_summary = json.loads(fp)
+            disk_summary = json.load(fp)
             my_summary = self.summarize()
             return my_summary == disk_summary
 
     @staticmethod
-    def from_config(self, config_filename):
-        with open(self._config, 'r') as fp:
-            summary = json.loads(fp)
+    def from_config(config_filename):
+        with open(config_filename, 'r') as fp:
+            summary = json.load(fp)
             root = os.path.dirname(config_filename)
-            return FileSystemTileStorage(summary, root)
+            return FileSystemTileStorage.from_summary(summary, root)
 
     # Aux --------------------------------------------------------------------
 
