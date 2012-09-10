@@ -105,10 +105,10 @@ class FileSystemTileStorage(TileStorage):
             return my_summary == disk_summary
 
     @staticmethod
-    def from_config(config_filename):
-        with open(config_filename, 'r') as fp:
+    def from_config(root):
+        config_file = os.path.join(root, FileSystemTileStorage.CONFIG_FILENAME)
+        with open(config_file, 'r') as fp:
             summary = json.load(fp)
-            root = os.path.dirname(config_filename)
             return FileSystemTileStorage.from_summary(summary, root)
 
     # Aux --------------------------------------------------------------------

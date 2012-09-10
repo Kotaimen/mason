@@ -205,6 +205,25 @@ class TestMBTilesTileStorage(TileStorageTestMixin, unittest.TestCase):
         self.storage.close()
 
 
+class TestMBTilesTileStorageBackgroundWriter(TileStorageTestMixin, unittest.TestCase):
+
+    def setUp(self):
+        self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
+
+        self.metadata = Metadata.make_metadata(tag='TestMBTilesTileStorageBackgroundWriter',
+                                               )
+        if os.path.exists('./output/TestMBTilesTileStorageBackgroundWriter.db'):
+            os.unlink('./output/TestMBTilesTileStorageBackgroundWriter.db')
+        self.storage = factory('mbtiles',
+                               self.pyramid,
+                               self.metadata,
+                               database='./output/TestMBTilesTileStorageBackgroundWriter.db')
+
+    def tearDown(self):
+#        self.storage.flush_all()
+        self.storage.close()
+
+
 class TestMetaTileCache(unittest.TestCase):
 
     def setUp(self):

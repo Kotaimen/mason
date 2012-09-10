@@ -14,10 +14,11 @@ from .metatilecache import MetaTileCache
 
 try:
     from .memcached import MemcachedTileStorage
+
 except ImportError:
     MemcachedTileStorage = None
 
-from .mbtiles import MBTilesTileStorage
+from .mbtiles import MBTilesTileStorage, MBTilesTileStorageWithBackgroundWriter
 
 # ===== Storage Factory ========================================================
 
@@ -31,6 +32,7 @@ class TileStorageFactory(object):
                           metacache=MetaTileCache,
                           memcache=MemcachedTileStorage,
                           mbtiles=MBTilesTileStorage,
+                          mbtilesbw=MBTilesTileStorageWithBackgroundWriter,
                           )
 
     def __call__(self, prototype, pyramid, metadata, **params):

@@ -28,7 +28,9 @@ def parse_args():
                         type=str,
                         metavar='STORAGE',
                         help='''Specify location of the tilestorage, if a directory
-                        is given, a FileSystemTileStorage will be assumed''',)
+                        is given, a FileSystemTileStorage will be assumed, if a
+                        .mbtiles file is given, MBTilesTileStorage will be
+                        assumed''',)
 
     parser.add_argument('-b', '--bind',
                         dest='bind',
@@ -58,8 +60,7 @@ def attach_tilestorage(options):
     pathname = options.storage
     if os.path.isdir(pathname):
         # Assume file system tilestorage
-        config_file = os.path.join(pathname, FileSystemTileStorage.CONFIG_FILENAME)
-        storage = FileSystemTileStorage.from_config(config_file)
+        storage = FileSystemTileStorage.from_config(pathname)
     elif pathname.endswith('.mbtiles'):
         storage = MBTilesTileStorage.from_mbtiles(pathname)
     else:

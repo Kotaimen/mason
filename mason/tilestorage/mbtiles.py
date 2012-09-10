@@ -10,6 +10,7 @@ import itertools
 import re
 import threading
 import urllib
+import Queue
 
 from pprint import pprint
 
@@ -63,12 +64,12 @@ def create_sqlite_database(filename, pyramid, metadata):
                       bounds=repr(pyramid.envelope.make_tuple())[1:-1],
                       center='%f,%f,%d' % (pyramid.center.lon, pyramid.center.lat, pyramid.zoom),
                       minzoom=str(min(pyramid.levels)),
-                      maxzoom=str(min(pyramid.levels)),
+                      maxzoom=str(max(pyramid.levels)),
                       type=metadata.maptype,
                       )
 
 #        assert values['format'] in ['png', 'jpg']
-        pprint(values)
+#        pprint(values)
 
         conn.executemany('INSERT INTO metadata VALUES (?, ?)', values.iteritems())
         conn.commit()
@@ -160,9 +161,7 @@ class MBTilesTileStorageError(TileStorageError):
     pass
 
 
-class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
-                         TileStorage
-                         ):
+class MBTilesTileStorage(TileStorage):
 
     """ Using sqlite3 database as tile storage
 
@@ -295,7 +294,7 @@ class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
                 WHERE (z=? AND x=? AND y=?)''',
                 (z, x, y))
 
-    def set_multi(self, tiles):
+    def put_multi(self, tiles):
         hashes = list(tile.data_hash for tile in tiles)
 
         def data_gen():
@@ -305,7 +304,7 @@ class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
         def index_gen():
             for hash_, tile in itertools.izip(hashes, tiles):
                 z, x, y = self._make_mbtiles_index(tile.index)
-                yield z, x, y, hash, buffer(tile.data)
+                yield z, x, y, hash_
 
         conn = self._get_conn()
         with conn:
@@ -341,6 +340,71 @@ class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
         pass
 
     def close(self):
+        conn = self._get_conn()
+        conn.close()
+        self._conn = None
+
+
+class MBTilesTileStorageWithBackgroundWriter(MBTilesTileStorage):
+
+    QUEUE_SIZE = 100
+    BATCH_SIZE = 50
+
+    def __init__(self,
+                 pyramid=None,
+                 metadata=None,
+                 database='',
+                 timeout=30,
+                 ):
+
+        MBTilesTileStorage.__init__(self, pyramid, metadata, database, timeout)
+        self._queue = Queue.Queue(maxsize=self.QUEUE_SIZE)
+        self._writer = threading.Thread(target=self.background_writer)
+        self._writer.daemon = True
+        print 'starting mbtiles background writer thread...'
+        self._writer.start()
+
+
+    @staticmethod
+    def from_mbtiles(db_filename):
+        pyramid, metadata = attach_sqlite_database(db_filename)
+        return MBTilesTileStorage(pyramid, metadata, db_filename)
+
+    def put(self, tile):
+        self._queue.put(tile)
+
+    def put_multi(self, tiles):
+        if not isinstance(tiles, list):
+            tiles = list(tiles)
+        self._queue.put(tiles)
+
+    def background_writer(self):
+        batch = list()
+        writer = MBTilesTileStorage(self._pyramid, self._metadata, self._database)
+        while True:
+            item = self._queue.get()
+            try:
+                if item is None:
+                    break
+                elif isinstance(item, list):
+                    tiles = item
+                    batch.extend(tiles)
+                else:
+                    tile = item
+                    batch.append(tile)
+
+                if len(batch) > self.BATCH_SIZE:
+#                    batch.data
+                    writer.put_multi(batch)
+                    del batch[:]
+
+            finally:
+                self._queue.task_done()
+
+    def close(self):
+        self._queue.join()
+        self._queue.put(None)
+        self._writer.join()
         conn = self._get_conn()
         conn.close()
         self._conn = None
