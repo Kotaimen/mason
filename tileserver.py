@@ -11,9 +11,11 @@ Created on Sep 9, 2012
 import os
 import argparse
 
-from mason.tilestorage import FileSystemTileStorage
+from mason.core.pyramid import TileOutOfRange
+from mason.tilestorage import FileSystemTileStorage, MBTilesTileStorage
 from mason.utils import date_time_string
 from flask import Flask, abort
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Debug Tile Server',
@@ -53,9 +55,15 @@ def parse_args():
 
 
 def attach_tilestorage(options):
-    dirname = options.storage
-    assert os.path.isdir(dirname)
-    storage = FileSystemTileStorage.from_config(os.path.join(dirname, FileSystemTileStorage.CONFIG_FILENAME))
+    pathname = options.storage
+    if os.path.isdir(pathname):
+        # Assume file system tilestorage
+        config_file = os.path.join(pathname, FileSystemTileStorage.CONFIG_FILENAME)
+        storage = FileSystemTileStorage.from_config(config_file)
+    elif pathname.endswith('.mbtiles'):
+        storage = MBTilesTileStorage.from_mbtiles(pathname)
+    else:
+        raise RuntimeError('Unsupported tile storage "%s"' % pathname)
     return storage
 
 
@@ -78,7 +86,6 @@ def build_app(options, storage):
     <script type="text/javascript" src="tilesvr.js"></script>
   </body>
 </html>'''
-
 
     ext = storage.pyramid.format.extension[1:]
     mimetype = storage.pyramid.format.mimetype
@@ -114,7 +121,10 @@ map.add(po.interact())
 
     @app.route('/tile/<tag>/<int:z>/<int:x>/<int:y>.<ext>')
     def tile(tag, z, x, y, ext):
-        tile_index = storage.pyramid.create_tile_index(z, x, y)
+        try:
+            tile_index = storage.pyramid.create_tile_index(z, x, y)
+        except TileOutOfRange:
+            abort(404)
         tile = storage.get(tile_index)
         if tile is None:
             abort(404)
@@ -124,6 +134,7 @@ map.add(po.interact())
         return data, 200, {'Content-Type': mimetype,
                            'Last-Modified': date_time_string(mtime)}
     return app
+
 
 def main():
     options = parse_args()
