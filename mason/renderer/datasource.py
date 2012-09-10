@@ -6,7 +6,7 @@ Created on Sep 9, 2012
 @author: ray
 '''
 import time
-from ..core import MetaTile
+from ..core import MetaTile, Format
 
 
 #==============================================================================
@@ -29,12 +29,20 @@ class CartographerMetaTileDataSource(MetaTileDataSource):
         self._cartographer = cartographer
 
     def get(self, metatileindex):
-        envelope = metatileindex.envelope
-        size = metatileindex.tile_size
+        envelope = metatileindex.envelope.make_tuple()
+        tile_size = metatileindex.tile_size
+        size = (tile_size, tile_size)
 
-        data_stream = self._cartographer.render(envelope, size)
-        data_format = self._cartographer.output_format
-        mtime = time.time()
+        try:
+            data_stream = self._cartographer.render(envelope, size)
+            data_format = Format.from_name(self._cartographer.output_format)
+            mtime = time.time()
 
-        metatile = MetaTile.from_tile_index(data_stream, data_format, mtime)
+            metatile = MetaTile.from_tile_index(metatileindex,
+                                                data_stream.getvalue(),
+                                                data_format,
+                                                mtime)
+        finally:
+            data_stream.close()
+
         return metatile

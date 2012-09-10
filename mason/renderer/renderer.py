@@ -5,6 +5,9 @@ Base class of MetaTile renderer
 Created on Sep 6, 2012
 @author: ray
 '''
+from .datasource import MetaTileDataSource
+from .processor import MetaTileProcessor
+from .composer import MetaTileComposer
 
 
 #==============================================================================
@@ -30,6 +33,7 @@ class DataSourceMetaTileRenderer(MetaTileRenderer):
     """
 
     def __init__(self, datasource):
+        assert isinstance(datasource, MetaTileDataSource)
         self._datasource = datasource
 
     def render(self, metatileindex):
@@ -46,11 +50,13 @@ class ProcessingMetaTileRenderer(MetaTileRenderer):
     """
 
     def __init__(self, processor, source_renderer):
+        assert isinstance(processor, MetaTileProcessor)
+        assert isinstance(source_renderer, MetaTileRenderer)
         self._processor = processor
         self._source_renderer = source_renderer
 
     def render(self, metatileindex):
-        metatile = self._source.render(metatileindex)
+        metatile = self._source_renderer.render(metatileindex)
         metatile = self._processor.process(metatile)
         return metatile
 
@@ -64,12 +70,14 @@ class CompositeMetaTileRenderer(MetaTileRenderer):
     """
 
     def __init__(self, composer, *source_renderers):
+        assert isinstance(composer, MetaTileComposer)
+        assert all(isinstance(s, MetaTileRenderer) for s in source_renderers)
         self._composer = composer
         self._source_renderer_list = list(source_renderers)
 
     def render(self, metatileindex):
         metatile_list = list()
-        for source in self._sources:
+        for source in self._source_renderer_list:
             metatile = source.render(metatileindex)
             metatile_list.append(metatile)
 

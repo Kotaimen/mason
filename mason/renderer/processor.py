@@ -6,7 +6,7 @@ Created on Sep 10, 2012
 @author: ray
 '''
 import time
-from ..core import MetaTile
+from ..core import MetaTile, Format
 from ..cartographer import GDALRaster
 
 
@@ -30,11 +30,14 @@ class GDALMetaTileProcessor(MetaTileProcessor):
 
         raster = GDALRaster(data, data_format.name)
         raster_processed = self._processor.convert(raster)
+
+        data = raster_processed.data
+        data_format = Format.from_name(raster_processed.data_format)
         mtime = time.time()
 
         metatile = MetaTile.from_tile_index(metatile.index,
-                                            raster_processed.data,
-                                            raster_processed.data_format,
+                                            data,
+                                            data_format,
                                             mtime)
 
         return metatile

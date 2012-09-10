@@ -3,6 +3,6 @@
 from .factory import (MetaTileDataSourceFactory,
                       MetaTileProcessorFactory,
                       MetaTileComposerFactory,
-                      RendererFactory,
+                      MetaTileRendererFactory,
                       )
 from .cacherender import CachedRenderer

@@ -6,7 +6,7 @@ Created on Sep 10, 2012
 @author: ray
 '''
 import time
-from ..core import MetaTile
+from ..core import MetaTile, Format
 
 
 #==============================================================================
@@ -24,4 +24,10 @@ class ImageMagicMetaTileComposer(MetaTileComposer):
         self._command = command
 
     def compose(self, metatile_list):
-        return None
+        assert all(isinstance(m, MetaTile) for m in metatile_list)
+        index = metatile_list[0].index
+        data = ''
+        fmt = Format.ANY
+        mtime = time.time()
+        metatile = MetaTile.from_tile_index(index, data, fmt, mtime)
+        return metatile

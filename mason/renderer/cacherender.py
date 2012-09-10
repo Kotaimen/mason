@@ -29,6 +29,6 @@ class CachedRenderer(MetaTileRenderer):
                 return metatile
 
         metatile = self._renderer.render(metatileindex)
-        self._storage.set(metatile)
+        self._storage.put(metatile)
 
         return metatile

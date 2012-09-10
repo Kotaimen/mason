@@ -325,3 +325,19 @@ class GDALWarper(GDALProcessor):
         command_list.extend(self._parameter_list)
         command_list.extend([source_file, target_file])
         _subprocess_call(command_list)
+
+
+PROCESSOR_REGISTRY = dict(hillshading=GDALHillShading,
+                          colorrelief=GDALColorRelief,
+                          rastertopng=GDALRasterToPNG,
+                          setmetadata=GDALRasterMetaData,
+                          warp=GDALWarper,
+                          )
+
+
+def create_gdal_processor(processor_type, **params):
+    processor_creator = PROCESSOR_REGISTRY.get(processor_type, None)
+    if not processor_creator:
+        raise RuntimeError('Unsupported processor %s' % processor_type)
+
+    return processor_creator(**params)
