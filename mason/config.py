@@ -5,11 +5,7 @@ Created on Apr 28, 2012
 '''
 
 from .mason import Mason
-from .namespace import Namespace, create_namespace
-
-
 from pprint import pprint
-
 
 def create_mason_from_config(config_file, mode):
     """ Load a configuration file and setup Mason (Tile Namespace Manager)

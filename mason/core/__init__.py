@@ -9,5 +9,3 @@ from .format import Format
 from .gridcrop import metatile_fission, grid_crop, buffer_crop
 from .metadata import Metadata
 from .walker import PyramidWalker
-# XXX: Dummy items make unittest runnable during refactoring
-create_data_type = None
