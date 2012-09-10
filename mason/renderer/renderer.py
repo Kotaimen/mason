@@ -1,46 +1,88 @@
 # -*- coding:utf-8 -*-
 '''
-Created on Sep 9, 2012
+Base class of MetaTile renderer
 
+Created on Sep 6, 2012
 @author: ray
 '''
-import time
-from ..core import MetaTile
-
-from .base import MetaTileRenderer
 
 
 #==============================================================================
-# MetaTile renderer
+# Base class of MetaTile renderer
 #==============================================================================
+class MetaTileRenderer(object):
+
+    """ Base class of MetaTile renderer
+
+    return a MetaTile according to the MetaTile index.
+    """
+
+    def render(self, metatileindex):
+        """ render a MetaTile, return None if not found """
+        raise NotImplementedError
+
+
+class DataSourceMetaTileRenderer(MetaTileRenderer):
+
+    """ Simple MetaTile renderer
+
+    return MetaTile from datasource
+    """
+
+    def __init__(self, datasource):
+        self._datasource = datasource
+
+    def render(self, metatileindex):
+        metatile = self._datasource.get(metatileindex)
+        return metatile
+
+
+class ProcessingMetaTileRenderer(MetaTileRenderer):
+
+    """ Processing Renderer
+
+    A processing renderer does some operations, eg. transform, translate,
+    on a MetaTile which is taken from the source renderer.
+    """
+
+    def __init__(self, processor, source_renderer):
+        self._processor = processor
+        self._source_renderer = source_renderer
+
+    def render(self, metatileindex):
+        metatile = self._source.render(metatileindex)
+        metatile = self._processor.process(metatile)
+        return metatile
+
+
+class CompositeMetaTileRenderer(MetaTileRenderer):
+
+    """ Composite MetaTile renderer
+
+    A composite MetaTile renderer compose a list of MetaTile collected
+    from a list of other renderers.
+    """
+
+    def __init__(self, composer, *source_renderers):
+        self._composer = composer
+        self._source_renderer_list = list(source_renderers)
+
+    def render(self, metatileindex):
+        metatile_list = list()
+        for source in self._sources:
+            metatile = source.render(metatileindex)
+            metatile_list.append(metatile)
+
+        metatile = self._composer.compose(metatile_list)
+        return metatile
+
+
 class NullMetaTileRenderer(MetaTileRenderer):
 
     """ Null renderer
 
-    A renderer always return None.
+    A special renderer always return None.
     """
 
     def render(self, metatileindex):
         return None
-
-
-class CartographerMetaTileRenderer(MetaTileRenderer):
-
-    """ Cartographer renderer
-
-    A renderer uses cartographer as its source.
-    """
-
-    def __init__(self, cartographer):
-        self._cartographer = cartographer
-
-    def render(self, metatileindex):
-        envelope = metatileindex.envelope
-        size = metatileindex.tile_size
-
-        data_stream = self._cartographer.render(envelope, size)
-        data_format = self._cartographer.output_format
-        mtime = time.time()
-
-        metatile = MetaTile.from_tile_index(data_stream, data_format, mtime)
-        return metatile
