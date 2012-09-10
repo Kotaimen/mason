@@ -71,7 +71,7 @@ def build_app(options, storage):
     <meta name="viewport" content="initial-scale=1,maximum-scale=1"/>
     <script type="text/javascript" src="static/polymaps.js"></script>
     <style type="text/css">
-    @import url("static/polyviewer.css");
+    @import url("static/polmaps.js");
     </style>
   </head>
   <body id="map">
