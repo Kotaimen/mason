@@ -123,7 +123,7 @@ class Format(object):
 
     @staticmethod
     def from_name(name):
-        return KNOWN_FORMATS[name]
+        return KNOWN_FORMATS[name.upper()]
 
 # Inject formats into class so can use them like Enum
 for k, v in KNOWN_FORMATS.iteritems():

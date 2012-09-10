@@ -7,12 +7,14 @@ Created on May 7, 2012
 import sqlite3
 import os
 import itertools
+import re
 import threading
+import urllib
 
 from pprint import pprint
 
 from .tilestorage import TileStorage, TileStorageError
-from ..core import Tile
+from ..core import Tile, Format, Pyramid, Metadata
 
 #===============================================================================
 # SQLite Helper Functions
@@ -46,36 +48,113 @@ def create_sqlite_database(filename, pyramid, metadata):
 
     CREATE VIEW IF NOT EXISTS tiles AS
                     SELECT z AS zoom_level,
-                            x AS tile_column,
-                            y AS tile_row,
-                            data AS tile_data
+                           x AS tile_column,
+                           y AS tile_row,
+                           data AS tile_data
                     FROM tileindex, tiledata
                     WHERE tileindex.tilehash=tiledata.hash;
     ''')
+    try:
+        values = dict(name=metadata.tag,
+                      format=pyramid.format.extension[1:],
+                      version=metadata.version,
+                      description=metadata.description,
+                      attribution=metadata.attribution,
+                      bounds=repr(pyramid.envelope.make_tuple())[1:-1],
+                      center='%f,%f,%d' % (pyramid.center.lon, pyramid.center.lat, pyramid.zoom),
+                      minzoom=str(min(pyramid.levels)),
+                      maxzoom=str(min(pyramid.levels)),
+                      type=metadata.maptype,
+                      )
 
-    values = dict(name=metadata.tag,
-                  format=pyramid.format.extension[1:],
-                  version=metadata.version,
-                  description=metadata.description,
-                  attribution=metadata.attribution,
-                  bounds=repr(pyramid.envelope.make_tuple())[1:-1],
-                  center='%f,%f,%d' % (pyramid.center.lon, pyramid.center.lat, pyramid.zoom),
-                  minzoom=str(min(pyramid.levels)),
-                  maxzoom=str(min(pyramid.levels)),
-                  )
+#        assert values['format'] in ['png', 'jpg']
+        pprint(values)
 
-#    assert values['format'] in ['png', 'jpg']
-    pprint(values)
+        conn.executemany('INSERT INTO metadata VALUES (?, ?)', values.iteritems())
+        conn.commit()
+    finally:
+        conn.close()
 
-    conn.executemany('INSERT INTO metadata VALUES (?, ?)', values.iteritems())
 
-    conn.commit()
-    conn.close()
+def attach_sqlite_database(filename):
+    assert os.path.exists(filename)
+    conn = sqlite3.connect(filename)
 
+    try:
+        cur = conn.execute('''SELECT name,value FROM metadata ''')
+        metadata_values = dict(cur.fetchall())
+        cur = conn.execute('''SELECT min(zoom_level) FROM tiles''')
+        real_minzoom = cur.fetchone()[0]
+        cur = conn.execute('''SELECT max(zoom_level) FROM tiles''')
+        real_maxzoom = cur.fetchone()[0]
+        cur = conn.execute('''SELECT tile_data FROM tiles LIMIT 1''')
+        tile_data = str(cur.fetchone()[0])
+    finally:
+        conn.close()
+
+    tag = metadata_values['name']
+    if not bool(re.match(r'[a-zA-Z0-9_-]', tag)):
+        tag = urllib.quote(tag)
+    if 'format' in metadata_values:
+        format = Format.from_name(metadata_values['format'])
+    else:
+        if tile_data.startswith(b'\x89PNG\r\n\x1a\n'):
+            format = Format.from_name('PNG')
+        elif tile_data.startswith(b'\xff\xd8'):
+            format = Format.from_name('JPEG')
+        else:
+            raise RuntimeError('Unknown mbtiles format')
+
+    bounds = tuple(map(float, metadata_values['bounds'].split(',')))
+    try:
+        minzoom = int(metadata_values['minzoom'])
+    except KeyError:
+        minzoom = real_minzoom
+    try:
+        maxzoom = int(metadata_values['maxzoom'])
+    except KeyError:
+        maxzoom = real_maxzoom
+    levels = list(xrange(minzoom, maxzoom + 1))
+    lon, lat, zoom = tuple(metadata_values['center'].split(','))
+    lon, lat = float(lon), float(lat)
+    zoom = int(zoom)
+    try:
+        version = metadata_values['version']
+    except KeyError:
+        version = ''
+    try:
+        description = metadata_values['description']
+    except KeyError:
+        description = ''
+    try:
+        attribution = metadata_values['attribution']
+    except KeyError:
+        attribution = ''
+    try:
+        maptype = metadata_values['type']
+    except KeyError:
+        maptype = 'basemap'
+
+    pyramid = Pyramid(levels=levels,
+                    tile_size=256,
+                    buffer=0,
+                    format=format,
+                    envelope=bounds,
+                    center=(lon, lat),
+                    zoom=zoom,)
+
+    metadata = Metadata(tag=tag,
+                       description=description,
+                       version=version,
+                       attribution=attribution,
+                       maptype=maptype,)
+
+    return pyramid, metadata
 
 #===============================================================================
 # Storage
 #===============================================================================
+
 
 class MBTilesTileStorageError(TileStorageError):
     pass
@@ -151,6 +230,11 @@ class MBTilesTileStorage(threading.local, # sqlite3 is not thread safe
         # Mbtiles has reversed y-axis, which differs with every other format...
         z, x, y = tile_index.coord
         return z, x, 2 ** z - y - 1
+
+    @staticmethod
+    def from_mbtiles(db_filename):
+        pyramid, metadata = attach_sqlite_database(db_filename)
+        return MBTilesTileStorage(pyramid, metadata, db_filename)
 
     def get(self, tile_index):
         z, x, y = self._make_mbtiles_index(tile_index)
