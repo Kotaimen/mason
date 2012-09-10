@@ -6,8 +6,6 @@ Created on May 2, 2012
 import sqlalchemy
 from sqlalchemy.orm import scoped_session, sessionmaker
 
-from ..utils.gdalutil import gdal_warp
-from ..core import RenderData
 from .cartographer import Cartographer
 
 
@@ -21,23 +19,6 @@ FROM %(table)s
 WHERE ST_INTERSECTS(the_rast, %(bbox)s)
 '''
 
-def _buffer_envelope(envelope, size, buffer_size):
-    width, height = size
-    minx, miny, maxx, maxy = envelope
-    
-    diff_x = abs(maxx - minx)
-    diff_y = abs(maxy - miny)
-    
-    buffer_x = diff_x / width * buffer_size
-    buffer_y = diff_y / height * buffer_size
-    
-    new_envelope = (minx - buffer_x,
-                    miny - buffer_y,
-                    maxx + buffer_x,
-                    maxy + buffer_y)
-    
-    return new_envelope
-    
 
 #==============================================================================
 # Base class of GDAL DEM Raster Maker

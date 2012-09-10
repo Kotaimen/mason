@@ -85,7 +85,7 @@ def _subprocess_call(command_list):
     return subprocess.check_call(command_list) == 0
 
 
-class GDALProcess(object):
+class GDALProcessor(object):
 
     """ Base Class of GDAL processors
 
@@ -131,7 +131,7 @@ class GDALProcess(object):
         raise NotImplementedError
 
 
-class GDALHillShading(GDALProcess):
+class GDALHillShading(GDALProcessor):
 
     """ HillShading Processor
 
@@ -152,7 +152,7 @@ class GDALHillShading(GDALProcess):
     """
 
     def __init__(self, zfactor=1, scale=1, altitude=45, azimuth=315):
-        GDALProcess.__init__(self)
+        GDALProcessor.__init__(self)
         self._process_type = 'hillshading'
         assert isinstance(zfactor, int)
         assert isinstance(scale, int)
@@ -182,7 +182,7 @@ class GDALHillShading(GDALProcess):
         _subprocess_call(command_list)
 
 
-class GDALColorRelief(GDALProcess):
+class GDALColorRelief(GDALProcessor):
 
     """ Color-relief Processor
 
@@ -198,7 +198,7 @@ class GDALColorRelief(GDALProcess):
     """
 
     def __init__(self, color_context):
-        GDALProcess.__init__(self)
+        GDALProcessor.__init__(self)
         self._process_type = 'colorrelief'
 
         if not os.path.exists(color_context):
@@ -224,12 +224,12 @@ class GDALColorRelief(GDALProcess):
         _subprocess_call(command_list)
 
 
-class GDALRasterToPNG(GDALProcess):
+class GDALRasterToPNG(GDALProcessor):
 
     """ Raster to PNG processor """
 
     def __init__(self):
-        GDALProcess.__init__(self)
+        GDALProcessor.__init__(self)
         self._process_type = 'topng'
         self._expect_format = 'PNG'
 
@@ -246,7 +246,7 @@ class GDALRasterToPNG(GDALProcess):
         _subprocess_call(command_list)
 
 
-class GDALRasterMetaData(GDALProcess):
+class GDALRasterMetaData(GDALProcessor):
 
     """ Set GEO meta data to raster
 
@@ -265,7 +265,7 @@ class GDALRasterMetaData(GDALProcess):
                        to_tiled=False,
                        to_compressed=False,
                        nodata=None):
-        GDALProcess.__init__(self)
+        GDALProcessor.__init__(self)
         self._process_type = 'metadata'
 
         # set parameters
@@ -293,12 +293,12 @@ class GDALRasterMetaData(GDALProcess):
         _subprocess_call(command_list)
 
 
-class GDALWarper(GDALProcess):
+class GDALWarper(GDALProcessor):
 
     """ Warp raster from different spatial reference system """
 
     def __init__(self, dst_epsg, src_epsg=None):
-        GDALProcess.__init__(self)
+        GDALProcessor.__init__(self)
         self._process_type = 'warp'
         assert isinstance(dst_epsg, int)
 
