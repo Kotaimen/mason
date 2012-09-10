@@ -3,6 +3,8 @@ Created on May 2, 2012
 
 @author: ray
 '''
+
+import shutil
 import os
 import unittest
 from mason.cartographer import create_cartographer
@@ -19,102 +21,44 @@ def save_to_file(tag, ext, data):
 
 class TestMapnikMaker(unittest.TestCase):
 
-    def testTrueColor(self):
+    def testPNG(self):
         cartographer = create_cartographer('mapnik',
-                                           tag='test',
-                                           theme_root='./input/',
-                                           theme_name='worldaltas',
-                                           data_type='png')
+                                           theme='./input/world.xml',
+                                           image_type='png')
 
-        size = (256, 256)
-        envelope = (-180, -85, 180, 85)
-        render_data = cartographer.doodle(envelope, size)
-
-        data = render_data.data
-        data_type = render_data.data_type
-        save_to_file('worldaltas', data_type.ext, data)
-
+        size = (512, 512)
+        envelope = (0, 0, 180, 85)
+        stream = cartographer.render(envelope, size)
+        with open('./output/test_cartographer_mapnik_png.png', 'wb') as fp:
+            shutil.copyfileobj(stream, fp)
         cartographer.close()
 
-    def testIndexColor(self):
+    def testPNG256(self):
         cartographer = create_cartographer('mapnik',
-                                           tag='test',
-                                           theme_root='./input/',
-                                           theme_name='worldaltas',
-                                           data_type='png256',
-                                           data_parameters={'colors': 5})
+                                           theme='./input/world.xml',
+                                           image_type='png256',
+                                           image_parameters={'colors': 32})
 
-        size = (256, 256)
-        envelope = (-180, -85, 180, 85)
-        render_data = cartographer.doodle(envelope, size)
-
-        data = render_data.data
-        data_type = render_data.data_type
-        save_to_file('worldaltas_index_color', data_type.ext, data)
-
-        cartographer.close()
-
-    def testTransparency(self):
-        cartographer = create_cartographer('mapnik',
-                                           tag='test',
-                                           theme_root='./input/',
-                                           theme_name='worldaltas',
-                                           data_type='png256',
-                                           data_parameters={'transparency': 0})
-
-        size = (256, 256)
-        envelope = (-180, -85, 180, 85)
-        render_data = cartographer.doodle(envelope, size)
-
-        data = render_data.data
-        data_type = render_data.data_type
-        save_to_file('worldaltas_transparency', data_type.ext, data)
-
-        cartographer.close()
-
-    def testPalette(self):
-        cartographer = create_cartographer('mapnik',
-                                           tag='test',
-                                           theme_root='./input/',
-                                           theme_name='worldaltas',
-                                           data_type='png256',
-                                           data_parameters={
-                                            'palette': './input/example-palette.act',
-                                            'colors': 5,
-                                            }
-                                            )
-
-        size = (256, 256)
-        envelope = (-180, -85, 180, 85)
-        render_data = cartographer.doodle(envelope, size)
-
-        data = render_data.data
-        data_type = render_data.data_type
-        save_to_file('worldaltas_palette', data_type.ext, data)
-
+        size = (512, 512)
+        envelope = (0, 0, 180, 85)
+        stream = cartographer.render(envelope, size)
+        with open('./output/test_cartographer_mapnik_png256.png', 'wb') as fp:
+            shutil.copyfileobj(stream, fp)
         cartographer.close()
 
     def testJPEG(self):
-        jpeg_quality = 50
         cartographer = create_cartographer('mapnik',
-                                    tag='test',
-                                    theme_root='./input/',
-                                    theme_name='worldaltas',
-                                    data_type='jpeg',
-                                    data_parameters={
-                                                     'quality': jpeg_quality,
-                                                    }
-                                    )
+                                           theme='./input/world.xml',
+                                           image_type='jpeg',
+                                           image_parameters={'quality': 60})
 
-        size = (256, 256)
-        envelope = (-180, -85, 180, 85)
-        render_data = cartographer.doodle(envelope, size)
-
-        data = render_data.data
-        data_type = render_data.data_type
-        save_to_file('worldaltas_jpeg50', data_type.ext, data)
-
+        size = (512, 512)
+        envelope = (0, 0, 180, 85)
+        stream = cartographer.render(envelope, size)
+        with open('./output/test_cartographer_mapnik_jpeg.jpg', 'wb') as fp:
+            shutil.copyfileobj(stream, fp)
         cartographer.close()
+
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

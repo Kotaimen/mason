@@ -9,19 +9,16 @@ import memcache
 from .tilestorage import TileStorage, TileStorageError
 
 
-class MemCachedTileStorageError(TileStorageError):
+class MemcachedTileStorageError(TileStorageError):
     pass
 
 
-class MemCachedTileStorage(TileStorage):
+class MemcachedTileStorage(TileStorage):
 
     """ Store Tiles in memcached distributed key/value store
 
     Note any storage which talks memcached protocal is supported,
     like couchbase.
-
-    tag
-        Name tag of the storage.
 
     servers
         Optional, list of memcached servers, default is ['localhost:11211',]
@@ -42,13 +39,14 @@ class MemCachedTileStorage(TileStorage):
     """
 
     def __init__(self,
-                 tag,
+                 pyramid=None,
+                 metadata=None,
                  servers=['localhost:11211'],
                  compress=False,
                  timeout=0,
                  max_size=1024 * 1024,
                  ):
-        TileStorage.__init__(self, tag)
+        TileStorage.__init__(self, pyramid, metadata)
 
         # Create memcached client, use highest pickle protocol
         self._client = memcache.Client(servers,
@@ -58,14 +56,14 @@ class MemCachedTileStorage(TileStorage):
 
         # Test connection here
         if not self._client.get_stats():
-            raise MemCachedTileStorageError("Can't connect to memcached: %s" % servers)
+            raise MemcachedTileStorageError("Can't connect to memcached: %s" % servers)
 
         self._timeout = timeout
         self._compress = 1024 if compress else 0
 
     def _make_key(self, tile_index):
         # Include tag in the index so differnt storage can share one memcache bucket
-        return '%s/%d/%d/%d' % (self._tag, tile_index.z, tile_index.x, tile_index.y)
+        return '%s/%d/%d/%d' % (self._metadata.tag, tile_index.z, tile_index.x, tile_index.y)
 
     def get(self, tile_index):
         key = self._make_key(tile_index)
@@ -104,7 +102,7 @@ class MemCachedTileStorage(TileStorage):
                                         min_compress_len=self._compress)
 
         if failed:
-            raise MemCachedTileStorageError('%d items not written' % len(failed))
+            raise MemcachedTileStorageError('%d items not written' % len(failed))
 
     def del_multi(self, tile_indexes):
         keys = list(self._make_key(tile_index) for tile_index in tile_indexes)

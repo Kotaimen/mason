@@ -5,51 +5,40 @@ Created on May 2, 2012
 '''
 
 import os
+import io
 import sys
+import threading
+
+from ..core import Format
+from .cartographer import Cartographer
 
 try:
     # From mapnik 2.0.1, module name mapnik2 is deprecated
     import mapnik
 except ImportError:
-    # In case of mapnik 2.0.0
+    # In case of mapnik 2.0.0 or 0.7.x
     import mapnik2 as mapnik
 
-from ..core import RenderData
-from .cartographer import Cartographer
-
-MAPNIK_AGG_RENDERER = True
-MAPNIK_CAIRO_RENDERER = mapnik.has_cairo()
-MAPNIK_HAS_JPEG = mapnik.has_jpeg()
 MAPNIK_VERSION = mapnik.mapnik_version() / 100000
-
-if MAPNIK_VERSION < 2:
-    raise Exception('Only Mapnik 2.0.0 and later is supported')
-
-
-# Google mercator projection. alias to 'EPSG:3857'
-_PROJECTIONS = {
-'EPSG:3857': '+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 ' \
-             '+x_0=0.0 +y_0=0 +units=m +k=1.0 +nadgrids=@null +over +no_defs',
-}
 
 # Automatically add system font directory
 if sys.platform == 'darwin':
     mapnik.register_fonts(r'/Library/Fonts/')
 elif sys.platform == 'linux':
-    mapnik.register_fonts(r'/var/lib/fonts')
+    mapnik.register_fonts(r'/usr/share/fonts')
 elif sys.platform == 'win32':
-    mapnik.register_fonts(r'C:\Windows\Fonts/')
+    mapnik.register_fonts(r'C:\Windows\Fonts')
 
 #for face in list(mapnik.FontEngine.face_names()):
 #    print face
 
 
 #==============================================================================
-# Raster Maker in Mapnik
+# Render maps using mapnik
 #==============================================================================
-class MapnikRaster(Cartographer):
+class Mapnik(Cartographer):
 
-    """ Mapnik Raster Renderer
+    """ Mapnik Renderer
 
     Mapnik is a Free Toolkit for developing mapping applications.
     It is written in modern C++ and has Python bindings that support
@@ -59,16 +48,14 @@ class MapnikRaster(Cartographer):
     and style for rendering, as its input and output a map data of
     a specified output format.
 
+    theme
+        Pathname of the mapnik xml configuration file
 
-    theme_root
-        Root directory of Mapnik theme.
-
-    theme_name
-        File name of theme (without xml extension).
+    projection
+        Map projection specfied in 'EPSG:XXXX', default is EPSG:3857
 
     scale_factor
-        Used to increase or decrease font and symbol sizes,
-        line widths, and dash-array spacing.
+        Used to scale font/symbol/thickness, useful when scaling
 
     buffer_size
         Data around the specified area will be rendered to enhance
@@ -105,17 +92,14 @@ class MapnikRaster(Cartographer):
     """
 
     def __init__(self,
-                 data_type,
-                 theme_root,
-                 theme_name,
+                 theme='map.xml',
+                 projection='EPSG:3857',
                  scale_factor=1.0,
                  buffer_size=0,
+                 image_type='png',
+                 image_parameters=None,
                  ):
-        Cartographer.__init__(self, data_type)
-
-        # 'png', 'png24', 'png32' are equivalent to 'png32' in mapnik
-        # 'png8', 'png256' are equivalent to 'png256' in mapnik
-        if self._data_type.name not in ['png', 'png256', 'jpeg']:
+        if image_type not in ['png', 'png256', 'jpeg']:
             raise TypeError('Only support PNG/PNG256/JPEG format.')
 
         self._scale_factor = scale_factor
@@ -123,83 +107,81 @@ class MapnikRaster(Cartographer):
         self._palette = None
 
         # check theme path
-        self._theme = os.path.abspath(os.path.join(theme_root,
-                                                   '%s.xml' % theme_name))
+        self._theme = theme
         if not os.path.exists(self._theme):
             raise Exception('Theme %s not found.' % self._theme)
 
-        # convert image_type and parameters to mapnik format string
-        image_type = self._data_type.name
-        image_parameters = self._data_type.parameters
-        if image_parameters:
+        Cartographer.__init__(self, image_type.upper())
 
+        # convert image_type and parameter to mapnik format string
+        self._image_type = self._init_image_type(image_type, image_parameters)
+        self._proj = None
+        self._map = self._init_mapnik(projection)
+
+    def _init_image_type(self, image_type, image_parameters):
+
+        if image_parameters:
             # PNG Parameters --------------------------------------------------
             if image_type == 'png':
-                pass
-
-            # JPEG Parameters -------------------------------------------------
-            elif image_type == 'jpeg':
-                # quality
+                image_type += ''
+            elif image_type == 'jpeg': # quality
                 quality = image_parameters.get('quality', None)
                 if not isinstance(quality, int):
                     raise ValueError('JPEG quality shall be an integer.')
                 if quality < 1 or quality > 100:
                     raise ValueError('JPEG quality shall be 1-100.')
-
                 # no need to set quality 85, since it is the default value.
                 if quality != 85:
-                    image_type += ('%d' % quality)
-
+                    image_type += '%d' % quality
             # PNG256 Parameters -----------------------------------------------
-            elif image_type == 'png256':
-                # palette
+            elif image_type == 'png256': # palette
                 palette = image_parameters.get('palette', None)
                 if palette:
                     palette_type = os.path.splitext(palette)[1][1:].lower()
                     if palette_type not in ['rgba', 'rgb', 'act']:
-                        raise ValueError(
-                                        'Palette file should have suffix' \
-                                        'rgba/rgb/act to indicate its type')
-
+                        raise ValueError('Palette file should have suffix'
+                            'rgba/rgb/act to indicate its type')
                     with open(palette, 'rb') as fp:
                         palette_data = fp.read()
                     self._palette = mapnik.Palette(palette_data, palette_type)
-
-                # colors, if palette is specified, colors will take no effect.
                 else:
                     colors = image_parameters.get('colors', None)
                     if colors:
                         if colors < 2 or colors > 256:
                             raise ValueError('Invalid color numbers')
-                        image_type += (':c=%d' % colors)
-
+                        image_type += ':c=%d' % colors
                 # transparency
+                # colors, if palette is specified, colors will take no effect.
                 transparency = image_parameters.get('transparency', None)
                 if transparency in [0, 1, 2]:
-                    image_type += (':t=%d' % transparency)
+                    image_type += ':t=%d' % transparency
+                    # JPEG Parameters -------------------------------------------------
 
-        self._image_type = image_type
+        return image_type
 
-        # projection
-        self._proj = mapnik.Projection(_PROJECTIONS['EPSG:3857'])
+    def _init_mapnik(self, projection):
+        projection = '+init=%s' % projection.lower()
+        mapper = mapnik.Map(1, 1, projection)
+        mapnik.load_map(mapper, self._theme)
+        self._proj = mapnik.Projection(projection)
+        mapper.buffer_size = self._buffer_size
+        return mapper
 
-    def doodle(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
-
-        map_ = mapnik.Map(*size)
-        mapnik.load_map(map_, self._theme)
-        map_.buffer_size = self._buffer_size
-
+    def render(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
         bbox = mapnik.Box2d(*envelope)
-        bbox = self._proj.forward(bbox)
 
-        map_.zoom_to_box(bbox)
+        bbox = self._proj.forward(bbox)
+        self._map.resize(*size)
+        self._map.zoom_to_box(bbox)
 
         image = mapnik.Image(*size)
-        mapnik.render(map_, image, self._scale_factor)
+        mapnik.render(self._map, image, self._scale_factor)
 
         if self._palette:
             data = image.tostring(self._image_type, self._palette)
         else:
             data = image.tostring(self._image_type)
 
-        return RenderData(data, self._data_type)
+        return io.BytesIO(data)
+
+

@@ -1,62 +1,29 @@
-
-from ..core import create_data_type
-
-
 #==============================================================================
 # Cartographer Prototype
 #==============================================================================
 try:
-    from .mapniker import MapnikRaster
+    from .mapniker import Mapnik
 except ImportError:
-    MapnikRaster = None
-
-try:
-    from .gdaldem import DEMRaster
-except ImportError:
-    DEMRaster = None
-
-
-def create_mapnik_cartographer(tag, **params):
-    data_type_name = params.pop('data_type', None)
-    data_parameters = params.pop('data_parameters', None)
-
-    if data_type_name is None:
-        data_type_name = 'png'
-
-    data_type = create_data_type(data_type_name, data_parameters)
-
-    return MapnikRaster(data_type, **params)
-
-
-def create_raster_cartographer(tag, **params):
-    data_type_name = params.pop('data_type', None)
-    data_parameters = params.pop('data_parameters', None)
-
-    if data_type_name is None:
-        data_type_name = 'png'
-
-    data_type = create_data_type(data_type_name, data_parameters)
-
-    return DEMRaster(data_type, **params)
-
+    Mapnik = None
 
 #==============================================================================
 # Cartographer Factory
 #==============================================================================
+
 class CartographerFactory(object):
 
-    CLASS_REGISTRY = dict(mapnik=create_mapnik_cartographer,
-                          raster=create_raster_cartographer,
+    CLASS_REGISTRY = dict(mapnik=Mapnik,
+
                           )
 
-    def __call__(self, prototype, tag, **params):
-        creator = self.CLASS_REGISTRY.get(prototype, None)
-        if creator is None:
+    def __call__(self, prototype, **params):
+        klass = self.CLASS_REGISTRY.get(prototype, None)
+        if klass is None:
             raise Exception('Unknown cartographer type "%s"' % prototype)
 
-        return creator(tag, **params)
+        return klass(**params)
 
 
-def create_cartographer(prototype, tag, **params):
+def create_cartographer(prototype, **params):
     """ Create a cartographer """
-    return CartographerFactory()(prototype, tag, **params)
+    return CartographerFactory()(prototype, **params)
