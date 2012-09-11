@@ -1,14 +1,14 @@
 # -*- coding:utf-8 -*-
 '''
-MetaTile Render Cache
+Cached MetaTile Render
 
 Created on Sep 6, 2012
 @author: ray
 '''
-from .base import MetaTileRenderer
+from .renderer import MetaTileRenderer
 
 
-class CacheRenderer(MetaTileRenderer):
+class CachedRenderer(MetaTileRenderer):
 
     """ Cache renderer
 
@@ -29,6 +29,6 @@ class CacheRenderer(MetaTileRenderer):
                 return metatile
 
         metatile = self._renderer.render(metatileindex)
-        self._storage.set(metatile)
+        self._storage.put(metatile)
 
         return metatile

@@ -1,3 +1,6 @@
+from .gdalraster import GDALRaster
+from .gdaltools import create_gdal_processor
+
 #==============================================================================
 # Cartographer Prototype
 #==============================================================================
