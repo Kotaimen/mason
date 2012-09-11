@@ -1,5 +1,11 @@
 from .gdalraster import GDALRaster
-from .gdaltools import create_gdal_processor
+from .gdaltools import (GDALHillShading,
+                        GDALColorRelief,
+                        GDALRasterToPNG,
+                        GDALRasterMetaData,
+                        GDALWarper,
+                        )
+
 
 #==============================================================================
 # Cartographer Prototype
@@ -9,24 +15,48 @@ try:
 except ImportError:
     Mapnik = None
 
+try:
+    from .postgis import PostGIS
+except ImportError:
+    PostGIS = None
+
+
 #==============================================================================
 # Cartographer Factory
 #==============================================================================
-
-class CartographerFactory(object):
+class _CartographerFactory(object):
 
     CLASS_REGISTRY = dict(mapnik=Mapnik,
-
+                          postgis=PostGIS,
                           )
 
     def __call__(self, prototype, **params):
-        klass = self.CLASS_REGISTRY.get(prototype, None)
-        if klass is None:
-            raise Exception('Unknown cartographer type "%s"' % prototype)
+        creator = self.CLASS_REGISTRY.get(prototype, None)
+        if creator is None:
+            raise Exception('Unknown cartographer "%s"' % prototype)
 
-        return klass(**params)
+        return creator(**params)
+
+CartographerFactory = _CartographerFactory()
 
 
-def create_cartographer(prototype, **params):
-    """ Create a cartographer """
-    return CartographerFactory()(prototype, **params)
+#==============================================================================
+# GDAL Processor Factory
+#==============================================================================
+class _GDALProcessorFactory(object):
+
+    CLASS_REGISTRY = dict(hillshading=GDALHillShading,
+                          colorrelief=GDALColorRelief,
+                          rastertopng=GDALRasterToPNG,
+                          setmetadata=GDALRasterMetaData,
+                          warp=GDALWarper,
+                          )
+
+    def __call__(self, prototype, **params):
+        creator = self.CLASS_REGISTRY.get(prototype, None)
+        if creator is None:
+            raise Exception('Unknown cartographer "%s"' % prototype)
+
+        return creator(**params)
+
+GDALProcessorFactory = _GDALProcessorFactory()

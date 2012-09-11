@@ -6,7 +6,6 @@ Created on Sep 10, 2012
 import unittest
 from mason.core import Pyramid, Format, MetaTile
 from mason.renderer import MetaTileProcessorFactory
-from mason.cartographer import create_gdal_processor
 
 
 class MetaTileProcessorTest(unittest.TestCase):

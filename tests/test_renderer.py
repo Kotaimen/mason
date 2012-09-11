@@ -6,7 +6,6 @@ Created on Sep 10, 2012
 import os
 import unittest
 from mason.core import Pyramid, Format, Metadata, MetaTile
-from mason.cartographer import create_cartographer, create_gdal_processor
 from mason.tilestorage import TileStorageFactory
 from mason.renderer import (MetaTileDataSourceFactory,
                             MetaTileProcessorFactory,

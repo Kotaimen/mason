@@ -5,7 +5,7 @@ MetaTile renderer factory
 Created on Sep 10, 2012
 @author: ray
 '''
-from ..cartographer import create_cartographer, create_gdal_processor
+from ..cartographer import CartographerFactory, GDALProcessorFactory
 from .datasource import CartographerMetaTileDataSource
 from .processor import GDALMetaTileProcessor
 from .composer import ImageMagicMetaTileComposer
@@ -28,12 +28,12 @@ class _Factory(object):
 # DataSource Factory
 #==============================================================================
 def create_carto_mapnik(**params):
-    carto = create_cartographer('mapnik', **params)
+    carto = CartographerFactory('mapnik', **params)
     return CartographerMetaTileDataSource(carto)
 
 
 def create_carto_postgis(**params):
-    carto = create_cartographer('postgis', **params)
+    carto = CartographerFactory('postgis', **params)
     return CartographerMetaTileDataSource(carto)
 
 
@@ -57,27 +57,27 @@ class _MetaTileDataSourceFactory(_Factory):
 # Processor Factory
 #==============================================================================
 def create_gdal_hillshading_processor(**params):
-    processor = create_gdal_processor('hillshading', **params)
+    processor = GDALProcessorFactory('hillshading', **params)
     return GDALMetaTileProcessor(processor)
 
 
 def create_gdal_colorrelief_processor(**params):
-    processor = create_gdal_processor('colorrelief', **params)
+    processor = GDALProcessorFactory('colorrelief', **params)
     return GDALMetaTileProcessor(processor)
 
 
 def create_gdal_rastertopng_processor(**params):
-    processor = create_gdal_processor('rastertopng', **params)
+    processor = GDALProcessorFactory('rastertopng', **params)
     return GDALMetaTileProcessor(processor)
 
 
 def create_gdal_setmetadata_processor(**params):
-    processor = create_gdal_processor('setmetadata', **params)
+    processor = GDALProcessorFactory('setmetadata', **params)
     return GDALMetaTileProcessor(processor)
 
 
 def create_gdal_warp_processor(**params):
-    processor = create_gdal_processor('hillshading', **params)
+    processor = GDALProcessorFactory('warp', **params)
     return GDALMetaTileProcessor(processor)
 
 

@@ -7,9 +7,7 @@ Created on May 2, 2012
 import os
 import io
 import sys
-import threading
 
-from ..core import Format
 from .cartographer import Cartographer
 
 try:
@@ -183,5 +181,3 @@ class Mapnik(Cartographer):
             data = image.tostring(self._image_type)
 
         return io.BytesIO(data)
-
-
