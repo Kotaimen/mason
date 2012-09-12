@@ -92,7 +92,7 @@ class MemcachedTileStorage(TileStorage):
         # Replace key with tile_index
         return dict((key2tile[k], v) for k, v in key2value.iteritems())
 
-    def set_multi(self, tiles):
+    def put_multi(self, tiles):
         keys = list(self._make_key(tile.index) for tile in tiles)
         # Key 2 tile mapping
         key2tile = dict(zip(keys, tiles))
@@ -104,7 +104,7 @@ class MemcachedTileStorage(TileStorage):
         if failed:
             raise MemcachedTileStorageError('%d items not written' % len(failed))
 
-    def del_multi(self, tile_indexes):
+    def delete_multi(self, tile_indexes):
         keys = list(self._make_key(tile_index) for tile_index in tile_indexes)
         self._client.delete_multi(keys)
 

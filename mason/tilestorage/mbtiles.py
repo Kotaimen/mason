@@ -97,7 +97,7 @@ def attach_sqlite_database(filename):
     if not bool(re.match(r'[a-zA-Z0-9_-]', tag)):
         tag = urllib.quote(tag)
     if 'format' in metadata_values:
-        format = Format.from_name(metadata_values['format'])
+        format = Format.from_extension('.' + metadata_values['format'])
     else:
         if tile_data.startswith(b'\x89PNG\r\n\x1a\n'):
             format = Format.from_name('PNG')
@@ -361,40 +361,56 @@ class MBTilesTileStorageWithBackgroundWriter(MBTilesTileStorage):
         self._queue = Queue.Queue(maxsize=self.QUEUE_SIZE)
         self._writer = threading.Thread(target=self.background_writer)
         self._writer.daemon = True
-        print 'starting mbtiles background writer thread...'
+#        print 'starting mbtiles background writer thread...'
         self._writer.start()
 
 
     @staticmethod
     def from_mbtiles(db_filename):
         pyramid, metadata = attach_sqlite_database(db_filename)
-        return MBTilesTileStorage(pyramid, metadata, db_filename)
+        return MBTilesTileStorageWithBackgroundWriter(pyramid, metadata, db_filename)
 
     def put(self, tile):
-        self._queue.put(tile)
+        self._queue.put(('put', tile))
 
     def put_multi(self, tiles):
         if not isinstance(tiles, list):
             tiles = list(tiles)
-        self._queue.put(tiles)
+        self._queue.put(('putm', tiles))
+
+    def delete(self, tile_index):
+        self._queue.put(('del', tile_index))
+
+    def sync(self):
+        self._queue.put(('sync',))
+        self._queue.join()
 
     def background_writer(self):
         batch = list()
         writer = MBTilesTileStorage(self._pyramid, self._metadata, self._database)
         while True:
             item = self._queue.get()
+            action = item[0]
             try:
-                if item is None:
-                    break
-                elif isinstance(item, list):
-                    tiles = item
+                if action in ['close', 'sync']:
+                    if batch:
+                        writer.put_multi(batch)
+                        del batch[:]
+                    if action == 'close':
+                        break
+                elif action == 'putm':
+                    tiles = item[1]
                     batch.extend(tiles)
-                else:
-                    tile = item
+                elif action == 'put':
+                    tile = item[1]
                     batch.append(tile)
+                elif action == 'del':
+                    tile_index = item[1]
+                    writer.delete(tile_index)
+                else:
+                    raise Exception('unknown action %s' % action)
 
                 if len(batch) > self.BATCH_SIZE:
-#                    batch.data
                     writer.put_multi(batch)
                     del batch[:]
 
@@ -403,7 +419,7 @@ class MBTilesTileStorageWithBackgroundWriter(MBTilesTileStorage):
 
     def close(self):
         self._queue.join()
-        self._queue.put(None)
+        self._queue.put(('close',))
         self._writer.join()
         conn = self._get_conn()
         conn.close()

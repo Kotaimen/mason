@@ -102,15 +102,13 @@ class RendererTest(unittest.TestCase):
         renderer = MetaTileRendererFactory(prototype, datasource=datasource)
 
         # storage
-        metadata = Metadata.make_metadata(tag='TestFileSystemTileStorage',
-                                          version='1.0.0.0.0.0')
-        output_dir = os.path.join('output', 'TestFileSystemTileStorageDefault')
-        storage = TileStorageFactory()('filesystem',
-                                       pyramid=pyramid,
-                                       metadata=metadata,
-                                       root=output_dir,
-                                       compress=False,
-                                       simple=False,)
+        metadata = Metadata.make_metadata(tag='TestCachedRenderer')
+        output_dir = os.path.join('output', 'TestCachedRenderer')
+        storage = TileStorageFactory()('metacache',
+                                        pyramid=pyramid,
+                                        metadata=metadata,
+                                        root=output_dir,
+                                        compress=False,)
 
         # cached renderer
         cached_renderer = CachedRenderer(storage, renderer)

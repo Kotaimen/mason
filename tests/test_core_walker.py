@@ -26,7 +26,6 @@ class TestWalker(unittest.TestCase):
 
         for index in walker.walk():
             all_x.append(index.x)
-        print (all_x)
         self.assertEqual(min(all_x), 0)
         self.assertEqual(max(all_x), 28)
 

@@ -66,15 +66,14 @@ KNOWN_FORMATS = {
                    mimetype='image/jpeg',
                    georeferenced='no',
                    ),
-
-    'JPEG': _Format(name='JPG',
-                   driver='JPEG',
-                   type='raster',
-                   extension='.jpg',
-                   mimetype='image/jpeg',
-                   georeferenced='no',
-                   ),
-
+#
+#    'JPEG': _Format(name='JPG',
+#                   driver='JPEG',
+#                   type='raster',
+#                   extension='.jpg',
+#                   mimetype='image/jpeg',
+#                   georeferenced='no',
+#                   ),
 
     'GTIFF': _Format(name='GTIFF',
                      driver='Geo TIFF',
@@ -124,6 +123,14 @@ class Format(object):
     @staticmethod
     def from_name(name):
         return KNOWN_FORMATS[name.upper()]
+
+    @staticmethod
+    def from_extension(extension):
+        for fmt in KNOWN_FORMATS.itervalues():
+            if fmt.extension == extension:
+                return fmt
+        else:
+            raise KeyError(extension)
 
 # Inject formats into class so can use them like Enum
 for k, v in KNOWN_FORMATS.iteritems():
