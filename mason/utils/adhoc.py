@@ -13,8 +13,8 @@ def create_temp_filename(suffix='', prefix='tmp', dir=None):
     """ Create a temporary file name with specified suffix and prefix.
         System temp folder will be used if folder is None.
     """
-    assert isinstance(suffix, str)
-    assert isinstance(prefix, str)
+    assert isinstance(suffix, basestring)
+    assert isinstance(prefix, basestring)
 
     if not dir:
         dir = tempfile.gettempdir()
