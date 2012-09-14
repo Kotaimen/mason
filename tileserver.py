@@ -9,28 +9,38 @@ Created on Sep 9, 2012
 """
 
 import os
+import urllib
 import argparse
 
-from mason.core.pyramid import TileOutOfRange
-from mason.tilestorage import FileSystemTileStorage, MBTilesTileStorage
+from mason import Mason
 from mason.utils import date_time_string
 from flask import Flask, abort
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description='Debug Tile Server',
+def parse_args(args=None):
+    parser = argparse.ArgumentParser(description='Tile Server',
                                      epilog=\
 '''Attaching to a rendered tile storage and serve tile map ''',
-                                     usage='%(prog)s [OPTIONS]',
+                                     usage='%(prog)s STORAGES|RENDERERS [OPTIONS]',
                                      )
 
-    parser.add_argument(dest='storage',
+    parser.add_argument('-s', '--storage',
+                        dest='storages',
                         type=str,
+                        action='append',
                         metavar='STORAGE',
-                        help='''Specify location of the tilestorage, if a directory
-                        is given, a FileSystemTileStorage will be assumed, if a
-                        .mbtiles file is given, MBTilesTileStorage will be
-                        assumed''',)
+                        help='''Specify location of a tile storage to attach to.
+                        if a existing directory is given, a FileSystemTileStorage
+                        will be assumed.  If a filename with .mbtiles extension
+                        is given, a MBTilesTileStorage will be assumed.''',)
+
+#    parser.add_argument('-r', '--renderer',
+#                        dest='renderers',
+#                        type=str,
+#                        action='append',
+#                        metavar='RENDERER',
+#                        help='''Specify location of a renderer configuration
+#                        file.''',)
 
     parser.add_argument('-b', '--bind',
                         dest='bind',
@@ -39,36 +49,13 @@ def parse_args():
                         127.0.0.1:8080
                         ''',)
 
-    parser.add_argument('--access-log',
-                        dest='access_log',
-                        default='access.log',
-                        help='Specify filename of access log',
-                        metavar='FILE',)
+    options = parser.parse_args(args)
 
-    parser.add_argument('--error-log',
-                        dest='error_log',
-                        default='error.log',
-                        help='Specify filename of error log',
-                        metavar='FILE',)
-
-    options = parser.parse_args()
 #    print options
     return options
 
 
-def attach_tilestorage(options):
-    pathname = options.storage
-    if os.path.isdir(pathname):
-        # Assume file system tilestorage
-        storage = FileSystemTileStorage.from_config(pathname)
-    elif pathname.endswith('.mbtiles'):
-        storage = MBTilesTileStorage.from_mbtiles(pathname)
-    else:
-        raise RuntimeError('Unsupported tile storage "%s"' % pathname)
-    return storage
-
-
-def build_app(options, storage):
+def build_app(options):
     app = Flask(__name__)
 
     @app.route('/')
@@ -88,59 +75,74 @@ def build_app(options, storage):
   </body>
 </html>'''
 
-    ext = storage.pyramid.format.extension[1:]
-    mimetype = storage.pyramid.format.mimetype
-    min_level = min(storage.pyramid.levels)
-    max_level = max(storage.pyramid.levels)
-    lon = storage.pyramid.center.lon
-    lat = storage.pyramid.center.lat
-    zoom = storage.pyramid.zoom
-    tag = storage.metadata.tag
 
+    # Create layer manager
+    mason = Mason()
+
+    # Add storages
+    for storage_config in options.storages:
+        mason.add_storage_layer(pathname=storage_config)
+    # Use first layer as base layer
+    baselayer_metadata = mason.get_metadata(mason.get_layers()[0])
+    min_level = min(baselayer_metadata['levels'])
+    max_level = max(baselayer_metadata['levels'])
+    lon = baselayer_metadata['center'][0]
+    lat = baselayer_metadata['center'][1]
+    zoom = baselayer_metadata['zoom']
+
+
+#    storage = mason._layers.values()[0]
+#    print storage
+#    print storage.metadata
+
+#    ext = storage.metadata['format']['extension'][1:]
+#    mimetype = storage.metadata['format']['mimetype']
+
+#    print '=' * 10, storage.metadata['tag']
+#    print tag
 
     @app.route('/tilesvr.js')
     def js():
-        data = u'''var po = org.polymaps;
+        script = u'''var po = org.polymaps;
 var map = po.map();
 map.container(document.getElementById("map").appendChild(po.svg("svg")))
    .center({lat:%(lat)f, lon:%(lon)f})
    .zoomRange([%(min_level)d, %(max_level)d])
-   .zoom(%(zoom)d)
-map.add(
+   .zoom(%(zoom)d);
+''' % dict(lat=lat, lon=lon, min_level=min_level, max_level=max_level, zoom=zoom)
+
+        for layer in mason.get_layers():
+            print 'Addind layer "%s"' % layer
+            metadata = mason.get_metadata(layer)
+            ext = metadata['format']['extension'][1:]
+            tag = urllib.quote(layer)
+            script += u'''map.add(
     po.image()
     .url("../tile/%(tag)s/{Z}/{X}/{Y}.%(ext)s")
     );
-map.add(po.interact())
-   .add(po.drag())
-   .add(po.dblclick())
-   .add(po.wheel().smooth(false))
-   .add(po.compass().pan("none"))
-   .add(po.hash());
-''' % dict(lat=lat, lon=lon, min_level=min_level, max_level=max_level,
-           zoom=zoom, tag=tag, ext=ext)
-        return data, 200, {'Content-Type': 'application/json'}
+        ''' % dict(tag=tag, ext=ext)
+        else:
+            script += u'''map.add(po.interact())
+           .add(po.drag())
+           .add(po.dblclick())
+           .add(po.wheel().smooth(false))
+           .add(po.compass().pan("none"))
+           .add(po.hash());'''
+
+        return script, 200, {'Content-Type': 'application/x-javascript'}
 
     @app.route('/tile/<tag>/<int:z>/<int:x>/<int:y>.<ext>')
     def tile(tag, z, x, y, ext):
-        try:
-            tile_index = storage.pyramid.create_tile_index(z, x, y)
-        except TileOutOfRange:
-            abort(404)
-        tile = storage.get(tile_index)
-        if tile is None:
-            abort(404)
-        data = tile.data
-        mtime = tile.mtime
-
-        return data, 200, {'Content-Type': mimetype,
-                           'Last-Modified': date_time_string(mtime)}
+        tile_data, mimetype, mtime = mason.craft_tile(tag, z, x, y)
+        headers = {'Content-Type': mimetype,
+                   'Last-Modified': date_time_string(mtime)}
+        return tile_data, 200, headers
     return app
 
 
 def main():
     options = parse_args()
-    storage = attach_tilestorage(options)
-    app = build_app(options, storage)
+    app = build_app(options)
     addr, port = tuple(options.bind.split(':'))
     app.run(host=addr, port=int(port), debug=True)
 

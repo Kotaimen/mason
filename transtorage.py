@@ -26,9 +26,7 @@ handler.setLevel(logging.DEBUG)
 #handler.setFormatter(logging.Formatter('%(message)s'))
 logger.addHandler(handler)
 
-from mason.tilestorage import (FileSystemTileStorage,
-                               MBTilesTileStorage,
-                               MBTilesTileStorageWithBackgroundWriter,)
+from mason.tilestorage import create_tilestorage, attach_tilestorage
 from mason.core import Format, Tile
 
 #===============================================================================
@@ -119,6 +117,10 @@ class StorageTransformer(object):
             self._converter = TileConverter()
         else:
             self._converter = converter
+        self._pyramid = None
+        self._metadata = None
+        self._input_storage = None
+        self._output_storage = None
         self._create_input_storage(converter)
         self._create_output_storage(overwrite)
 
@@ -174,7 +176,7 @@ class StorageTransformer(object):
 class FS2MbtilesStorageTransformer(StorageTransformer):
 
     def _create_input_storage(self, converter):
-        self._input_storage = FileSystemTileStorage.from_config(self._input_pathname)
+        self._input_storage = attach_tilestorage(pathname=self._input_pathname)
         self._pyramid = copy.deepcopy(self._input_storage.pyramid)
         self._metadata = copy.deepcopy(self._input_storage.metadata)
         if converter is None:
@@ -195,10 +197,10 @@ class FS2MbtilesStorageTransformer(StorageTransformer):
         logger.debug(self._pyramid.summarize())
         logger.debug('metadata:')
         logger.debug(tuple(self._metadata))
-        self._output_storage = \
-            MBTilesTileStorageWithBackgroundWriter(self._pyramid,
-                                                   self._metadata,
-                                                   self._output_pathname,)
+        self._output_storage = create_tilestorage('mbtilesbw',
+                                                  pyramid=self._pyramid,
+                                                  metadata=self._metadata,
+                                                  database=self._output_pathname,)
 
     def _walk_storage(self):
         rootdir = self._input_pathname
@@ -229,11 +231,12 @@ class FS2SimpleStorageTransformer(FS2MbtilesStorageTransformer):
         logger.debug(self._pyramid.summarize())
         logger.debug('metadata:')
         logger.debug(tuple(self._metadata))
-        self._output_storage = FileSystemTileStorage(pyramid=self._pyramid,
-                                                     metadata=self._metadata,
-                                                     root=self._output_pathname,
-                                                     simple=True,
-                                                     compress=False,)
+        self._output_storage = create_tilestorage('filesystem',
+                                                  pyramid=self._pyramid,
+                                                  metadata=self._metadata,
+                                                  root=self._output_pathname,
+                                                  simple=True,
+                                                  compress=False,)
 
 
 def parse_args():

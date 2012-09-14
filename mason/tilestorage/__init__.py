@@ -1,4 +1,5 @@
 import warnings
+import os
 
 # Create a dictionary containing name->class map, those
 #  can't be imported will be ignored
@@ -35,7 +36,7 @@ class TileStorageFactory(object):
                           mbtilesbw=MBTilesTileStorageWithBackgroundWriter,
                           )
 
-    def __call__(self, prototype, pyramid, metadata, **params):
+    def __call__(self, prototype, pyramid=None, metadata=None, **params):
         try:
             class_prototype = self.CLASS_REGISTRY[prototype]
         except KeyError:
@@ -48,10 +49,24 @@ class TileStorageFactory(object):
         return class_prototype(pyramid, metadata, **params)
 
 
-def create_tilestorage(prototype, tag, **params):
+def create_tilestorage(prototype, pyramid=None, metadata=None, **args):
 
     """ Create a tile storage """
 
-    # TODO: Add usage comments
+    return TileStorageFactory()(prototype, pyramid, metadata, **args)
 
-    return TileStorageFactory()(prototype, tag, **params)
+
+def attach_tilestorage(**args):
+    if 'pathname' in args:
+        pathname = args['pathname']
+        if os.path.isdir(pathname):
+            if not os.path.exists(os.path.join(pathname, FileSystemTileStorage.CONFIG_FILENAME)):
+                RuntimeError('Given directory is not a FileSystemTileStorage')
+            # Assume file system tile storage
+            return FileSystemTileStorage.from_config(pathname)
+        elif pathname.endswith('.mbtiles'):
+            # Assume mbtiles tile storage
+            return MBTilesTileStorage.from_mbtiles(pathname)
+        raise RuntimeError('Invalid tile storage "%s"' % pathname)
+    else:
+        raise RuntimeError("Don't understand tile storage: " % args)

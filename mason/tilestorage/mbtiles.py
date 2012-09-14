@@ -94,15 +94,13 @@ def attach_sqlite_database(filename):
         conn.close()
 
     tag = metadata_values['name']
-    if not bool(re.match(r'[a-zA-Z0-9_-]', tag)):
-        tag = urllib.quote(tag)
     if 'format' in metadata_values:
         format = Format.from_extension('.' + metadata_values['format'])
     else:
         if tile_data.startswith(b'\x89PNG\r\n\x1a\n'):
             format = Format.from_name('PNG')
         elif tile_data.startswith(b'\xff\xd8'):
-            format = Format.from_name('JPEG')
+            format = Format.from_name('JPG')
         else:
             raise RuntimeError('Unknown mbtiles format')
 
