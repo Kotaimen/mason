@@ -5,4 +5,5 @@ from .factory import (MetaTileDataSourceFactory,
                       MetaTileComposerFactory,
                       MetaTileRendererFactory,
                       )
+from .renderer import NullMetaTileRenderer
 from .cacherender import CachedRenderer

@@ -86,14 +86,14 @@ class _MetaTileProcessorFactory(_Factory):
     GDAL_HILLSHADING = 'gdal_hillshading'
     GDAL_COLORRELIEF = 'gdal_colorrelief'
     GDAL_RASTERTOPNG = 'gdal_rastertopng'
-    GDAL_SETMETADATA = 'gdal_rastermetadata'
+    GDAL_FIXMETADATA = 'gdal_fixmetadata'
     GDAL_WARP = 'gdal_warp'
 
     PROCESSOR_REGISTRY = {
                     GDAL_HILLSHADING: create_gdal_hillshading_processor,
                     GDAL_COLORRELIEF: create_gdal_colorrelief_processor,
                     GDAL_RASTERTOPNG: create_gdal_rastertopng_processor,
-                    GDAL_SETMETADATA: create_gdal_setmetadata_processor,
+                    GDAL_FIXMETADATA: create_gdal_setmetadata_processor,
                     GDAL_WARP: create_gdal_warp_processor,
                     }
 
@@ -146,8 +146,8 @@ def create_composite_renderer(**params):
     assert 'composer' in params
     assert 'source_renderers' in params
     composer = params['composer']
-    source_renderer = params['source_renderers']
-    return CompositeMetaTileRenderer(composer, *source_renderer)
+    source_renderers = params['source_renderers']
+    return CompositeMetaTileRenderer(composer, *source_renderers)
 
 
 class _MetaTileRendererFactory(_Factory):

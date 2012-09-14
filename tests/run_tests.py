@@ -15,6 +15,7 @@ from test_cartographer_gdaltools import *
 from test_renderer_datasource import *
 from test_renderer_processor import *
 from test_renderer import *
+from test_config import *
 
 
 
