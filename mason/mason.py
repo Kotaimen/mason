@@ -3,9 +3,64 @@ Created on May 14, 2012
 
 @author: Kotaimen
 '''
+import collections
+
+#===============================================================================
+# Layers
+#===============================================================================
 
 
-class InvalidNamespace(Exception):
+class StorageLayer(object):
+
+    def __init__(self, storage):
+        self._storage = storage
+        metadata = dict()
+        metadata.update(self._storage.pyramid.summarize())
+        metadata.update(self._storage.metadata.make_dict())
+        self._metadata = metadata
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    def get_tile(self, z, x, y):
+        tile_index = self._storage.pyramid.create_tile_index(z, x, y)
+        return self._storage.get(tile_index)
+
+    def render_metatile(self, z, x, y, stride):
+        raise NotImplementedError
+
+    def close(self):
+        self._storage.close()
+
+
+class RendererLayer(object):
+    def __init__(self, renderer):
+        self._renderer = renderer
+        metadata = dict()
+        metadata.update(self._renderer.pyramid.summarize())
+        metadata.update(self._renderer.metadata.make_dict())
+        self._metadata = metadata
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    def get_tile(self, z, x, y):
+        raise NotImplementedError
+
+    def render_metatile(self, z, x, y, stride):
+        raise NotImplementedError
+
+    def close(self):
+        self._renderer.close()
+
+
+#===============================================================================
+# Exceptions
+#===============================================================================
+
+class InvalidLayer(Exception):
     pass
 
 
@@ -15,60 +70,56 @@ class TileNotFound(Exception):
 
 class Mason(object):
 
-    """ The "TileNamespaceManager", create and manage one or more Tile namespaces
+    """ The "TileNamespaceManager", create and manage one or more Tile layers
 
     This is the "facade" class and hides details of tilesource/storage, and is
     supposed be used by server frontend and rendering scripts.
 
-    Usually mason instance is created from configuration file using
-    create_mason_from_config().
     """
 
     def __init__(self):
-        self._namespaces = dict()
+        self._layers = collections.OrderedDict()
 
-    def add_namespace(self, ns):
-        """ Add a namespace to Mason """
-        self._namespaces[ns.tag] = ns
+    def add_storage_layer(self, storage):
+        tag = storage.metadata.tag
+        if tag in self._layers:
+            tag = '%s-%d' % (tag, len(self._layers))
+        self._layers[tag] = StorageLayer(storage)
 
-    def del_namespace(self, tag):
-        """ Remove existing namespace from Mason """
-        del self._namespaces[tag]
+    def add_renderer_layer(self, renderer):
+        raise NotImplementedError
 
-    def get_namespace(self, tag):
-        """ Returns a namespace object """
-        return self._namespaces[tag]
+    def craft_tile(self, tag, z, x, y):
+        """ Craft a tile from renderer or retrive one from tile storage.
 
-    def craft_tile(self, alias, z, x, y):
-        """ Craft a tile from tilesource or retrive one from tile storage.
-
-        Returns a tuple of (data, metatdata).  data is a bytes array of tile
-        data (usually an image), metadata is a dict of key-value pairs.
+        Returns a tuple of (data, mimetype, mtime).
+        data is a bytes array of tile data (usually an image)
+        mimetype is data mimetype
+        mtime is tile modification time
         """
         try:
-            namespace = self._namespaces[alias]
+            layer = self._layers[tag]
         except KeyError:
-            raise InvalidNamespace(alias)
+            raise InvalidLayer(tag)
 
-        tile = namespace.get_tile(z, x, y)
+        tile = layer.get_tile(z, x, y)
         if tile is None:
-            raise TileNotFound('%s/%d/%d/%d' % (alias, z, x, y))
+            raise TileNotFound('%s/%d/%d/%d' % (tag, z, x, y))
 
-        return tile.data, tile.metadata
+        return tile.data, layer.metadata['format']['mimetype'], tile.mtime
 
-    def get_namespaces(self):
-        """ Get a list of tile aliases """
-        return self._namespaces.keys()
+    def craft_metatile(self, tag, z, x, y, stride):
+        raise NotImplementedError
 
-    def get_namespace_metadata(self, alias):
-        """ Get namespace metadata, return empty dict if the namespace
-            does not exist
-        """
+    def get_layers(self):
+        return self._layers.keys()
+
+    def get_metadata(self, tag):
         try:
-            return self._namespaces[alias].metadata
+            return self._layers[tag].metadata
         except KeyError:
             return {}
 
     def close(self):
-        for namespace in self._namespaces.itervalues():
-            namespace.close()
+        for layer in self._layers.itervalues():
+            layer.close()

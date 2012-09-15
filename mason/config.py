@@ -201,8 +201,8 @@ class RenderRoot(object):
 
 class RenderConfigParser(object):
 
-    def __init__(self, overwrite=False):
-        self._overwrite = overwrite
+    def __init__(self, mode='default'):
+        self._mode = mode
 
     def parse(self, config_file):
         global_vars, local_vars = {}, {}
@@ -225,13 +225,24 @@ class RenderConfigParser(object):
         if not renderer_config:
             raise Exception('Renderer Configuration is missing!')
 
-        # get renderer cache configuration
-        renderer_cache_config = dict(overwrite=self._overwrite,)
-
         # create render root
+        mode = self._mode
         render_root = RenderRoot(pyramid_config,
                                  metadata_config,
                                  renderer_config,
-                                 renderer_cache_config)
+                                 mode)
 
         return render_root
+
+
+def create_render_tree_from_config(config_file, mode='default'):
+    """ Create a render tree from given configuration file
+
+    mode can be one of following:
+    - default: write to cache after render
+    - overwrite: render and overwrite any existing cache
+    - readonly: only read from cache
+    - dryrun: always render but does not write to cache
+    """
+    parser = RenderConfigParser(mode)
+    return parser.parse(config_file)

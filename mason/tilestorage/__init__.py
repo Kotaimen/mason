@@ -1,4 +1,5 @@
 import warnings
+import os
 
 # Create a dictionary containing name->class map, those
 #  can't be imported will be ignored
@@ -14,7 +15,6 @@ from .metatilecache import MetaTileCache
 
 try:
     from .memcached import MemcachedTileStorage
-
 except ImportError:
     MemcachedTileStorage = None
 
@@ -35,7 +35,7 @@ class TileStorageFactory(object):
                           mbtilesbw=MBTilesTileStorageWithBackgroundWriter,
                           )
 
-    def __call__(self, prototype, pyramid, metadata, **params):
+    def __call__(self, prototype, pyramid=None, metadata=None, **params):
         try:
             class_prototype = self.CLASS_REGISTRY[prototype]
         except KeyError:
@@ -48,10 +48,22 @@ class TileStorageFactory(object):
         return class_prototype(pyramid, metadata, **params)
 
 
-def create_tilestorage(prototype, tag, **params):
+def create_tilestorage(prototype, pyramid=None, metadata=None, **args):
 
     """ Create a tile storage """
 
-    # TODO: Add usage comments
+    return TileStorageFactory()(prototype, pyramid, metadata, **args)
 
-    return TileStorageFactory()(prototype, tag, **params)
+
+def attach_tilestorage(prototype, **args):
+    if prototype == 'filesystem':
+        root = args['root']
+        assert os.path.isdir(root)
+        if not os.path.exists(os.path.join(root, FileSystemTileStorage.CONFIG_FILENAME)):
+            RuntimeError('Given directory is not a FileSystemTileStorage')
+        # Assume file system tile storage
+        return FileSystemTileStorage.from_config(root)
+    elif prototype == 'mbtiles':
+        database = args['database']
+        return MBTilesTileStorage.from_mbtiles(database)
+    raise RuntimeError("Dont know how to attach to %s:%s" % (prototype, args))
