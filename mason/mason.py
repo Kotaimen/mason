@@ -5,11 +5,13 @@ Created on May 14, 2012
 '''
 import collections
 
-
-from .tilestorage import attach_tilestorage, create_tilestorage
+#===============================================================================
+# Layers
+#===============================================================================
 
 
 class StorageLayer(object):
+
     def __init__(self, storage):
         self._storage = storage
         metadata = dict()
@@ -33,8 +35,30 @@ class StorageLayer(object):
 
 
 class RendererLayer(object):
-    pass
+    def __init__(self, renderer):
+        self._renderer = renderer
+        metadata = dict()
+        metadata.update(self._renderer.pyramid.summarize())
+        metadata.update(self._renderer.metadata.make_dict())
+        self._metadata = metadata
 
+    @property
+    def metadata(self):
+        return self._metadata
+
+    def get_tile(self, z, x, y):
+        raise NotImplementedError
+
+    def render_metatile(self, z, x, y, stride):
+        raise NotImplementedError
+
+    def close(self):
+        self._renderer.close()
+
+
+#===============================================================================
+# Exceptions
+#===============================================================================
 
 class InvalidLayer(Exception):
     pass
@@ -56,14 +80,13 @@ class Mason(object):
     def __init__(self):
         self._layers = collections.OrderedDict()
 
-    def add_storage_layer(self, **args):
-        storage = attach_tilestorage(**args)
+    def add_storage_layer(self, storage):
         tag = storage.metadata.tag
         if tag in self._layers:
             tag = '%s-%d' % (tag, len(self._layers))
         self._layers[tag] = StorageLayer(storage)
 
-    def add_renderer_layer(self, **args):
+    def add_renderer_layer(self, renderer):
         raise NotImplementedError
 
     def craft_tile(self, tag, z, x, y):
@@ -84,6 +107,9 @@ class Mason(object):
             raise TileNotFound('%s/%d/%d/%d' % (tag, z, x, y))
 
         return tile.data, layer.metadata['format']['mimetype'], tile.mtime
+
+    def craft_metatile(self, tag, z, x, y, stride):
+        raise NotImplementedError
 
     def get_layers(self):
         return self._layers.keys()

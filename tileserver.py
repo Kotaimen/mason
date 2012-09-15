@@ -8,33 +8,48 @@ Created on Sep 9, 2012
 @author: Kotaimen
 """
 
+import argparse
 import os
 import urllib
-import argparse
 
-from mason import Mason
-from mason.utils import date_time_string
 from flask import Flask, abort
+from mason import Mason
+from mason.tilestorage import attach_tilestorage
+from mason.utils import date_time_string
+
+
+def add_storage_or_renderer(mason, config):
+    """ Guess given config is a renderer or storage"""
+    if not os.path.exists(config):
+        raise RuntimeError("Layer configuration not found: '%s'" % config)
+    if os.path.isdir(config):
+        mason.add_storage_layer(attach_tilestorage('filesystem', root=config))
+    elif os.path.isfile(config) and config.endswith('.mbtiles'):
+        mason.add_storage_layer(attach_tilestorage('mbtiles', database=config))
+    elif os.path.isfile(config) and config.endswith('.cfg.py'):
+        raise NotImplementedError
+    else:
+        raise RuntimeError("Don't know how to create layer for '%s'" % config)
 
 
 def parse_args(args=None):
-    parser = argparse.ArgumentParser(description='Tile Server',
-                                     epilog=\
-'''Attaching to a rendered tile storage and serve tile map ''',
-                                     usage='%(prog)s STORAGES|RENDERERS [OPTIONS]',
-                                     )
+    parser = argparse.ArgumentParser(\
+        description='Tile Server',
+        epilog='''Create a http tile server to display layers of map tiles. ''',
+        usage='%(prog)s LAYERS [OPTIONS]',)
 
-    parser.add_argument('-s', '--storage',
-                        dest='storages',
+    parser.add_argument('layers',
                         type=str,
-                        action='append',
-                        metavar='STORAGE',
+                        nargs='+',
+                        metavar='LAYERS',
                         help='''Specify location of a tile storage to attach to.
                         if a existing directory is given, a FileSystemTileStorage
                         will be assumed.  If a filename with .mbtiles extension
-                        is given, a MBTilesTileStorage will be assumed.''',)
+                        is given, a MBTilesTileStorage will be assumed.  If
+                        a filename with .cfg.py extension is given, a Renderer
+                        tree configuration will be assumed. ''',)
 
-#    parser.add_argument('-r', '--renderer',
+#    parser.add_argument('-c', '--config',
 #                        dest='renderers',
 #                        type=str,
 #                        action='append',
@@ -46,7 +61,7 @@ def parse_args(args=None):
                         dest='bind',
                         default='127.0.0.1:8080',
                         help='''Specify host:port server listens to, default to
-                        127.0.0.1:8080
+                        %(default)s
                         ''',)
 
     options = parser.parse_args(args)
@@ -75,13 +90,12 @@ def build_app(options):
   </body>
 </html>'''
 
-
     # Create layer manager
     mason = Mason()
 
     # Add storages
-    for storage_config in options.storages:
-        mason.add_storage_layer(pathname=storage_config)
+    for layer_config in options.layers:
+        add_storage_or_renderer(mason, layer_config)
     # Use first layer as base layer
     baselayer_metadata = mason.get_metadata(mason.get_layers()[0])
     min_level = min(baselayer_metadata['levels'])
@@ -89,17 +103,6 @@ def build_app(options):
     lon = baselayer_metadata['center'][0]
     lat = baselayer_metadata['center'][1]
     zoom = baselayer_metadata['zoom']
-
-
-#    storage = mason._layers.values()[0]
-#    print storage
-#    print storage.metadata
-
-#    ext = storage.metadata['format']['extension'][1:]
-#    mimetype = storage.metadata['format']['mimetype']
-
-#    print '=' * 10, storage.metadata['tag']
-#    print tag
 
     @app.route('/tilesvr.js')
     def js():
@@ -137,6 +140,7 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
         headers = {'Content-Type': mimetype,
                    'Last-Modified': date_time_string(mtime)}
         return tile_data, 200, headers
+
     return app
 
 
@@ -144,7 +148,7 @@ def main():
     options = parse_args()
     app = build_app(options)
     addr, port = tuple(options.bind.split(':'))
-    app.run(host=addr, port=int(port), debug=True)
+    app.run(host=addr, port=int(port), debug=False)
 
 if __name__ == '__main__':
     main()

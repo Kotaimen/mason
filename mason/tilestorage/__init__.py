@@ -15,7 +15,6 @@ from .metatilecache import MetaTileCache
 
 try:
     from .memcached import MemcachedTileStorage
-
 except ImportError:
     MemcachedTileStorage = None
 
@@ -56,17 +55,15 @@ def create_tilestorage(prototype, pyramid=None, metadata=None, **args):
     return TileStorageFactory()(prototype, pyramid, metadata, **args)
 
 
-def attach_tilestorage(**args):
-    if 'pathname' in args:
-        pathname = args['pathname']
-        if os.path.isdir(pathname):
-            if not os.path.exists(os.path.join(pathname, FileSystemTileStorage.CONFIG_FILENAME)):
-                RuntimeError('Given directory is not a FileSystemTileStorage')
-            # Assume file system tile storage
-            return FileSystemTileStorage.from_config(pathname)
-        elif pathname.endswith('.mbtiles'):
-            # Assume mbtiles tile storage
-            return MBTilesTileStorage.from_mbtiles(pathname)
-        raise RuntimeError('Invalid tile storage "%s"' % pathname)
-    else:
-        raise RuntimeError("Don't understand tile storage: " % args)
+def attach_tilestorage(prototype, **args):
+    if prototype == 'filesystem':
+        root = args['root']
+        assert os.path.isdir(root)
+        if not os.path.exists(os.path.join(root, FileSystemTileStorage.CONFIG_FILENAME)):
+            RuntimeError('Given directory is not a FileSystemTileStorage')
+        # Assume file system tile storage
+        return FileSystemTileStorage.from_config(root)
+    elif prototype == 'mbtiles':
+        database = args['database']
+        return MBTilesTileStorage.from_mbtiles(database)
+    raise RuntimeError("Dont know how to attach to %s:%s" % (prototype, args))
