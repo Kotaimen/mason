@@ -16,18 +16,13 @@ class TileIndex(object):
 
     """ Coordinate & index of a Tile object """
 
-    def __init__(self, pyramid, z, x, y, buffered=True):
+    def __init__(self, pyramid, z, x, y):
         self._coord = z, x, y
-        if buffered:
-            self._buffer = pyramid.buffer
-        else:
-            self._buffer = 0
+        self._buffer = pyramid.buffer
         self._tile_size = pyramid.tile_size
         # Calculate envelope and serial so Tile can be detached from Pyramid
-        if not buffered:
-            self._envelope = pyramid.calculate_tile_envelope(z, x, y)
-        else:
-            self._envelope = pyramid.calculate_tile_buffered_envelope(z, x, y)
+        self._envelope = pyramid.calculate_tile_envelope(z, x, y)
+        self._buffered_envelope = pyramid.calculate_tile_buffered_envelope(z, x, y)
         self._serial = pyramid.calculate_tile_serial(z, x, y)
 
     @property
@@ -53,6 +48,10 @@ class TileIndex(object):
     @property
     def envelope(self):
         return self._envelope
+
+    @property
+    def buffered_envelope(self):
+        return self._buffered_envelope
 
     @property
     def serial(self):
@@ -155,18 +154,23 @@ class MetaTileIndex(TileIndex):
             for j in range(y, y + stride):
                 # Ignore range check and buffer here
                 index = pyramid.create_tile_index(z, i, j,
-                                                  range_check=False,
-                                                  buffered=False)
+                                                  range_check=False)
                 self._indexes.append(index)
 
-        # Use buffered left_bottom and right_top tile index to calculate envelope
         z, x, y = self._coord
         left_bottom_index = pyramid.create_tile_index(z, x, y + stride - 1)
-        left_bottom = left_bottom_index.envelope.leftbottom
         right_top_index = pyramid.create_tile_index(z, x + stride - 1, y)
+        left_bottom = left_bottom_index.envelope.leftbottom
         right_top = right_top_index.envelope.righttop
         self._envelope = Envelope(left_bottom.lon, left_bottom.lat,
                                   right_top.lon, right_top.lat)
+        buffered_left_bottom = left_bottom_index._buffered_envelope.leftbottom
+        buffered_right_top = right_top_index._buffered_envelope.righttop
+        self._buffered_envelope = Envelope(buffered_left_bottom.lon,
+                                           buffered_left_bottom.lat,
+                                           buffered_right_top.lon,
+                                           buffered_right_top.lat)
+
         # Overwrite tilesize
         self._tile_size = self._tile_size * stride
 

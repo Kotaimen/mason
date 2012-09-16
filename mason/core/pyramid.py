@@ -189,7 +189,7 @@ class Pyramid(object):
 
     # Tile Factory Methods -----------------------------------------------------
 
-    def create_tile_index(self, z, x, y, range_check=True, buffered=True):
+    def create_tile_index(self, z, x, y, range_check=True):
         """ Create TileIndex object using current pyramid projection and range
         constraints """
 
@@ -203,8 +203,7 @@ class Pyramid(object):
         if y < 0 or y >= dim:
             y = y % dim
 
-        tile_index = TileIndex(self, z, x, y, buffered=True)
-        # XXX: Should check unbuffered envelope, but it doesn't matter now...
+        tile_index = TileIndex(self, z, x, y)
         if range_check and not tile_index.envelope.intersects(self._envelope):
             raise TileOutOfRange('Tile out of range')
 

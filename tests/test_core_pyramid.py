@@ -50,7 +50,10 @@ class TestPyramid(unittest.TestCase):
         self.assertEqual(tile.index.tile_size, 256)
 
         self.assertEqual(tile.index.envelope.make_tuple(),
-                               (-90.0, -66.51326044311185, 0.0, 0.0))
+                         (-90.0, -66.51326044311185, 0.0, 0.0))
+
+        self.assertEqual(tile.index.buffered_envelope.make_tuple(),
+                         (-90.0, -66.51326044311185, 0.0, 0.0))
 
         self.assertEqual(tile.data, b'data')
         self.assertEqual(tile.data_hash, hashlib.sha256(b'data').hexdigest())
@@ -71,8 +74,8 @@ class TestPyramid(unittest.TestCase):
         self.assertEqual(tile.index.serial, 11)
         self.assertEqual(tile.index.tile_size, 512)
 
-        self.assertEqual(tile.index.envelope.make_tuple(),
-                               (-5.625, -5.615985819155327, 95.625, 68.65655498475735))
+        self.assertEqual(tile.index.buffered_envelope.make_tuple(),
+                         (-5.625, -5.615985819155327, 95.625, 68.65655498475735))
 
         self.assertEqual(tile.data, b'data2')
         self.assertEqual(tile.data_hash, hashlib.sha256(b'data2').hexdigest())
