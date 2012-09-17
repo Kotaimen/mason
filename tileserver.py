@@ -22,6 +22,9 @@ from mason.tilestorage import attach_tilestorage
 from mason.config import create_render_tree_from_config
 from mason.utils import date_time_string
 
+from mason.mason import InvalidLayer, TileNotFound
+from mason.core.pyramid import TileOutOfRange
+
 
 def add_storage_or_renderer(mason, config):
     """ Guess given config is a renderer or storage"""
@@ -73,11 +76,29 @@ def parse_args(args=None):
                         dest='debug',
                         default=False,
                         action='store_true',
-                        help='''Start the server in debug mode''',)
+                        help='''Enable debug mode, this enables "--reload" and
+                        requests will be processed in single thread (default
+                        is multi-processed).''',)
+
+    parser.add_argument('-r', '--reload',
+                        dest='reload',
+                        default=False,
+                        action='store_true',
+                        help='''Restart server automatically on code and
+                        configuration file change.  You can enable this option
+                        in non-debug mode which is useful for testing render
+                        configurations.''',)
+
+    parser.add_argument('-w', '--workers',
+                        dest='workers',
+                        default=multiprocessing.cpu_count(),
+                        type=int,
+                        help='''Number of worker processes, default is equal
+                        to core number %(default)s''',)
 
     options = parser.parse_args(args)
 
-#    print options
+    print options
     return options
 
 
@@ -147,7 +168,14 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
 
     @app.route('/tile/<tag>/<int:z>/<int:x>/<int:y>.<ext>')
     def tile(tag, z, x, y, ext):
-        tile_data, mimetype, mtime = mason.craft_tile(tag, z, x, y)
+        try:
+            tile_data, mimetype, mtime = mason.craft_tile(tag, z, x, y)
+        except TileNotFound:
+            abort(404)
+        except InvalidLayer:
+            abort(405)
+        except TileOutOfRange:
+            abort(405)
         headers = {'Content-Type': mimetype,
                    'Last-Modified': date_time_string(mtime)}
         return tile_data, 200, headers
@@ -157,16 +185,26 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
 
 def main():
     options = parse_args()
+
     app = build_app(options)
     addr, port = tuple(options.bind.split(':'))
+
     if options.debug:
-        run_simple(addr, int(port), app,
-                   use_reloader=True,
-                   use_debugger=True,
-                   extra_files=options.layers,
-                   threaded=False,
-                   processes=multiprocessing.cpu_count(),)
+        app.debug = True
+
+    use_reloader = (options.reload or options.debug)
+    if use_reloader:
+        config_files = list(fn for fn in options.layers if fn.endswith('.cfg.py'))
     else:
-        run_simple(addr, int(port), app)
+        config_files = []
+
+    run_simple(addr, int(port), app,
+               use_reloader=use_reloader,
+               use_debugger=options.debug,
+               extra_files=config_files,
+               threaded=False,
+               processes=(1 if options.debug else options.workers),
+               )
+
 if __name__ == '__main__':
     main()
