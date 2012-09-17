@@ -3,7 +3,9 @@ Created on May 14, 2012
 
 @author: Kotaimen
 '''
+
 import collections
+from .core import buffer_crop, Format
 
 #===============================================================================
 # Layers
@@ -11,6 +13,8 @@ import collections
 
 
 class StorageLayer(object):
+
+    """ Storage->Layer adapter """
 
     def __init__(self, storage):
         self._storage = storage
@@ -28,6 +32,7 @@ class StorageLayer(object):
         return self._storage.get(tile_index)
 
     def render_metatile(self, z, x, y, stride):
+        # Storage don't support metatile render...
         raise NotImplementedError
 
     def close(self):
@@ -35,6 +40,9 @@ class StorageLayer(object):
 
 
 class RendererLayer(object):
+
+    """ RendererRoot->Layer adapter """
+
     def __init__(self, renderer):
         self._renderer = renderer
         metadata = dict()
@@ -47,10 +55,22 @@ class RendererLayer(object):
         return self._metadata
 
     def get_tile(self, z, x, y):
-        raise NotImplementedError
+        # Render a 1x1 MetaTile
+        metatile_index = self._renderer.pyramid.create_metatile_index(z, x, y, 1)
+        metatile = self._renderer.render(metatile_index)
+        # Crop buffer
+        data = buffer_crop(metatile.data,
+                           metatile.index.buffered_tile_size,
+                           metatile.index.buffer,
+                           metatile.format)
+        # Return a tile object
+        tile = self._renderer.pyramid.create_tile(z, x, y, data,
+                                                  metatile.mtime)
+        return tile
 
     def render_metatile(self, z, x, y, stride):
-        raise NotImplementedError
+        metatile_index = self._renderer.pyramid.create_metatile_index(z, x, y, stride)
+        self._renderer.render(metatile_index)
 
     def close(self):
         self._renderer.close()
@@ -87,7 +107,10 @@ class Mason(object):
         self._layers[tag] = StorageLayer(storage)
 
     def add_renderer_layer(self, renderer):
-        raise NotImplementedError
+        tag = renderer.metadata.tag
+        if tag in self._layers:
+            tag = '%s-%d' % (tag, len(self._layers))
+        self._layers[tag] = RendererLayer(renderer)
 
     def craft_tile(self, tag, z, x, y):
         """ Craft a tile from renderer or retrive one from tile storage.

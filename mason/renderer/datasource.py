@@ -30,7 +30,7 @@ class CartographerMetaTileDataSource(MetaTileDataSource):
 
     def get(self, metatileindex):
         envelope = metatileindex.buffered_envelope.make_tuple()
-        tile_size = metatileindex.tile_size
+        tile_size = metatileindex.buffered_tile_size
         size = (tile_size, tile_size)
 
         try:
