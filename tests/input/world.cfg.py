@@ -1,3 +1,6 @@
+# Sample render configuration file
+# Peek with ./tileserver.py ./tests/input/world.cfg.py
+# Or render with ./tilerenderer.py ./tests/input/world.cfg.py --stride=8 
 
 source1 = dict(\
     name='world1',
@@ -5,17 +8,17 @@ source1 = dict(\
     cache=None,
     theme=r'./tests/input/world.xml',
     image_type='png',
-    buffer_size=0,
-    scale_factor=4,
+    buffer_size=0, # disable mapnik internal buffering
+    scale_factor=1, # make line thicker
     )
-    
-    
+
 ROOT = dict(\
     name='world',
     prototype='root',
-    format='png',
     metadata=dict(tag='world'),
-    pyramid=dict(levels=range(0,9),buffer=0),
+    pyramid=dict(levels=range(0, 9),
+                 format='png',
+                 buffer=32),
     renderer=source1,
-    
     )
+
