@@ -32,12 +32,10 @@ class CartographerMetaTileDataSource(MetaTileDataSource):
         envelope = metatileindex.buffered_envelope.make_tuple()
         tile_size = metatileindex.buffered_tile_size
         size = (tile_size, tile_size)
-
+        data_stream = self._cartographer.render(envelope, size)
         try:
-            data_stream = self._cartographer.render(envelope, size)
             data_format = Format.from_name(self._cartographer.output_format)
             mtime = time.time()
-
             metatile = MetaTile.from_tile_index(metatileindex,
                                                 data_stream.getvalue(),
                                                 data_format,
