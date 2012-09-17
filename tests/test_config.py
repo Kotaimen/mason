@@ -5,7 +5,7 @@ Created on Sep 13, 2012
 @author: ray
 '''
 import unittest
-from mason.config import RenderConfigParser
+from mason.renderconfig import RenderConfigParser
 
 
 class ConfigurationTest(unittest.TestCase):

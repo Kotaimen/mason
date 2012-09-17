@@ -22,6 +22,9 @@ ROOT = dict(\
     pyramid=dict(levels=range(0, 9),
                  format='png',
                  buffer=32),
+    cache=dict(prototype='metacache',
+               root='/tmp/crop',
+               compress=False),
     renderer=source1,
     )
 

@@ -267,6 +267,7 @@ class RenderRoot(object):
                  pyramid_config=None,
                  metadata_config=None,
                  renderer_config=None,
+                 cache_config=None,
                  work_mode='default',
                  ):
 
@@ -276,12 +277,16 @@ class RenderRoot(object):
 
         self._pyramid = Pyramid(**pyramid_config)
         self._metadata = Metadata.make_metadata(**metadata_config)
+        self._work_mode = work_mode
 
         config = RendererConfig.from_dict(renderer_config)
         self._renderer = config.to_renderer(self._pyramid,
                                             self._metadata,
-                                            work_mode
-                                            )
+                                            self._work_mode)
+
+        self._cache = build_cache_storage(cache_config,
+                                          self._pyramid,
+                                          self._metadata)
 
     @property
     def pyramid(self):
@@ -296,7 +301,10 @@ class RenderRoot(object):
         return self._renderer
 
     def render(self, metatile_index):
-        return self._renderer.render(metatile_index)
+        metatile = self._renderer.render(metatile_index)
+        if self._cache and self._work_mode in ['default', 'overwrite']:
+            self._cache.put(metatile)
+        return metatile
 
 
 #==============================================================================
@@ -330,10 +338,13 @@ class RenderConfigParser(object):
         if not renderer_config:
             raise Exception('Renderer Configuration is missing!')
 
+        cache_config = render_config.get('cache', None)
+
         # create render root
         render_root = RenderRoot(pyramid_config,
                                  metadata_config,
                                  renderer_config,
+                                 cache_config,
                                  self._work_mode
                                  )
 
