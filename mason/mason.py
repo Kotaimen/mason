@@ -58,6 +58,9 @@ class RendererLayer(object):
         # Render a 1x1 MetaTile
         metatile_index = self._renderer.pyramid.create_metatile_index(z, x, y, 1)
         metatile = self._renderer.render(metatile_index)
+        if not metatile:
+            return None
+
         # Crop buffer
         data = buffer_crop(metatile.data,
                            metatile.index.buffered_tile_size,
