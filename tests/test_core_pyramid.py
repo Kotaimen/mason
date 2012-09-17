@@ -21,6 +21,7 @@ class TestPyramid(unittest.TestCase):
         pyramid = Pyramid()
         self.assertEqual(pyramid.levels, range(0, 11))
         self.assertEqual(pyramid.tile_size, 256)
+        self.assertEqual(pyramid.buffered_tile_size, 256)
         self.assertEqual(pyramid.buffer, 0)
         self.assertEqual(pyramid.format.name, 'ANY')
         self.assertEqual(pyramid.center.make_tuple(), (121.3, 31.1))
@@ -73,6 +74,7 @@ class TestPyramid(unittest.TestCase):
         self.assertEqual(tile.index.y, 1)
         self.assertEqual(tile.index.serial, 11)
         self.assertEqual(tile.index.tile_size, 512)
+        self.assertEqual(pyramid.buffered_tile_size, 576)
 
         self.assertEqual(tile.index.buffered_envelope.make_tuple(),
                          (-5.625, -5.615985819155327, 95.625, 68.65655498475735))
