@@ -5,7 +5,10 @@
 source1 = dict(\
     name='world1',
     prototype='datasource.mapnik',
-    cache=None,
+    cache=dict(prototype='metacache',
+               root='/tmp/test',
+               compress=False,
+               ),
     theme=r'./tests/input/world.xml',
     image_type='png',
     buffer_size=0, # disable mapnik internal buffering
