@@ -13,7 +13,7 @@ class ConfigurationTest(unittest.TestCase):
     def testParse(self):
         configure_parser = RenderConfigParser()
 
-        test_config = './input/test_config.conf'
+        test_config = './input/test_config.cfg.py'
         render_root = configure_parser.parse(test_config)
         renderer = render_root.renderer
 
