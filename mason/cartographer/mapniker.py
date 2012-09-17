@@ -96,9 +96,9 @@ class Mapnik(Cartographer):
                  scale_factor=1.0,
                  buffer_size=0,
                  image_type='png',
-                 image_parameters=None,
+                 image_parameters={},
                  ):
-        if image_type not in ['png', 'png256', 'jpeg']:
+        if image_type not in ['png', 'png256', 'jpg']:
             raise TypeError('Only support PNG/PNG256/JPEG format.')
 
         self._scale_factor = scale_factor
@@ -119,42 +119,40 @@ class Mapnik(Cartographer):
 
     def _init_image_type(self, image_type, image_parameters):
 
-        if image_parameters:
-            # PNG Parameters --------------------------------------------------
-            if image_type == 'png':
-                image_type += ''
-            elif image_type == 'jpeg': # quality
-                quality = image_parameters.get('quality', None)
-                if not isinstance(quality, int):
-                    raise ValueError('JPEG quality shall be an integer.')
-                if quality < 1 or quality > 100:
-                    raise ValueError('JPEG quality shall be 1-100.')
-                # no need to set quality 85, since it is the default value.
-                if quality != 85:
-                    image_type += '%d' % quality
-            # PNG256 Parameters -----------------------------------------------
-            elif image_type == 'png256': # palette
-                palette = image_parameters.get('palette', None)
-                if palette:
-                    palette_type = os.path.splitext(palette)[1][1:].lower()
-                    if palette_type not in ['rgba', 'rgb', 'act']:
-                        raise ValueError('Palette file should have suffix'
-                            'rgba/rgb/act to indicate its type')
-                    with open(palette, 'rb') as fp:
-                        palette_data = fp.read()
-                    self._palette = mapnik.Palette(palette_data, palette_type)
-                else:
-                    colors = image_parameters.get('colors', None)
-                    if colors:
-                        if colors < 2 or colors > 256:
-                            raise ValueError('Invalid color numbers')
-                        image_type += ':c=%d' % colors
-                # transparency
-                # colors, if palette is specified, colors will take no effect.
-                transparency = image_parameters.get('transparency', None)
-                if transparency in [0, 1, 2]:
-                    image_type += ':t=%d' % transparency
-                    # JPEG Parameters -------------------------------------------------
+        # PNG Parameters --------------------------------------------------
+        if image_type.lower() == 'png':
+            image_type = 'png'
+        elif image_type.lower() == 'jpg': # quality
+            image_type = 'jpeg'
+            quality = image_parameters.get('quality', 85)
+            if not isinstance(quality, int):
+                raise ValueError('JPEG quality shall be an integer.')
+            if quality < 1 or quality > 100:
+                raise ValueError('JPEG quality shall be 1-100.')
+            image_type += '%d' % quality
+        # PNG256 Parameters -----------------------------------------------
+        elif image_type.lower() == 'png256': # palette
+            palette = image_parameters.get('palette', None)
+            if palette:
+                palette_type = os.path.splitext(palette)[1][1:].lower()
+                if palette_type not in ['rgba', 'rgb', 'act']:
+                    raise ValueError('Palette file should have suffix'
+                        'rgba/rgb/act to indicate its type')
+                with open(palette, 'rb') as fp:
+                    palette_data = fp.read()
+                self._palette = mapnik.Palette(palette_data, palette_type)
+            else:
+                colors = image_parameters.get('colors', None)
+                if colors:
+                    if colors < 2 or colors > 256:
+                        raise ValueError('Invalid color numbers')
+                    image_type += ':c=%d' % colors
+            # transparency
+            # colors, if palette is specified, colors will take no effect.
+            transparency = image_parameters.get('transparency', None)
+            if transparency in [0, 1, 2]:
+                image_type += ':t=%d' % transparency
+                # JPEG Parameters -------------------------------------------------
 
         return image_type
 
@@ -205,6 +203,7 @@ class Mapnik(Cartographer):
         if self._palette:
             data = image.tostring(self._image_type, self._palette)
         else:
+            print self._image_type
             data = image.tostring(self._image_type)
 
         return io.BytesIO(data)
