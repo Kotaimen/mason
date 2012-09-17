@@ -84,16 +84,10 @@ def convert(input_data, command, input_format, output_format=None):
 
 
 def buffer_crop(image_data, size, buffer, format):
+    if buffer == 0:
+        return image_data
 
-    width = height = size
-    left, top, right, bottom = buffer, buffer, width - buffer, height - buffer
-    assert (left < width and left < right and left > 0)
-    assert (top < height and top < bottom and top > 0)
-
-    width = right - left
-    height = bottom - top
-
-    command = ['-crop', '%dx%d%+d%+d' % (width, height, left, top), ]
+    command = ['-shave', '%dx%d' % (buffer, buffer), ]
 
     return convert(image_data, command, format)
 

@@ -12,9 +12,14 @@ import argparse
 import os
 import urllib
 
+import multiprocessing
+
 from flask import Flask, abort
+from werkzeug.serving import run_simple
+
 from mason import Mason
 from mason.tilestorage import attach_tilestorage
+from mason.config import create_render_tree_from_config
 from mason.utils import date_time_string
 
 
@@ -26,8 +31,8 @@ def add_storage_or_renderer(mason, config):
         mason.add_storage_layer(attach_tilestorage('filesystem', root=config))
     elif os.path.isfile(config) and config.endswith('.mbtiles'):
         mason.add_storage_layer(attach_tilestorage('mbtiles', database=config))
-    elif os.path.isfile(config) and config.endswith('.cfg.py'):
-        raise NotImplementedError
+    elif os.path.isfile(config) and config.endswith('.cfg'):
+        mason.add_renderer_layer(create_render_tree_from_config(config, mode='default'))
     else:
         raise RuntimeError("Don't know how to create layer for '%s'" % config)
 
@@ -63,6 +68,12 @@ def parse_args(args=None):
                         help='''Specify host:port server listens to, default to
                         %(default)s
                         ''',)
+
+    parser.add_argument('-d', '--debug',
+                        dest='debug',
+                        default=False,
+                        action='store_true',
+                        help='''Start the server in debug mode''',)
 
     options = parser.parse_args(args)
 
@@ -148,7 +159,14 @@ def main():
     options = parse_args()
     app = build_app(options)
     addr, port = tuple(options.bind.split(':'))
-    app.run(host=addr, port=int(port), debug=False)
-
+    if options.debug:
+        run_simple(addr, int(port), app,
+                   use_reloader=True,
+                   use_debugger=True,
+                   extra_files=options.layers,
+                   threaded=False,
+                   processes=multiprocessing.cpu_count(),)
+    else:
+        run_simple(addr, int(port), app)
 if __name__ == '__main__':
     main()

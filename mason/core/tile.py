@@ -61,6 +61,10 @@ class TileIndex(object):
     def tile_size(self):
         return self._tile_size
 
+    @property
+    def buffered_tile_size(self):
+        return self._tile_size + self._buffer * 2
+
     def __hash__(self):
         return hash(self._serial)
 

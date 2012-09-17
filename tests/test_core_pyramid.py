@@ -73,6 +73,7 @@ class TestPyramid(unittest.TestCase):
         self.assertEqual(tile.index.y, 1)
         self.assertEqual(tile.index.serial, 11)
         self.assertEqual(tile.index.tile_size, 512)
+        self.assertEqual(tile.index.buffered_tile_size, 576)
 
         self.assertEqual(tile.index.buffered_envelope.make_tuple(),
                          (-5.625, -5.615985819155327, 95.625, 68.65655498475735))

@@ -5,7 +5,7 @@ Renderer Configuration Parser
 Created on Sep 10, 2012
 @author: ray
 '''
-from .core import Pyramid, Metadata
+from .core import Pyramid, Metadata, Format
 from .renderer import (
                        MetaTileDataSourceFactory,
                        MetaTileProcessorFactory,
@@ -261,33 +261,42 @@ class CompositeRendererConfig(RendererConfig):
 #==============================================================================
 class RenderRoot(object):
 
+    """ Root of the renderer tree """
+
     def __init__(self,
-                 pyramid_config,
-                 metadata_config,
-                 renderer_config,
-                 work_mode,
+                 pyramid_config=None,
+                 metadata_config=None,
+                 renderer_config=None,
+                 work_mode='default',
                  ):
+
+        if 'format' in pyramid_config:
+            format_name = pyramid_config['format']
+            pyramid_config['format'] = Format.from_name(format_name)
+
         self._pyramid = Pyramid(**pyramid_config)
         self._metadata = Metadata.make_metadata(**metadata_config)
 
-        renderer_config = RendererConfig.from_dict(renderer_config)
-        self._renderer = renderer_config.to_renderer(
-                                                     self._pyramid,
-                                                     self._metadata,
-                                                     work_mode
-                                                     )
+        config = RendererConfig.from_dict(renderer_config)
+        self._renderer = config.to_renderer(self._pyramid,
+                                            self._metadata,
+                                            work_mode
+                                            )
 
     @property
     def pyramid(self):
         return self._pyramid
 
     @property
-    def metatile(self):
+    def metadata(self):
         return self._metadata
 
     @property
     def renderer(self):
         return self._renderer
+
+    def render(self, metatile_index):
+        return self._renderer.render(metatile_index)
 
 
 #==============================================================================
@@ -325,7 +334,8 @@ class RenderConfigParser(object):
         render_root = RenderRoot(pyramid_config,
                                  metadata_config,
                                  renderer_config,
-                                 self._work_mode)
+                                 self._work_mode
+                                 )
 
         return render_root
 
@@ -334,7 +344,7 @@ class RenderConfigParser(object):
 # Facade
 #==============================================================================
 def create_render_tree_from_config(config_file, mode='default'):
-    """ Create a render tree from given configuration file
+    """ Create a render tree from given configuration file.
 
     mode can be one of following:
     - default: write to cache after render
