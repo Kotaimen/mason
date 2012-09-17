@@ -34,7 +34,7 @@ def add_storage_or_renderer(mason, config):
         mason.add_storage_layer(attach_tilestorage('filesystem', root=config))
     elif os.path.isfile(config) and config.endswith('.mbtiles'):
         mason.add_storage_layer(attach_tilestorage('mbtiles', database=config))
-    elif os.path.isfile(config) and config.endswith('.cfg'):
+    elif os.path.isfile(config) and config.endswith('.cfg.py'):
         mason.add_renderer_layer(create_render_tree_from_config(config, mode='default'))
     else:
         raise RuntimeError("Don't know how to create layer for '%s'" % config)
@@ -98,7 +98,7 @@ def parse_args(args=None):
 
     options = parser.parse_args(args)
 
-    print options
+#    print options
     return options
 
 
@@ -187,7 +187,7 @@ def main():
     options = parse_args()
 
     app = build_app(options)
-    addr, port = tuple(options.bind.split(':'))
+    host, port = tuple(options.bind.split(':'))
 
     if options.debug:
         app.debug = True
@@ -198,7 +198,7 @@ def main():
     else:
         config_files = []
 
-    run_simple(addr, int(port), app,
+    run_simple(host, int(port), app,
                use_reloader=use_reloader,
                use_debugger=options.debug,
                extra_files=config_files,
