@@ -7,6 +7,7 @@ Created on May 2, 2012
 import os
 import io
 import sys
+import threading
 
 from .cartographer import Cartographer
 
@@ -159,16 +160,42 @@ class Mapnik(Cartographer):
 
     def _init_mapnik(self, projection):
         projection = '+init=%s' % projection.lower()
-        mapper = mapnik.Map(1, 1, projection)
+        mapper = mapnik.Map(32, 32, projection)
         mapnik.load_map(mapper, self._theme)
         self._proj = mapnik.Projection(projection)
         mapper.buffer_size = self._buffer_size
         return mapper
 
-    def render(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
-        bbox = mapnik.Box2d(*envelope)
+    def _fix_envelope(self, envelope):
+        # HACK: Mapnik project.forward() does not handle coordinate outside
+        #       (-180, 90, 180, 90) range correctly, it will wrap coordinate
+        #       (-181, 0) to (179, 0) before do projection, which cause tile
+        #       near -180/180 with buffer render error
+        # XXX: This probably only works for Mecartor projections...
+        left_bottom = mapnik.Coord(envelope[0], envelope[1])
+        if left_bottom.x < -180.:
+            assert left_bottom.x > -360.
+            plus_180 = mapnik.Coord(180.0, 0)
+            plus_180 = plus_180.forward(self._proj)
+            left_bottom = left_bottom.forward(self._proj)
+            left_bottom.x = -(plus_180.x + (plus_180.x - left_bottom.x))
+        else:
+            left_bottom = left_bottom.forward(self._proj)
 
-        bbox = self._proj.forward(bbox)
+        right_top = mapnik.Coord(envelope[2], envelope[3])
+        if right_top.x > 180.0:
+            assert right_top.x < 360.
+            plus_180 = mapnik.Coord(180.0, 0)
+            plus_180 = plus_180.forward(self._proj)
+            right_top = right_top.forward(self._proj)
+            right_top.x = plus_180.x + plus_180.x + right_top.x
+        else:
+            right_top = right_top.forward(self._proj)
+        bbox = mapnik.Box2d(left_bottom.x, left_bottom.y, right_top.x, right_top.y)
+        return bbox
+
+    def render(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+        bbox = self._fix_envelope(envelope)
         self._map.resize(*size)
         self._map.zoom_to_box(bbox)
 
