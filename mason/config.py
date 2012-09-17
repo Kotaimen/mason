@@ -24,13 +24,13 @@ class RendererConfig(object):
         self._pyramid = pyramid
         self._metadata = metadata
 
-        self._name = config.pop('name', '')
+        self._name = config.pop('name', None)
         if not self._name:
-            raise Exception('Renderer name is missing!')
+            raise Exception('renderer name is missing or invalid!')
 
         self._prototype = config.pop('prototype', None)
         if not self._prototype:
-            raise Exception('Renderer prototype is missing!')
+            raise Exception('renderer prototype is missing or invalid!')
 
         self._sources = config.pop('sources', tuple())
         self._cache = config.pop('cache', None)
@@ -63,11 +63,15 @@ class DataSourceRendererConfig(RendererConfig):
 
     def __init__(self, config, pyramid, metadata):
         RendererConfig.__init__(self, config, pyramid, metadata)
-        assert self._prototype in self.RENDERER_REGISTRY
-        assert not self._sources
+        if self._prototype not in self.RENDERER_REGISTRY:
+            raise ValueError('unknown datasource prototype %s' \
+                             % self._prototype)
+        if self._sources:
+            raise ValueError("datasource renderer don't need source config.")
 
         if self._prototype == 'datasource.storage':
-            assert self._cache is not None
+            if self._cache is None:
+                raise ValueError('datasource.storage needs cache config.')
 
     def to_renderer(self):
         # datasource
@@ -104,8 +108,11 @@ class ProcessingRendererConfig(RendererConfig):
 
     def __init__(self, config, pyramid, metadata):
         RendererConfig.__init__(self, config, pyramid, metadata)
-        assert self._prototype in self.RENDERER_REGISTRY
-        assert len(self._sources) == 1
+        if self._prototype not in self.RENDERER_REGISTRY:
+            raise ValueError('unknown processing prototype %s' \
+                             % self._prototype)
+        if not len(self._sources) == 1:
+            raise ValueError('processing renderer need one source config.')
 
     def to_renderer(self):
         source_renderer = RendererConfig.from_prototpye(self._sources[0],
@@ -139,8 +146,11 @@ class CompositeRendererConfig(RendererConfig):
 
     def __init__(self, config, pyramid, metadata):
         RendererConfig.__init__(self, config, pyramid, metadata)
-        assert self._prototype in self.RENDERER_REGISTRY
-        assert len(self._sources) != 0
+        if self._prototype not in self.RENDERER_REGISTRY:
+            raise ValueError('unknown composite prototype %s' \
+                             % self._prototype)
+        if not len(self._sources) >= 1:
+            raise ValueError('composite renderer need one or more sources.')
 
     def to_renderer(self):
         source_renderers = list()
@@ -174,16 +184,16 @@ class RenderRoot(object):
                  pyramid_config,
                  metadata_config,
                  renderer_config,
-                 renderer_cache_config=None,
+                 work_mode,
                  ):
         self._pyramid = Pyramid(**pyramid_config)
         self._metadata = Metadata.make_metadata(**metadata_config)
 
-        renderer_config = RendererConfig.from_prototpye(renderer_config,
-                                                         self._pyramid,
-                                                         self._metadata,
-#                                                         renderer_cache_config
-                                                         )
+        renderer_config = RendererConfig.from_prototpye(
+                              renderer_config,
+                              self._pyramid,
+                              self._metadata,
+                              )
         self._renderer = renderer_config.to_renderer()
 
     @property
@@ -201,8 +211,10 @@ class RenderRoot(object):
 
 class RenderConfigParser(object):
 
-    def __init__(self, mode='default'):
-        self._mode = mode
+    def __init__(self, work_mode='default'):
+        if work_mode not in ['default', 'overwrite', 'readonly', 'dryrun']:
+            raise ValueError('Unknown work mode %s' % work_mode)
+        self._work_mode = work_mode
 
     def parse(self, config_file):
         global_vars, local_vars = {}, {}
@@ -226,11 +238,10 @@ class RenderConfigParser(object):
             raise Exception('Renderer Configuration is missing!')
 
         # create render root
-        mode = self._mode
         render_root = RenderRoot(pyramid_config,
                                  metadata_config,
                                  renderer_config,
-                                 mode)
+                                 self._work_mode)
 
         return render_root
 
