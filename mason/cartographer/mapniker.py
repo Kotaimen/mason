@@ -203,7 +203,6 @@ class Mapnik(Cartographer):
         if self._palette:
             data = image.tostring(self._image_type, self._palette)
         else:
-            print self._image_type
             data = image.tostring(self._image_type)
 
         return io.BytesIO(data)

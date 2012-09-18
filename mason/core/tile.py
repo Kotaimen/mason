@@ -186,6 +186,9 @@ class MetaTileIndex(TileIndex):
         """ Get a list of TileIndexes belongs to the MetaTileIndex """
         return self._indexes
 
+    def __repr__(self):
+        return 'MetaTileIndex(%d/%d/%d@%d)' % (self.z, self.x, self.y, self.stride)
+
 
 class MetaTile(Tile):
 
@@ -206,3 +209,6 @@ class MetaTile(Tile):
             mtime = time.time()
         return MetaTile(index, data, fmt, mtime)
 
+    def __repr__(self):
+        return 'MetaTile(%d/%d/%d@%d)' % (self.index.z, self.index.x,
+                                          self.index.y, self.index.stride)

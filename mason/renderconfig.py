@@ -5,7 +5,7 @@ Renderer Configuration Parser
 Created on Sep 10, 2012
 @author: ray
 '''
-from .core import Pyramid, Metadata, Format
+from .core import Pyramid, Metadata, Format, metatile_fission
 from .tilestorage import create_tilestorage
 from .renderer import (DataSourceRendererFactory,
                        ProcessingRendererFactory,
@@ -265,7 +265,8 @@ class RenderRoot(object):
     def render(self, metatile_index):
         metatile = self._renderer.render(metatile_index)
         if self._cache and self._work_mode in ['default', 'overwrite']:
-            self._cache.put(metatile)
+            tiles = metatile_fission(metatile)
+            self._cache.put_multi(tiles)
         return metatile
 
 

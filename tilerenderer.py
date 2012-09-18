@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Parallel Tile Renderer Using MetaTile
+Parallel Tile Renderer
 
 Using process based producer-consumer model thus can be run efficiently
 on very large node.  (Distributed rendering not included, yet, sorry.)
@@ -13,15 +13,19 @@ Created on May 17, 2012
 import argparse
 import multiprocessing, multiprocessing.sharedctypes
 import logging
+import os
 import ctypes
 import time
 
-from mason import create_mason_from_config
-from mason.core import Envelope
-from mason.utils import Timer
+from mason import (__version__ as VERSION,
+                   __author__ as AUTHOR,
+                   create_render_tree_from_config)
+
+#from mason import create_mason_from_config
+from mason.core import Envelope, PyramidWalker
+from mason.utils import Timer, human_size
 
 CPU_COUNT = multiprocessing.cpu_count()
-VERSION = '0.8.0'
 QUEUE_LIMIT = 1024
 
 # Global logger object, init in main()
@@ -39,60 +43,40 @@ class Statics(ctypes.Structure):
 #===============================================================================
 
 
-def metatiles_from_envelope(pyramid, levels, envelope, stride):
-    envlope = Envelope.from_tuple(envelope)
-    proj = pyramid.projector
-
-    for z in levels:
-        # Calculate envelope in tile coordinate
-        left, top = proj.coord2tile(envlope.lefttop, z)
-        right, bottom = proj.coord2tile(envlope.rightbottom, z)
-
-        # Snap top left to nearest MetaTile
-        top -= top % stride
-        left -= left % stride
-
-        # At least generate one MetaTile
-        if right == left:
-            right += 1
-        if top == bottom:
-            bottom += 1
-
-        for x in xrange(left, right + 1, stride):
-            for y in xrange(top, bottom, stride):
-#                print z, x, y, stride
-                yield z, x, y, stride
-
-
-def spawner(queue, statics, namespace, pyramid, levels, envelope, stride):
-    for z, x, y, stride in metatiles_from_envelope(pyramid, levels, envelope,
-                                                   stride):
-#        print 'queue.put',alias, z, x, y, stride
-        queue.put((z, x, y, stride))
+def spawner(queue, statistics, options):
+    renderer = create_render_tree_from_config(options.config, 'readonly')
+    walker = PyramidWalker(renderer.pyramid,
+                           levels=options.levels,
+                           stride=options.stride,
+                           envelope=options.envelope)
+    for index in walker.walk():
+#        print index
+        queue.put((index.z, index.x, index.y, index.stride))
 
 
 #===============================================================================
 # Consumer
 #===============================================================================
 
-def slave(queue, statistics, options):
+def worker(queue, statistics, options):
     setup_logger(options.logfile)
-    mason = create_mason_from_config(options.config, options.mode)
-    namespace = mason.get_namespace(options.alias)
-    while True:
-        job = queue.get()
+    renderer = create_render_tree_from_config(options.config, options.mode)
 
-        if job is None:
-            mason.close()
+    while True:
+        task = queue.get()
+
+        if task is None:
+#            renderer.close()
             return
 
-        z, x, y, stride = job
-        tag = 'MetaTile[%s/%d/%d/%d@%d]' % (options.alias, z, x, y, stride)
-        logger.info('Rendering %s...', tag)
-        with Timer('...%s rendered in %%(time)s' % tag, logger.info, False):
+        z, x, y, stride = task
+        index = renderer.pyramid.create_metatile_index(z, x, y, stride)
+
+        logger.info('Rendering %r...', index)
+        with Timer('...%r rendered in %%(time)s' % index, logger.info, False):
             try:
-                rendered = namespace.render_metatile(z, x, y, stride, logger)
-                if rendered:
+                metatile = renderer.render(index)
+                if metatile:
                     statistics.rendered += 1
                 else:
                     statistics.skipped += 1
@@ -107,30 +91,25 @@ def slave(queue, statistics, options):
 #===============================================================================
 
 
-def boss(options, statistics):
+def monitor(options, statistics):
     logger.info('===== Start Rendering =====')
-    mason = create_mason_from_config(options.config, options.mode)
-    namespace = mason.get_namespace(options.alias)
-    pyramid = namespace.pyramid
+
+    # Task queue
     queue = multiprocessing.JoinableQueue(maxsize=QUEUE_LIMIT)
 
     # Start all workers
     for w in range(options.workers):
-        logging.info('Starting slave #%d' % w)
-        worker = multiprocessing.Process(name='slave#%d' % w,
-                                         target=slave,
-                                         args=(queue, statistics, options)
-                                         )
-
-        worker.daemon = True
-        worker.start()
+        logging.info('Starting worker #%d' % w)
+        process = multiprocessing.Process(name='worker#%d' % w,
+                                          target=worker,
+                                          args=(queue, statistics, options))
+        process.daemon = True
+        process.start()
 
     # Start producer
-    producer = multiprocessing.Process(name='tilespawner',
+    producer = multiprocessing.Process(name='spawner',
                                        target=spawner,
-                                       args=(queue, statistics, namespace, pyramid,
-                                             options.levels, options.envelope,
-                                             options.stride))
+                                       args=(queue, statistics, options,),)
     producer.daemon = True
     producer.start()
 
@@ -154,56 +133,46 @@ def boss(options, statistics):
 
 def parse_args():
 
-    parser = argparse.ArgumentParser(description='''Parallel Tile Renderer''',
-                                     usage='%(prog)s [OPTIONS]',
+    parser = argparse.ArgumentParser(description='''Single Node Tile Renderer''',
+                                     usage='%(prog)s RENDERER_CONFIG [OPTIONS]',
                                      epilog=\
-''' Use --test to some test render, if everything is fine, pick a MetaTile
-stride according to available memory.  You can monitor rendering progress by
-starting a readonly tile server.  Try different configurations before start
-a large render, and monitor to memory/disk usage.   Remember if you render the
-globe down to level 20 contain zillions of tiles, literally!
+'''Render tiles concurrently on a single node use process based
+producer->queue->consumer model. Note: if you render the entire globe
+down to level 20, there will be zillions of tiles, literally!
+(Distributed render system is left for readers as a home exercise ).
 '''
                                     )
 
-    parser.add_argument('-c', '--config',
-                        dest='config',
-                        default='tileserver.cfg.py',
-                        help='''Specify location of the namespace config file, default
+    parser.add_argument('config',
+                        default='renderer.cfg.py',
+                        help='''Specify location of render config file, default
                         is tileserver.cfg.py in current script directory, config
                         format is same as tileserver.''',
                         metavar='FILE',
                        )
 
-    parser.add_argument('-a', '--alias',
-                        dest='alias',
-                        default='',
-                        help='''Alias of tile namespace to render, must be present in the
-                        config file, by default, the first namespace found in the config
-                        will be used.'''
-                       )
-
     parser.add_argument('-e', '--envelope',
                         dest='envelope',
                         default='',
-                        help='''Envelope to render specify in left,bottom,right,top
-                        in layer CRS, by default, envelope in layer config will
-                        be used.'''
+                        help='''Envelope to render specify in
+                        left,bottom,right,top in layer CRS, by default, envelope
+                        in layer configuration will be used.'''
                        )
 
     parser.add_argument('-l', '--levels',
                         dest='levels',
                         default='',
-                        help='''Tile layers to render as a list: (eg:1,2,3), by default
-                        levels in layer config will be used'''
+                        help='''Tile layers to render as a list: (eg:1,2,3), by
+                        default levels in renderer config will be used'''
                         )
 
     parser.add_argument('-s', '--metatile-stride',
                         dest='stride',
                         default=1,
                         type=int,
-                        help='''Stride of MetaTile, which is minim render units, must be
-                        power of 2.  Larger value takes more memory while rendering,
-                        default value is 4.
+                        help='''Stride of MetaTile, must be power of 2.  MetaTile
+                        increases render speed at the expense higher of memory
+                        usage. Default value is %(default)s.
                         '''
                         )
 
@@ -211,7 +180,8 @@ globe down to level 20 contain zillions of tiles, literally!
                        dest='overwrite',
                        default=False,
                        action='store_true',
-                       help='''Overwrite existing tiles without check the storage.''',
+                       help='''Overwrite Metatiles even if they already exists
+                       in cache.''',
                        )
 
     parser.add_argument('-t', '--test',
@@ -238,14 +208,14 @@ globe down to level 20 contain zillions of tiles, literally!
                        metavar='FILE',
                        )
 
-    parser.add_argument('--load-wkt',
-                       dest='wkt',
-                       default='',
-                       help='''Load a MultiPolygon WKT file as render range, try
-                       cover given polygon using as less MetaTile as possible (optional,
-                       not implemented yet, requires python-gdal)''',
-                       metavar='FILE',
-                       )
+#    parser.add_argument('--load-wkt',
+#                       dest='wkt',
+#                       default='',
+#                       help='''Load a MultiPolygon WKT file as render range, try
+#                       cover given polygon using as less MetaTile as possible (optional,
+#                       not implemented yet, requires python-gdal)''',
+#                       metavar='FILE',
+#                       )
 
     options = parser.parse_args()
 
@@ -266,73 +236,68 @@ def setup_logger(log_file, level=logging.DEBUG):
 
 def verify_config(options):
     setup_logger(options.logfile)
+
     logger.info('===== Testing Configuration =====')
 
-    logger.info('Loading config: "%s"', options.config)
-    logger.info('Saving log to: "%s"', options.logfile)
-
-    mason = create_mason_from_config(options.config, 'overwrite')
-    namespaces = mason.get_namespaces()
-
-    logger.info('Config has %d nemspace(s): %r', len(namespaces), namespaces)
-    if not options.alias:
-        options.alias = namespaces[0]
-    logger.info('Rendering namespace: "%s"', options.alias)
-
-    metadata = mason.get_namespace_metadata(options.alias)
-
-    if not options.levels:
-        options.levels = metadata['levels']
-    else:
-        options.levels = list(map(int, options.levels.split(',')))
-    assert all((l in metadata['levels']) for l in options.levels), \
-        'Invalid render levels'
-    logger.info('Rendering level: %r', options.levels)
-
-    if not options.envelope:
-        options.envelope = metadata['envelope']
-    else:
-        options.envelope = tuple(map(float, options.envelope.split(',')))
-    logger.info('Rendering Tiles inside envelope: %s', options.envelope)
-
-    logger.info('Rendering MetaTiles: stride=%d', options.stride)
-    logger.info('Rendering using %d workers with %d cores', options.workers,
-                CPU_COUNT)
+    logger.info('Loading renderer configuration: "%s"', options.config)
+    logger.info('Saving log to: "%s"', os.path.abspath(options.logfile))
 
     if options.overwrite:
         options.mode = 'overwrite'
     else:
-        options.mode = 'readwrite'
-
+        options.mode = 'default'
     logger.info('Rendering mode is "%s"', options.mode)
+
+    renderer = create_render_tree_from_config(options.config, options.mode)
+
+    if not options.levels:
+        options.levels = renderer.pyramid.levels
+    else:
+        options.levels = list(map(int, options.levels.split(',')))
+    assert all((l in renderer.pyramid.levels) for l in options.levels), \
+        'Invalid render levels'
+    logger.info('Rendering level: %r', options.levels)
+
+    if not options.envelope:
+        options.envelope = renderer.pyramid.envelope.make_tuple()
+    else:
+        options.envelope = tuple(map(float, options.envelope.split(',')))
+    logger.info('Rendering envelope: %s', options.envelope)
+
+    logger.info('Rendering using meta tile stride=%d', options.stride)
+    logger.info('Rendering using %d workers on %d cores', options.workers,
+                CPU_COUNT)
 
     logger.info('===== Configuration is OK =====')
 
     logger.info('===== Test Rendering %d Tiles =====' % options.test)
-    namespace = mason.get_namespace(options.alias)
-    gen = metatiles_from_envelope(namespace.pyramid,
-                                  options.levels,
-                                  options.envelope,
-                                  options.stride,
-                                  )
-    for n, (z, x, y, stride) in enumerate(gen):
+
+    walker = PyramidWalker(renderer.pyramid,
+                           levels=options.levels,
+                           stride=options.stride,
+                           envelope=options.envelope)
+
+    for n, index in enumerate(walker.walk()):
         if n >= options.test:
             break
-        tag = 'MetaTile[%s/%d/%d/%d@%d]' % (options.alias, z, x, y, stride)
-        logger.info('Rendering %s...', tag)
-        with Timer('...%s rendered in %%(time)s' % tag, logger.info, False):
-            namespace.render_metatile(z, x, y, stride)
+        logger.info('Rendering %s...', index)
+        with Timer('%s rendered in %%(time)s' % index, logger.info, False):
+            metatile = renderer.render(index)
+
+#    renderer.close()
+
     logger.info('===== Done =====')
 
     return options
 
 
 def main():
-    print '=' * 70
-    print 'Parallel Tile Renderer, please be very patient.'
-    print 'Press CTRL+C to break render process.'
-    print '=' * 70
     options = parse_args()
+
+    print '=' * 70
+    print 'Parallel Tile Renderer (v%s), please be very patient.' % VERSION
+    print 'Press CTRL+C to break render process...'
+    print '=' * 70
     options = verify_config(options)
 
     if options.test > 0:
@@ -344,7 +309,7 @@ def main():
 
     try:
         timer.tic()
-        boss(options, statistics)
+        monitor(options, statistics)
     finally:
         timer.tac()
         print '=' * 70

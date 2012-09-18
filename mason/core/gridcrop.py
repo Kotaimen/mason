@@ -98,7 +98,7 @@ def grid_crop(image_data, stride, size, buffer, format):
     left, top, right, bottom = buffer, buffer, width - buffer, height - buffer
 
     command = [
-            '-crop', '%dx%d%+d%+d' % (width, height, left, top),
+            '-shave', '%dx%d' % (buffer, buffer),
             '-crop', '%dx%d@' % (stride, stride),
             '+repage', '+adjoin',
             ]

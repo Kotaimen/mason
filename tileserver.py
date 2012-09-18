@@ -17,7 +17,7 @@ import multiprocessing
 from flask import Flask, abort
 from werkzeug.serving import run_simple
 
-from mason import Mason
+from mason import Mason, __version__ as VERSION , __author__ as AUTHOR
 from mason.tilestorage import attach_tilestorage
 from mason.renderconfig import create_render_tree_from_config
 from mason.utils import date_time_string
@@ -42,8 +42,11 @@ def add_storage_or_renderer(mason, config, mode):
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser(\
-        description='Tile Server',
-        epilog='''Create a http tile server to display layers of map tiles. ''',
+        description='''Simple Tile Server v%s''' % VERSION,
+        epilog='''Tile server which included a tile map viewer to display
+        layers of map tiles.  Can attach to a rendered storage or render on-the-fly from
+        renderer configuration.
+        ''',
         usage='%(prog)s LAYERS [OPTIONS]',)
 
     parser.add_argument('layers',
@@ -69,7 +72,7 @@ def parse_args(args=None):
                         dest='bind',
                         default='127.0.0.1:8080',
                         help='''Specify host:port server listens to, default to
-                        %(default)s
+                        %(default)s.
                         ''',)
 
     parser.add_argument('-d', '--debug',
@@ -94,17 +97,31 @@ def parse_args(args=None):
                         default=multiprocessing.cpu_count(),
                         type=int,
                         help='''Number of worker processes, default is equal
-                        to core number %(default)s''',)
+                        to core number (%(default)s).''',)
 
     parser.add_argument('-m', '--mode',
                         dest='mode',
-                        default='default',
-                        choices=['default', 'readonly', 'overwrite', 'dryrun'],
+                        default='hybrid',
+                        choices=['hybrid', 'readonly', 'overwrite', 'dryrun',
+                                 'h', 'r', 'o', 'd', ],
                         help='''Specify rendering mode when a renderer
-                        configuration is given.'''
+                        configuration is given, default is "%(default)s", note
+                        "mode" will only work with tile renderer layer.
+                        '''
                         )
 
+    mode2mode = dict(hybrid='default',
+                     h='default',
+                     readonly='readonly',
+                     r='readonly',
+                     overwrite='overwrite',
+                     o='overwrite',
+                     dryrun='dryrun',
+                     d='dryrun')
+
     options = parser.parse_args(args)
+
+    options.mode = mode2mode[options.mode]
 
 #    print options
     return options
@@ -118,7 +135,7 @@ def build_app(options):
         return u'''<!DOCTYPE html>
 <html>
   <head>
-    <title>Mason Tile Server (0.9)</title>
+    <title>Mason Tile Server (v%(version)s)</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1"/>
     <script type="text/javascript" src="static/polymaps.js"></script>
     <style type="text/css">
@@ -128,7 +145,7 @@ def build_app(options):
   <body id="map">
     <script type="text/javascript" src="tilesvr.js"></script>
   </body>
-</html>'''
+</html>''' % {'version': VERSION }
 
     # Create layer manager
     mason = Mason()
