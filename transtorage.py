@@ -176,7 +176,7 @@ class StorageTransformer(object):
 class FS2MbtilesStorageTransformer(StorageTransformer):
 
     def _create_input_storage(self, converter):
-        self._input_storage = attach_tilestorage('filesytem',
+        self._input_storage = attach_tilestorage('filesystem',
                                                  root=self._input_pathname)
         self._pyramid = copy.deepcopy(self._input_storage.pyramid)
         self._metadata = copy.deepcopy(self._input_storage.metadata)
