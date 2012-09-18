@@ -7,7 +7,7 @@ source1 = dict(\
     theme='./input/world.xml',
     image_type='png',
     )
-    
+
 source3 = dict(\
     name='roads',
     prototype='datasource.mapnik',
@@ -56,6 +56,7 @@ composite = dict(\
      prototype='composite.imagemagick',
      sources=(source1, source3),
      command='',
+     format='png',
 )
 
 

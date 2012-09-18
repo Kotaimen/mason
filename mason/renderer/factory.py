@@ -6,6 +6,7 @@ Created on Sep 10, 2012
 @author: ray
 '''
 from ..cartographer import CartographerFactory, GDALProcessorFactory
+from ..composer import ImageMagickComposer
 from ..tilestorage import attach_tilestorage
 from .datasource import (CartographerMetaTileDataSource,
                          StorageMetaTileDataSource
@@ -92,8 +93,8 @@ class _CompositeRendererFactory(object):
 
     def __call__(self, prototype, source_list, **params):
         if prototype in self.COMPOSITE_REGISTRY:
-            # TODO: create composer
-            composer = None
+            # params: format, command
+            composer = ImageMagickComposer(**params)
             metatile_composer = ImageMagicMetaTileComposer(composer)
 
         else:

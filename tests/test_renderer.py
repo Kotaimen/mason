@@ -56,7 +56,7 @@ class RendererTest(unittest.TestCase):
         metatile_index = pyramid.create_metatile_index(3, 2, 2, 2)
 
         # composer
-        params = dict(command='')
+        params = dict(command='$1 $2 $3', format='png')
 
         # renderer
         renderer1 = FakeRenderer()
@@ -67,7 +67,7 @@ class RendererTest(unittest.TestCase):
 
         metatile = renderer.render(metatile_index)
         self.assertIsNotNone(metatile.data)
-        self.assertEqual(metatile.format, Format.ANY)
+        self.assertEqual(metatile.format, Format.PNG)
 
     def testCachedRenderer(self):
         pyramid = Pyramid(tile_size=512, format=Format.PNG)
