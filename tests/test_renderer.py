@@ -7,10 +7,9 @@ import os
 import unittest
 from mason.core import Pyramid, Format, Metadata, MetaTile
 from mason.tilestorage import TileStorageFactory
-from mason.renderer import (MetaTileDataSourceFactory,
-                            MetaTileProcessorFactory,
-                            MetaTileComposerFactory,
-                            MetaTileRendererFactory,
+from mason.renderer import (DataSourceRendererFactory,
+                            ProcessingRendererFactory,
+                            CompositeRendererFactory,
                             CachedRenderer,
                             )
 from mason.renderer.renderer import MetaTileRenderer
@@ -32,14 +31,8 @@ class RendererTest(unittest.TestCase):
         pyramid = Pyramid(tile_size=512)
         metatile_index = pyramid.create_metatile_index(3, 2, 2, 2)
 
-        # data source
-        prototype = MetaTileDataSourceFactory.CARTO_MAPNIK
-        parameters = dict(theme='./input/world.xml', image_type='png')
-        datasource = MetaTileDataSourceFactory(prototype, **parameters)
-
-        # renderer
-        prototype = MetaTileRendererFactory.DATASOURCE_RENDERER
-        renderer = MetaTileRendererFactory(prototype, datasource=datasource)
+        params = dict(theme='./input/world.xml', image_type='png')
+        renderer = DataSourceRendererFactory('mapnik', **params)
 
         metatile = renderer.render(metatile_index)
         self.assertIsNotNone(metatile.data)
@@ -50,16 +43,9 @@ class RendererTest(unittest.TestCase):
         metatile_index = pyramid.create_metatile_index(3, 2, 2, 2)
 
         # processor
-        prototype = MetaTileProcessorFactory.GDAL_HILLSHADING
-        parameters = dict(zfactor=1, scale=111120, azimuth=315, altitude=45)
-        processor = MetaTileProcessorFactory(prototype, **parameters)
-
-        # renderer
-        prototype = MetaTileRendererFactory.PROCESSING_RENDERER
+        params = dict(zfactor=1, scale=111120, azimuth=315, altitude=45)
         source_renderer = FakeRenderer()
-        renderer = MetaTileRendererFactory(prototype,
-                                           processor=processor,
-                                           source_renderer=source_renderer)
+        renderer = ProcessingRendererFactory('hillshading', source_renderer, **params)
 
         metatile = renderer.render(metatile_index)
         self.assertIsNotNone(metatile.data)
@@ -70,19 +56,14 @@ class RendererTest(unittest.TestCase):
         metatile_index = pyramid.create_metatile_index(3, 2, 2, 2)
 
         # composer
-        prototype = MetaTileComposerFactory.IM
-        parameters = dict(command='')
-        composer = MetaTileComposerFactory(prototype, **parameters)
+        params = dict(command='')
 
         # renderer
-        prototype = MetaTileRendererFactory.COMPOSITE_RENDERER
         renderer1 = FakeRenderer()
         renderer2 = FakeRenderer()
         renderer3 = FakeRenderer()
-        source_renderers = [renderer1, renderer2, renderer3]
-        renderer = MetaTileRendererFactory(prototype,
-                                           composer=composer,
-                                           source_renderers=source_renderers)
+        source_list = [renderer1, renderer2, renderer3]
+        renderer = CompositeRendererFactory('imagemagick', source_list, **params)
 
         metatile = renderer.render(metatile_index)
         self.assertIsNotNone(metatile.data)
@@ -92,14 +73,8 @@ class RendererTest(unittest.TestCase):
         pyramid = Pyramid(tile_size=512, format=Format.PNG)
         metatile_index = pyramid.create_metatile_index(3, 2, 2, 2)
 
-        # data source
-        prototype = MetaTileDataSourceFactory.CARTO_MAPNIK
-        parameters = dict(theme='./input/world.xml', image_type='png')
-        datasource = MetaTileDataSourceFactory(prototype, **parameters)
-
-        # renderer
-        prototype = MetaTileRendererFactory.DATASOURCE_RENDERER
-        renderer = MetaTileRendererFactory(prototype, datasource=datasource)
+        params = dict(theme='./input/world.xml', image_type='png')
+        renderer = DataSourceRendererFactory('mapnik', **params)
 
         # storage
         metadata = Metadata.make_metadata(tag='TestCachedRenderer')
