@@ -88,6 +88,10 @@ class Mapnik(Cartographer):
                     1-binary alpha(0 or 255),
                     2-full alpha range
 
+    force_reload
+        reload the xml map every time on render() call, useful when editing
+        map theme file, default is False
+
     """
 
     def __init__(self,
@@ -97,6 +101,7 @@ class Mapnik(Cartographer):
                  buffer_size=0,
                  image_type='png',
                  image_parameters={},
+                 force_reload=False,
                  ):
         if image_type not in ['png', 'png256', 'jpg']:
             raise TypeError('Only support PNG/PNG256/JPEG format.')
@@ -115,6 +120,7 @@ class Mapnik(Cartographer):
         # convert image_type and parameter to mapnik format string
         self._image_type = self._init_image_type(image_type, image_parameters)
         self._proj = None
+        self._force_reload = force_reload
         self._map = self._init_mapnik(projection)
 
     def _init_image_type(self, image_type, image_parameters):
@@ -170,6 +176,7 @@ class Mapnik(Cartographer):
         #       (-181, 0) to (179, 0) before do projection, which cause tile
         #       near -180/180 with buffer render error
         # XXX: This probably only works for Mecartor projections...
+
         left_bottom = mapnik.Coord(envelope[0], envelope[1])
         if left_bottom.x < -180.:
             assert left_bottom.x > -360.
@@ -193,6 +200,11 @@ class Mapnik(Cartographer):
         return bbox
 
     def render(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
+        if self._force_reload:
+            self._map = mapnik.Map(32, 32, self._proj.params())
+            mapnik.load_map(self._map, self._theme)
+            self._map.buffer_size = self._buffer_size
+
         bbox = self._fix_envelope(envelope)
         self._map.resize(*size)
         self._map.zoom_to_box(bbox)
