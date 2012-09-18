@@ -98,13 +98,27 @@ def parse_args(args=None):
 
     parser.add_argument('-m', '--mode',
                         dest='mode',
-                        default='default',
-                        choices=['default', 'readonly', 'overwrite', 'dryrun'],
+                        default='hybrid',
+                        choices=['hybrid', 'readonly', 'overwrite', 'dryrun',
+                                 'h', 'r', 'o', 'd', ],
                         help='''Specify rendering mode when a renderer
-                        configuration is given.'''
+                        configuration is given, default is "%(default)s", note
+                        mode only works with tile renderer layer.
+                        '''
                         )
 
+    mode2mode = dict(hybrid='default',
+                     h='default',
+                     readonly='readonly',
+                     r='readonly',
+                     overwrite='overwrite',
+                     o='overwrite',
+                     dryrun='dryrun',
+                     d='dryrun')
+
     options = parser.parse_args(args)
+
+    options.mode = mode2mode(options.mode)
 
 #    print options
     return options
