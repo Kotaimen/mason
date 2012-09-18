@@ -36,7 +36,9 @@ composite = dict(\
                 compress=False,
                 ),
      sources=(source1, source2),
-     command=''' $1 $2 -blur 12 -compose hardlight -composite''',
+     command=''' 
+     ( $1 -virtual-pixel edge -blur 0x12 -spread 3 +noise gaussian ) 
+     $2 -compose hardlight -composite''',
      format='png',
      )
 

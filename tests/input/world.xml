@@ -4,14 +4,14 @@
 
 <Style name="world_countries" filter-mode="first" >
   <Rule>
-    <LineSymbolizer stroke="#000000" stroke-width="0.1" smooth="50" comp-op="multiply" />
+    <LineSymbolizer stroke="#000000" stroke-width="0.1" smooth="25" comp-op="multiply" />  
     <PolygonSymbolizer fill-opacity="1" fill="#d4d0be" smooth="0.5" />
   </Rule>
 </Style>
 
 <Style name="boundary_sketch" filter-mode="first" >
   <Rule>
-    <LineSymbolizer stroke="#77674f" stroke-width="0.1" smooth="25" comp-op="multiply" />
+    <LineSymbolizer stroke="#77674f" stroke-width="0.1" smooth="50" comp-op="multiply" />
   </Rule>
 </Style>
 
@@ -21,30 +21,10 @@
   </Rule>
 </Style>
 
-
-<Layer name="shadow"
-  srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over"
-  >
+<Layer name="world"
+  srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over">
     <StyleName>shadow</StyleName>
-    <Datasource>
-       <Parameter name="file"><![CDATA[10m-admin-0-countries.shp]]></Parameter>
-       <Parameter name="type"><![CDATA[shape]]></Parameter>
-    </Datasource>
-</Layer>
-
-
-<Layer name="world_countries"
-  srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over">
     <StyleName>world_countries</StyleName>
-    <Datasource>
-       <Parameter name="file"><![CDATA[10m-admin-0-countries.shp]]></Parameter>
-       <Parameter name="type"><![CDATA[shape]]></Parameter>
-    </Datasource>
-</Layer>
-
-
-<Layer name="boundary_sketch"
-  srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over">
     <StyleName>boundary_sketch</StyleName>
     <Datasource>
        <Parameter name="file"><![CDATA[10m-admin-0-countries.shp]]></Parameter>
