@@ -5,7 +5,8 @@ Created on Sep 10, 2012
 '''
 import unittest
 from mason.core import Pyramid, Format, MetaTile
-from mason.renderer import MetaTileProcessorFactory
+from mason.cartographer import GDALProcessorFactory
+from mason.renderer.processor import GDALMetaTileProcessor
 
 
 class MetaTileProcessorTest(unittest.TestCase):
@@ -20,11 +21,12 @@ class MetaTileProcessorTest(unittest.TestCase):
         data_fmt = Format.GTIFF
         metatile = MetaTile.from_tile_index(metatile_index, data, data_fmt, 0)
 
-        prototype = MetaTileProcessorFactory.GDAL_HILLSHADING
-        parameters = dict(zfactor=1, scale=111120, azimuth=315, altitude=45)
-        processor = MetaTileProcessorFactory(prototype, **parameters)
+        params = dict(zfactor=1, scale=111120, azimuth=315, altitude=45)
+        gdaltool = GDALProcessorFactory('hillshading', **params)
 
-        metatile_processed = processor.process(metatile)
+        metatile_processor = GDALMetaTileProcessor(gdaltool)
+        metatile_processed = metatile_processor.process(metatile)
+
         self.assertIsNotNone(metatile_processed.data)
         self.assertNotEqual(metatile_processed.data, metatile.data)
 
