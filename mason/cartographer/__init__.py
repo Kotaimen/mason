@@ -48,7 +48,7 @@ class _GDALProcessorFactory(object):
     CLASS_REGISTRY = dict(hillshading=GDALHillShading,
                           colorrelief=GDALColorRelief,
                           rastertopng=GDALRasterToPNG,
-                          setmetadata=GDALRasterMetaData,
+                          fixmetadata=GDALRasterMetaData,
                           warp=GDALWarper,
                           )
 

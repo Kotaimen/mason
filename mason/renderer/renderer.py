@@ -69,7 +69,7 @@ class CompositeMetaTileRenderer(MetaTileRenderer):
     from a list of other renderers.
     """
 
-    def __init__(self, composer, *source_renderers):
+    def __init__(self, composer, source_renderers):
         assert isinstance(composer, MetaTileComposer)
         assert all(isinstance(s, MetaTileRenderer) for s in source_renderers)
         self._composer = composer

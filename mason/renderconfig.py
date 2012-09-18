@@ -6,15 +6,11 @@ Created on Sep 10, 2012
 @author: ray
 '''
 from .core import Pyramid, Metadata, Format
-from .renderer import (
-                       MetaTileDataSourceFactory,
-                       MetaTileProcessorFactory,
-                       MetaTileComposerFactory,
-                       MetaTileRendererFactory,
-                       CachedRenderer,
-                       NullMetaTileRenderer
-                       )
 from .tilestorage import create_tilestorage
+from .renderer import (DataSourceRendererFactory,
+                       ProcessingRendererFactory,
+                       CompositeRendererFactory,
+                       CachedRenderer)
 
 
 #==============================================================================
@@ -44,7 +40,11 @@ def build_cache_storage(cache_config, pyramid, metadata):
 #==============================================================================
 class RendererConfig(object):
 
-    """ Base class of renderer configuration """
+    """ Base class of renderer configuration
+
+    A renderer configuration should consists of the following fields:
+    name, prototype and should optionally contains fields of sources and cache.
+    """
 
     def __init__(self, renderer_config):
         """ get information """
@@ -67,7 +67,7 @@ class RendererConfig(object):
     @staticmethod
     def from_dict(config):
         """ renderer configuration factory"""
-        prototype, _ = config['prototype'].split('.')
+        prototype = config['prototype'].split('.')[0]
 
         if prototype == 'datasource':
             return DataSourceRendererConfig(config)
@@ -83,8 +83,10 @@ class DataSourceRendererConfig(RendererConfig):
 
     """ DataSource Renderer Configuration
 
-    example:
+    A DataSource Renderer Configuration accepts a dictionary-like config and
+    create a datasrouce renderer according to that config.
 
+    Example:
         {
             'name':         'test',
             'prototype':    'datasource.*****'
@@ -96,38 +98,18 @@ class DataSourceRendererConfig(RendererConfig):
         }
     """
 
-    RENDERER_REGISTRY = \
-        {
-         'datasource.mapnik': MetaTileDataSourceFactory.CARTO_MAPNIK,
-         'datasource.postgis': MetaTileDataSourceFactory.CARTO_POSTGIS,
-         'datasource.storage': None
-        }
-
     def __init__(self, renderer_config):
         RendererConfig.__init__(self, renderer_config)
-
-        # check prototype
-        if self._prototype not in self.RENDERER_REGISTRY:
+        # check prototype and sources
+        self._prototype = self._prototype.split('.')[1]
+        if self._prototype not in DataSourceRendererFactory.DATASOURCE_REGISTRY:
             raise ValueError('unknown datasource %s' % self._prototype)
-
-        if self._prototype == 'datasource.storage' and self._cache is None:
-            raise ValueError('datasource.storage needs cache.')
-
-        # check sources
         if self._sources:
-            raise ValueError("datasource renderer don't need source renderer.")
+            raise ValueError("datasource renderer need no source renderer.")
 
     def to_renderer(self, pyramid, metadata, work_mode):
-        # renderer
-        source_type = self.RENDERER_REGISTRY[self._prototype]
-        if source_type:
-            datasource = MetaTileDataSourceFactory(source_type, **self._params)
-            renderer = MetaTileRendererFactory(
-                               MetaTileRendererFactory.DATASOURCE_RENDERER,
-                               datasource=datasource
-                               )
-        else:
-            renderer = NullMetaTileRenderer
+        # create renderer
+        renderer = DataSourceRendererFactory(self._prototype, **self._params)
 
         # attach cache
         storage = build_cache_storage(self._cache, pyramid, metadata)
@@ -139,8 +121,16 @@ class ProcessingRendererConfig(RendererConfig):
 
     """ Processing Renderer Configuration
 
-    example:
+    A Processing Renderer Configuration accepts a dictionary-like config and
+    create a processing renderer according to that config.
 
+    Source renderer will be recursively created according to the source
+    configuration.
+
+    Only one source config is accepted although it should be wrapped in a
+    tuple.
+
+    Example:
         {
             'name':         'test',
             'prototype':    'processing.*****'
@@ -153,43 +143,24 @@ class ProcessingRendererConfig(RendererConfig):
         }
     """
 
-    RENDERER_REGISTRY = \
-        {
-         'processing.hillshading': MetaTileProcessorFactory.GDAL_HILLSHADING,
-         'processing.colorrelief': MetaTileProcessorFactory.GDAL_COLORRELIEF,
-         'processing.rastertopng': MetaTileProcessorFactory.GDAL_RASTERTOPNG,
-         'processing.fixmetadata': MetaTileProcessorFactory.GDAL_FIXMETADATA,
-         'processing.warp': MetaTileProcessorFactory.GDAL_WARP,
-        }
-
     def __init__(self, renderer_config):
         RendererConfig.__init__(self, renderer_config)
-
-        # check prototype
-        if self._prototype not in self.RENDERER_REGISTRY:
+        # check prototype and sources
+        self._prototype = self._prototype.split('.')[1]
+        if self._prototype not in ProcessingRendererFactory.PROCESSING_REGISTRY:
             raise ValueError('unknown processing  %s' % self._prototype)
-
-        # check sources
         if not len(self._sources) == 1:
             raise ValueError('processing renderer need one source renderer.')
 
     def to_renderer(self, pyramid, metadata, work_mode):
 
-        # processor
-        processor_type = self.RENDERER_REGISTRY[self._prototype]
-        processor = MetaTileProcessorFactory(processor_type, **self._params)
-
         # source renderer
         config = RendererConfig.from_dict(self._sources[0])
         source_renderer = config.to_renderer(pyramid, metadata, work_mode)
 
-        # renderer
-        renderer = MetaTileRendererFactory(
-                       MetaTileRendererFactory.PROCESSING_RENDERER,
-                       processor=processor,
-                       source_renderer=source_renderer,
-                       )
-
+        renderer = ProcessingRendererFactory(self._prototype,
+                                             source_renderer,
+                                             **self._params)
         # attach cache
         storage = build_cache_storage(self._cache, pyramid, metadata)
         renderer = CachedRenderer(storage, renderer, work_mode)
@@ -201,8 +172,10 @@ class CompositeRendererConfig(RendererConfig):
 
     """ Composite Renderer Configuration
 
-    example:
+    A Composite Renderer Configuration accepts a dictionary-like config and
+    create a processing renderer according to that config.
 
+    Example:
         {
             'name':         'test',
             'prototype':    'composite.*****'
@@ -215,19 +188,12 @@ class CompositeRendererConfig(RendererConfig):
         }
     """
 
-    RENDERER_REGISTRY = \
-        {
-         'composite.imagemagick': MetaTileComposerFactory.IM,
-        }
-
     def __init__(self, renderer_config):
         RendererConfig.__init__(self, renderer_config)
-
-        # check prototype
-        if self._prototype not in self.RENDERER_REGISTRY:
+        # check prototype and sources
+        self._prototype = self._prototype.split('.')[1]
+        if self._prototype not in CompositeRendererFactory.COMPOSITE_REGISTRY:
             raise ValueError('unknown composite %s' % self._prototype)
-
-        # check sources
         if not len(self._sources) >= 1:
             raise ValueError('composite renderer need 1+ source renderer.')
 
@@ -241,13 +207,9 @@ class CompositeRendererConfig(RendererConfig):
             source_renderers.append(renderer)
 
         # renderer
-        composer_type = self.RENDERER_REGISTRY[self._prototype]
-        composer = MetaTileComposerFactory(composer_type, **self._params)
-        renderer = MetaTileRendererFactory(
-                       MetaTileRendererFactory.COMPOSITE_RENDERER,
-                       composer=composer,
-                       source_renderers=source_renderers,
-                       )
+        renderer = CompositeRendererFactory(self._prototype,
+                                            source_renderers,
+                                            **self._params)
 
         # attach cache
         storage = build_cache_storage(self._cache, pyramid, metadata)

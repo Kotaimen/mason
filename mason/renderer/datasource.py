@@ -44,3 +44,13 @@ class CartographerMetaTileDataSource(MetaTileDataSource):
             data_stream.close()
 
         return metatile
+
+
+class StorageMetaTileDataSource(MetaTileDataSource):
+
+    def __init__(self, storage):
+        self._storage = storage
+
+    def get(self, metatileindex):
+        metatile = self._storage.get(metatileindex)
+        return metatile
