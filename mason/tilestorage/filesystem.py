@@ -59,7 +59,7 @@ class FileSystemTileStorage(TileStorage):
 
         self._root = root
         if not os.path.exists(self._root):
-            os.mkdir(self._root)
+            os.makedirs(self._root)
 
         self._use_gzip = bool(compress)
         self._simple = simple
