@@ -4,6 +4,7 @@ source1 = dict(\
     cache=dict(prototype='metacache',
                root='/tmp/physical/dem',
                compress=False,
+               data_format='gtiff',
                ),
     server='postgresql://postgres:123456@172.26.183.198:5432/srtm30_new',
     table='srtm30_new',
@@ -15,6 +16,7 @@ hillshading = dict(\
     cache=dict(prototype='metacache',
                root='/tmp/physical/hillshading',
                compress=False,
+               data_format='gtiff'
                ),
     sources=(source1,),
     zfactor=1,
@@ -29,6 +31,7 @@ to_png = dict(\
     cache=dict(prototype='metacache',
                root='/tmp/physical/hillshading_png',
                compress=False,
+               data_format='png'
                ),
     sources=(hillshading,),
     )
@@ -36,7 +39,7 @@ to_png = dict(\
 
 ROOT = dict(\
     metadata=dict(tag='world'),
-    pyramid=dict(levels=range(0, 9),
+    pyramid=dict(levels=range(7, 9),
                  format='png',
                  buffer=32),
     cache=dict(prototype='filesystem',

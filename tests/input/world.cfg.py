@@ -8,6 +8,7 @@ source1 = dict(\
     cache=dict(prototype='metacache',
                root='/tmp/tile/source1',
                compress=False,
+               data_format='png'
                ),
     theme=r'./tests/input/world.xml',
     image_type='png',
@@ -21,6 +22,7 @@ source2 = dict(\
     cache=dict(prototype='metacache',
                root='/tmp/tile/source2',
                compress=False,
+               data_format='png'
                ),
     theme=r'./tests/input/world.xml',
     image_type='png',
