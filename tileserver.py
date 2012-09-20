@@ -172,7 +172,7 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
 ''' % dict(lat=lat, lon=lon, min_level=min_level, max_level=max_level, zoom=zoom)
 
         for layer in mason.get_layers():
-            print 'Addind layer "%s"' % layer
+            print 'Adding layer "%s"' % layer
             metadata = mason.get_metadata(layer)
             ext = metadata['format']['extension'][1:]
             tag = urllib.quote(layer)
