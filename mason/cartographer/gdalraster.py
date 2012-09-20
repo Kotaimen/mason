@@ -6,7 +6,7 @@ Created on Sep 1, 2012
 @author: ray
 '''
 import os
-from ..utils import adhoc
+from ..utils import create_temp_filename
 
 
 class GDALRaster(object):
@@ -65,7 +65,7 @@ class GDALTempFileRaster(GDALRaster):
                  suffix=str(os.getpid())):
         """ create a temporary raster file """
         GDALRaster.__init__(self, data_format=data_format)
-        self._filename = adhoc.create_temp_filename(suffix, prefix)
+        self._filename = create_temp_filename(suffix, prefix)
 
     @property
     def filename(self):
