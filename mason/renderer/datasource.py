@@ -17,6 +17,9 @@ class MetaTileDataSource(object):
     def get(self, metatileindex):
         raise NotImplementedError
 
+    def close(self):
+        pass
+
 
 class CartographerMetaTileDataSource(MetaTileDataSource):
 

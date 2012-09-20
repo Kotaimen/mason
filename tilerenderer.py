@@ -66,7 +66,7 @@ def worker(queue, statistics, options):
         task = queue.get()
 
         if task is None:
-#            renderer.close()
+            renderer.close()
             return
 
         z, x, y, stride = task
@@ -284,7 +284,7 @@ def verify_config(options):
         with Timer('%s rendered in %%(time)s' % index, logger.info, False):
             metatile = renderer.render(index)
 
-#    renderer.close()
+    renderer.close()
 
     logger.info('===== Done =====')
 

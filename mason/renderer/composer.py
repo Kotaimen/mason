@@ -17,6 +17,9 @@ class MetaTileComposer(object):
     def compose(self, metatile_list):
         raise NotImplementedError
 
+    def close(self):
+        pass
+
 
 class ImageMagicMetaTileComposer(MetaTileComposer):
 

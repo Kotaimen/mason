@@ -18,6 +18,9 @@ class MetaTileProcessor(object):
     def process(self, metatile):
         raise NotImplementedError
 
+    def close(self):
+        pass
+
 
 class GDALMetaTileProcessor(MetaTileProcessor):
 

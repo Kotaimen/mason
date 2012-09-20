@@ -24,6 +24,10 @@ class MetaTileRenderer(object):
         """ render a MetaTile, return None if not found """
         raise NotImplementedError
 
+    def close(self):
+        """ clean up resources """
+        pass
+
 
 class DataSourceMetaTileRenderer(MetaTileRenderer):
 
@@ -39,6 +43,9 @@ class DataSourceMetaTileRenderer(MetaTileRenderer):
     def render(self, metatileindex):
         metatile = self._datasource.get(metatileindex)
         return metatile
+
+    def close(self):
+        self._datasource.close()
 
 
 class ProcessingMetaTileRenderer(MetaTileRenderer):
@@ -59,6 +66,10 @@ class ProcessingMetaTileRenderer(MetaTileRenderer):
         metatile = self._source_renderer.render(metatileindex)
         metatile = self._processor.process(metatile)
         return metatile
+
+    def close(self):
+        self._processor.close()
+        self._source_renderer.close()
 
 
 class CompositeMetaTileRenderer(MetaTileRenderer):
@@ -83,6 +94,11 @@ class CompositeMetaTileRenderer(MetaTileRenderer):
 
         metatile = self._composer.compose(metatile_list)
         return metatile
+
+    def close(self):
+        self._composer.close()
+        for source in self._source_renderer_list:
+            source.close()
 
 
 class NullMetaTileRenderer(MetaTileRenderer):

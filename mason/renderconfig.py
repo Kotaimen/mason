@@ -269,6 +269,9 @@ class RenderRoot(object):
             self._cache.put_multi(tiles)
         return metatile
 
+    def close(self):
+        self._renderer.close()
+
 
 #==============================================================================
 # Configuration Parser
