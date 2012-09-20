@@ -4,6 +4,8 @@ Created on Apr 29, 2012
 @author: Kotaimen
 """
 
+import copy
+
 from .tile import TileIndex, Tile, MetaTileIndex, MetaTile
 from .geo import Envelope, Coordinate, create_projection, tile_coordinate_to_serial
 from .format import Format
@@ -186,6 +188,12 @@ class Pyramid(object):
         summary = dict(summary) # copy dict object
         summary['format'] = Format.from_dict(summary['format'])
         return Pyramid(**summary)
+
+    def clone(self, format=None):
+        new_object = copy.deepcopy(self)
+        if format is not None:
+            new_object._format = format
+        return new_object
 
     # Tile Factory Methods -----------------------------------------------------
 

@@ -35,10 +35,10 @@ class CachedRenderer(MetaTileRenderer):
         else:
             # default
             metatile = self._storage.get(metatileindex)
-            if not metatile:
-                metatile = self._renderer.render(metatileindex)
-
             if metatile:
-                self._storage.put(metatile)
+                return metatile
+
+            metatile = self._renderer.render(metatileindex)
+            self._storage.put(metatile)
 
         return metatile

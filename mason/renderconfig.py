@@ -25,6 +25,12 @@ def build_cache_storage(cache_config, pyramid, metadata):
     if not prototype:
         raise ValueError('storage prototype is missing.')
 
+    # inject data format for every storage
+    format_name = cache_config.pop('data_format', None)
+    if format_name:
+        data_format = Format.from_name(format_name)
+        pyramid = pyramid.clone(format=data_format)
+
     storage = create_tilestorage(\
                    prototype,
                    pyramid,
