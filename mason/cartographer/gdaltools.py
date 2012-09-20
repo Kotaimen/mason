@@ -246,40 +246,47 @@ class GDALRasterToPNG(GDALProcessor):
         _subprocess_call(command_list)
 
 
-class GDALRasterMetaData(GDALProcessor):
+class GDALFixMetaData(GDALProcessor):
 
     """ Set GEO meta data to raster
 
-    to_srs:
+    fix_srs:
         EPSG code. eg, 4326.
 
-    to_envelope:
+    fix_envelope:
         a tuple. eg, (minx, miny, maxx, maxy).
 
-    nodata:
+    set_tiled:
+        not implemented
+
+    set_compressed:
+        not implemented
+
+    set_nodata:
         nodata value. eg, -32768.
+
     """
 
-    def __init__(self, to_srs=None,
-                       to_envelope=None,
-                       to_tiled=False,
-                       to_compressed=False,
-                       nodata=None):
+    def __init__(self, fix_srs=None,
+                       fix_envelope=None,
+                       set_tiled=False,
+                       set_compressed=False,
+                       set_nodata=None):
         GDALProcessor.__init__(self)
         self._process_type = 'metadata'
 
         # set parameters
         parameter_list = ['-q', ]
-        if to_srs:
-            assert isinstance(to_srs, int)
-            parameter_list.extend(['-a_srs', 'EPSG:%d' % to_srs])
-        if to_envelope:
-            assert isinstance(to_envelope, tuple) and len(to_envelope) == 4
-            minx, miny, maxx, maxy = map(str, to_envelope)
+        if fix_srs:
+            assert isinstance(fix_srs, int)
+            parameter_list.extend(['-a_srs', 'EPSG:%d' % fix_srs])
+        if fix_envelope:
+            assert isinstance(fix_envelope, tuple) and len(fix_envelope) == 4
+            minx, miny, maxx, maxy = map(str, fix_envelope)
             parameter_list.extend(['-a_ullr', minx, miny, maxx, maxy])
-        if nodata:
-            assert isinstance(nodata, int)
-            parameter_list.extend(['-a_nodata', str(nodata)])
+        if set_nodata:
+            assert isinstance(set_nodata, int)
+            parameter_list.extend(['-a_nodata', str(set_nodata)])
 
         if len(parameter_list) == 1:
             raise Exception('Insufficient parameters')
@@ -297,7 +304,7 @@ class GDALWarper(GDALProcessor):
 
     """ Warp raster from different spatial reference system """
 
-    def __init__(self, dst_epsg, src_epsg=None):
+    def __init__(self, dst_epsg, size=None, src_epsg=None):
         GDALProcessor.__init__(self)
         self._process_type = 'warp'
         assert isinstance(dst_epsg, int)
@@ -320,9 +327,15 @@ class GDALWarper(GDALProcessor):
             assert isinstance(src_epsg, int)
             self._parameter_list.extend(['-s_srs', 'EPSG:%d' % src_epsg])
 
+        if size:
+            assert isinstance(size, tuple)
+            width, height = size
+            assert isinstance(width, int)
+            assert isinstance(height, int)
+            self._parameter_list.extend(['-ts', str(width), str(height), ])
+
     def _do_process(self, source_file, target_file):
         command_list = ['gdalwarp', ]
         command_list.extend(self._parameter_list)
         command_list.extend([source_file, target_file])
         _subprocess_call(command_list)
-

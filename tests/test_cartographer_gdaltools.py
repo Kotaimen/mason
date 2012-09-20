@@ -144,12 +144,12 @@ class TestMetaData(unittest.TestCase):
         set_srs = 4326
         set_envelope = (-180, -90, 180, 90)
         set_nodata = -32768
-        processor = gdaltools.GDALRasterMetaData(to_srs=set_srs,
-                                                 to_envelope=set_envelope,
-                                                 to_tiled=False,
-                                                 to_compressed=False,
-                                                 nodata=set_nodata,
-                                                 )
+        processor = gdaltools.GDALFixMetaData(fix_srs=set_srs,
+                                              fix_envelope=set_envelope,
+                                              set_tiled=False,
+                                              set_compressed=False,
+                                              set_nodata=set_nodata,
+                                              )
         metadata = processor.convert(test_raster)
         save_raster_file(self._output_filename, metadata)
 

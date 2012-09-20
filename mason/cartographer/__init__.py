@@ -2,7 +2,7 @@ from .gdalraster import GDALRaster
 from .gdaltools import (GDALHillShading,
                         GDALColorRelief,
                         GDALRasterToPNG,
-                        GDALRasterMetaData,
+                        GDALFixMetaData,
                         GDALWarper,
                         )
 
@@ -48,7 +48,7 @@ class _GDALProcessorFactory(object):
     CLASS_REGISTRY = dict(hillshading=GDALHillShading,
                           colorrelief=GDALColorRelief,
                           rastertopng=GDALRasterToPNG,
-                          fixmetadata=GDALRasterMetaData,
+                          fixmetadata=GDALFixMetaData,
                           warp=GDALWarper,
                           )
 
