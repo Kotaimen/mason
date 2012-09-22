@@ -26,7 +26,7 @@ from mason.mason import InvalidLayer, TileNotFound
 from mason.core.pyramid import TileOutOfRange
 
 
-def add_storage_or_renderer(mason, config, mode):
+def add_storage_or_renderer(mason, config, option):
     """ Guess given config is a renderer or storage"""
     if not os.path.exists(config):
         raise RuntimeError("Layer configuration not found: '%s'" % config)
@@ -35,7 +35,7 @@ def add_storage_or_renderer(mason, config, mode):
     elif os.path.isfile(config) and config.endswith('.mbtiles'):
         mason.add_storage_layer(attach_tilestorage('mbtiles', database=config))
     elif os.path.isfile(config) and config.endswith('.cfg.py'):
-        mason.add_renderer_layer(create_render_tree_from_config(config, mode=mode))
+        mason.add_renderer_layer(create_render_tree_from_config(config, option=option))
     else:
         raise RuntimeError("Don't know how to create layer for '%s'" % config)
 
@@ -152,7 +152,9 @@ def build_app(options):
 
     # Add storages
     for layer_config in options.layers:
-        add_storage_or_renderer(mason, layer_config, options.mode)
+        layer_option = dict(mode=options.mode,
+                            reload=options.reload)
+        add_storage_or_renderer(mason, layer_config, layer_option)
     # Use first layer as base layer
     baselayer_metadata = mason.get_metadata(mason.get_layers()[0])
     min_level = min(baselayer_metadata['levels'])

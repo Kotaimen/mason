@@ -5,6 +5,7 @@ Renderer Configuration Parser
 Created on Sep 10, 2012
 @author: ray
 '''
+import heapq
 from .core import Pyramid, Metadata, Format, metatile_fission
 from .tilestorage import create_tilestorage
 from .renderer import (DataSourceRendererFactory,
@@ -284,10 +285,18 @@ class RenderRoot(object):
 #==============================================================================
 class RenderConfigParser(object):
 
-    def __init__(self, work_mode='default'):
-        if work_mode not in ['default', 'overwrite', 'readonly', 'dryrun']:
+    def __init__(self, option=dict()):
+
+        work_mode = option.pop('mode', 'default')
+        if work_mode not in ('default', 'overwrite', 'readonly', 'dryrun'):
             raise ValueError('Unknown work mode %s' % work_mode)
+
+        reload = option.pop('reload', False)
+        if not isinstance(reload, bool):
+            raise ValueError('Unknown reload value %s' % str(reload))
+
         self._work_mode = work_mode
+        self._reload = reload
 
     def parse(self, config_file):
         global_vars, local_vars = {}, {}
@@ -310,6 +319,22 @@ class RenderConfigParser(object):
         if not renderer_config:
             raise Exception('Renderer Configuration is missing!')
 
+        # HACK: inject reload parameter to mapnik renderer
+        # which will force mapnik to reload stylesheet.
+        heap = list()
+        heapq.heappush(heap, renderer_config)
+        while heap:
+            parent = heapq.heappop(heap)
+
+            prototype = parent.get('prototype', None)
+            if prototype == 'datasource.mapnik' and self._reload:
+                parent['force_reload'] = True
+
+            children = parent.get('sources', None)
+            if children:
+                for child in children:
+                    heapq.heappush(heap, child)
+
         cache_config = render_config.get('cache', None)
 
         # create render root
@@ -326,7 +351,7 @@ class RenderConfigParser(object):
 #==============================================================================
 # Facade
 #==============================================================================
-def create_render_tree_from_config(config_file, mode='default'):
+def create_render_tree_from_config(config_file, option):
     """ Create a render tree from given configuration file.
 
     mode can be one of following:
@@ -335,5 +360,5 @@ def create_render_tree_from_config(config_file, mode='default'):
     - readonly: only read from cache
     - dryrun: always render but does not write to cache
     """
-    parser = RenderConfigParser(mode)
+    parser = RenderConfigParser(option)
     return parser.parse(config_file)
