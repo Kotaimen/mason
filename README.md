@@ -1,36 +1,36 @@
 Mason
 =====
 
-Another map tile library reinvented
+Another map tile library reinvented.
 
-Mason is a tile based map library implemented in python, which offers
-a simpler way to rendering, storing and managing map tiles, including
-raster images and vector data.
+Mason is a tile map library implemented in python, which helps designing map themes 
+and renendering tiles.
+Check samples at Mapbox: http://tiles.mapbox.com/kotaimen.
 
 Similar wheels:
 *  TileCache (http://tilecache.org)
 *  TileStatche (http://tilestache.org)
 
-Reinvented the wheel because we need the extra power to render even more beautiful maps.
-
-Version 0.8.0
+Version 0.9.0
 
 Features
 --------
+
+Feature:
 * Render, storage, manage map tiles.
-* Supports Mapnik2.1 as map renderer, PostGIS2.0 as raster/geometry data source.
-* Uses ImageMagick as image post processing engine.
+* Mapnik2.1 as map renderer, PostGIS2.0 as raster/geometry data source.
+* ImageMagick as image post processing engine.
 * Simple render tools.
-* Built in deployable tile server
+* Built in tile server
+* Explicit buffering to overcoming postgis/mapnik2 buffer artifiacts 
 
 Renderers:
 * Topographic map via Mapnik2
 * Shaded relief map via PostGIS2.0, GDAL1.9
-* Post processing using ImageMagick
+* Post processing/composer using ImageMagick
 
 Storage:
 * File system
-* Memcached
 * MBtiles (sqlite3)
 
 Suggested Tools
@@ -42,26 +42,20 @@ Suggested Tools
 
 Dependency
 ----------
-Python2.7+ is required, Pypy1.8 is also supported for servign static tiles only.
-There is no support for python3 yet, but we will port it to py3k in the future.
+Python2.7+ is required (no support for python3 yet)
 
-Tile server using rendered tiles:
 - Flask
 - python-memcached (not strictly required but recommendend)
-
-Render using mapnik
 - mapnik 2.1.0 (2.0+ will work, but with limited function)
 - ImageMagick
-  
-Render shaded relief using gdal
 - GDAL 1.9 (with python binding)
-  
-Composite effects
 - imagemagick
 
 Install
 -------
-TBD...
+Just extract package to anywhere and run `./tileserver.py tests/input.world.cfg.py`.
+This will start a new tile server renders a simple sketchy world map at 
+http://localhost:8080
 
 License
 -------
