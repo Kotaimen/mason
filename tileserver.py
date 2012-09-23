@@ -44,8 +44,8 @@ def parse_args(args=None):
     parser = argparse.ArgumentParser(\
         description='''Simple Tile Server v%s''' % VERSION,
         epilog='''Tile server which included a tile map viewer to display
-        layers of map tiles.  Can attach to a rendered storage or render on-the-fly from
-        renderer configuration.
+        layers of map tiles.  Can attach to a rendered storage or render
+        on-the-fly from renderer configuration.
         ''',
         usage='%(prog)s LAYERS [OPTIONS]',)
 
@@ -90,7 +90,9 @@ def parse_args(args=None):
                         help='''Restart server automatically on code and
                         configuration file change.  You can enable this option
                         in non-debug mode which is useful for testing render
-                        configurations.''',)
+                        configurations.  For mapnik layers, this will also
+                        cause xml theme file reloaded on each render request.
+                        ''',)
 
     parser.add_argument('-w', '--workers',
                         dest='workers',
@@ -106,7 +108,13 @@ def parse_args(args=None):
                                  'h', 'r', 'o', 'd', ],
                         help='''Specify rendering mode when a renderer
                         configuration is given, default is "%(default)s", note
-                        "mode" will only work with tile renderer layer.
+                        "mode" only works with tile renderer layer.
+                        "hybrid": read from cached when possible, otherwise render
+                        tile and write cache.
+                        "readonly": read from cache, never triggers render (404
+                        error if tile not exists).
+                        "overwrite": render tile and overwrite existing cache.
+                        "dryrun": always render but updates cache.
                         '''
                         )
 
