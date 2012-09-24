@@ -25,6 +25,8 @@ class TileStorage(object):
         self._pyramid = pyramid
 
     # Property ----------------------------------------------------------------
+    def __nonzero__(self):
+        return True
 
     @property
     def metadata(self):
@@ -126,6 +128,9 @@ class TileStorage(object):
 class NullTileStorage(TileStorage):
 
     """ A do-nothing TileStorage """
+
+    def __nonzero__(self):
+        return False
 
     def put(self, tile):
         pass
