@@ -354,11 +354,17 @@ class RenderConfigParser(object):
 def create_render_tree_from_config(config_file, option):
     """ Create a render tree from given configuration file.
 
-    mode can be one of following:
-    - default: write to cache after render
-    - overwrite: render and overwrite any existing cache
-    - readonly: only read from cache
-    - dryrun: always render but does not write to cache
+    option:
+        1.mode can be one of following:
+        - default: write to cache after render
+        - overwrite: render and overwrite any existing cache
+        - readonly: only read from cache
+        - dryrun: always render but does not write to cache
+
+        2.reload can be true or false
+        - true: reload configurations, such as mapnik stylesheet.
+        - false: load configurations only at start up.
+
     """
     parser = RenderConfigParser(option)
     return parser.parse(config_file)
