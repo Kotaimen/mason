@@ -38,7 +38,7 @@ class Pyramid(object):
                  format=Format.ANY,
                  envelope=(-180, -85.06, 180, 85.06),
                  center=(121.3, 31.1),
-                 zoom=levels[0],
+                 zoom=None,
                  crs='EPSG:4326',
                  proj='EPSG:3857',
                  ):
@@ -80,6 +80,8 @@ class Pyramid(object):
         assert (tile_size % 256) == 0
         assert buffer >= 0
         assert Format.is_known_format(format)
+
+        zoom = levels[0] if zoom is None else zoom
         assert zoom in levels
 
         self._levels = levels
