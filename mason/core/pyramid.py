@@ -38,7 +38,7 @@ class Pyramid(object):
                  format=Format.ANY,
                  envelope=(-180, -85.06, 180, 85.06),
                  center=(121.3, 31.1),
-                 zoom=7,
+                 zoom=levels[0],
                  crs='EPSG:4326',
                  proj='EPSG:3857',
                  ):
