@@ -102,7 +102,7 @@ class GDALProcessor(object):
 
     def convert(self, raster):
         """ convert the raster """
-        assert raster.data_format is self._accept_format
+        assert raster.data_format == self._accept_format
 
         # input and output rasters
         source_raster = GDALTempFileRaster(data_format=self._accept_format,
