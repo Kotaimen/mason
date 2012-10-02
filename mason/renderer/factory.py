@@ -33,11 +33,7 @@ class _DataSourceRendererFactory(object):
     DATASOURCE_REGISTRY = ['mapnik', 'postgis', 'storage']
 
     def __call__(self, prototype, **params):
-        if prototype in self.DATASOURCE_REGISTRY:
-            carto = CartographerFactory(prototype, **params)
-            metatile_datasource = CartographerMetaTileDataSource(carto)
-
-        elif prototype == 'storage':
+        if prototype == 'storage':
             # to avoid using the same parameter name 'prototype'
             prototype = params.pop('storage_type', None)
             if not prototype:
@@ -46,6 +42,9 @@ class _DataSourceRendererFactory(object):
 
             storage = attach_tilestorage(prototype, **params)
             metatile_datasource = StorageMetaTileDataSource(storage)
+        elif prototype in self.DATASOURCE_REGISTRY:
+            carto = CartographerFactory(prototype, **params)
+            metatile_datasource = CartographerMetaTileDataSource(carto)
 
         else:
             raise RuntimeError('Unknown prototype %s' % prototype)

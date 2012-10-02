@@ -63,6 +63,12 @@ def attach_tilestorage(prototype, **args):
             RuntimeError('Given directory is not a FileSystemTileStorage')
         # Assume file system tile storage
         return FileSystemTileStorage.from_config(root)
+    elif prototype == 'metacache':
+        root = args['root']
+        assert os.path.isdir(root)
+        if not os.path.exists(os.path.join(root, FileSystemTileStorage.CONFIG_FILENAME)):
+            RuntimeError('Given directory is not a MetaTileCache')
+        return MetaTileCache.from_config(root)
     elif prototype == 'mbtiles':
         database = args['database']
         return MBTilesTileStorage.from_mbtiles(database)

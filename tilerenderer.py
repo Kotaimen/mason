@@ -248,7 +248,8 @@ def verify_config(options):
         options.mode = 'default'
     logger.info('Rendering mode is "%s"', options.mode)
 
-    renderer = create_render_tree_from_config(options.config, options.mode)
+    renderer = create_render_tree_from_config(options.config,
+                                              {'mode': options.mode})
 
     if not options.levels:
         options.levels = renderer.pyramid.levels

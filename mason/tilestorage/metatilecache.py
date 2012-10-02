@@ -5,7 +5,9 @@ Created on Aug 31, 2012
 '''
 import os
 import gzip
-from ..core import MetaTile, MetaTileIndex, tile_coordiante_to_dirname
+import json
+from ..core import (MetaTile, MetaTileIndex, tile_coordiante_to_dirname,
+                    Pyramid, Metadata)
 
 from .filesystem import FileSystemTileStorage
 
@@ -21,9 +23,25 @@ class MetaTileCache(FileSystemTileStorage):
                  pyramid,
                  metadata,
                  root,
-                 compress=False):
+                 compress=False,
+                 simple=False):
         FileSystemTileStorage.__init__(self, pyramid, metadata, root,
                                        compress=compress, simple=False)
+
+    @staticmethod
+    def from_config(root):
+        config_file = os.path.join(root, FileSystemTileStorage.CONFIG_FILENAME)
+        with open(config_file, 'r') as fp:
+            summary = json.load(fp)
+            return MetaTileCache.from_summary(summary, root)
+
+    @staticmethod
+    def from_summary(summary, root):
+        summary = dict(summary)  # copy dict object
+        summary['root'] = root
+        summary['pyramid'] = Pyramid.from_summary(summary['pyramid'])
+        summary['metadata'] = Metadata.from_dict(summary['metadata'])
+        return MetaTileCache(**summary)
 
     def _make_pathname(self, tile_index):
         assert not self._simple
