@@ -162,8 +162,8 @@ class MetaTileIndex(TileIndex):
                 self._indexes.append(index)
 
         z, x, y = self._coord
-        left_bottom_index = pyramid.create_tile_index(z, x, y + stride - 1)
-        right_top_index = pyramid.create_tile_index(z, x + stride - 1, y)
+        left_bottom_index = pyramid.create_tile_index(z, x, y + stride - 1, range_check=False)
+        right_top_index = pyramid.create_tile_index(z, x + stride - 1, y, range_check=False)
         left_bottom = left_bottom_index.envelope.leftbottom
         right_top = right_top_index.envelope.righttop
         self._envelope = Envelope(left_bottom.lon, left_bottom.lat,
