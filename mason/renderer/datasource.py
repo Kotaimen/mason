@@ -51,9 +51,20 @@ class CartographerMetaTileDataSource(MetaTileDataSource):
 
 class StorageMetaTileDataSource(MetaTileDataSource):
 
-    def __init__(self, storage):
+    def __init__(self, storage, default=None):
+        if default is not None:
+            with open(default, 'rb') as fp:
+                self._default = fp.read()
+        else:
+            self._default = None
         self._storage = storage
 
     def get(self, metatileindex):
         metatile = self._storage.get(metatileindex)
-        return metatile
+        if metatile is None and self._default is not None:
+            return MetaTile.from_tile_index(metatileindex,
+                                            self._default,
+                                            fmt=self._storage.pyramid.format,
+                                            )
+        else:
+            return metatile

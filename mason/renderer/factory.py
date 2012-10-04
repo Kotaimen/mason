@@ -39,9 +39,10 @@ class _DataSourceRendererFactory(object):
             if not prototype:
                 raise RuntimeError('Please provide the storage_type of the '
                 'storage to be attached.')
+            default = params.pop('default', None)
 
             storage = attach_tilestorage(prototype, **params)
-            metatile_datasource = StorageMetaTileDataSource(storage)
+            metatile_datasource = StorageMetaTileDataSource(storage, default)
         elif prototype in self.DATASOURCE_REGISTRY:
             carto = CartographerFactory(prototype, **params)
             metatile_datasource = CartographerMetaTileDataSource(carto)
