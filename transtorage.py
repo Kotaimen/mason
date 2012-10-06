@@ -135,7 +135,10 @@ class StorageTransformer(object):
 
     def translate(self):
         for (z, x, y), image_filename in self._walk_storage():
-            tile_index = self._pyramid.create_tile_index(z, x, y)
+            try:
+                tile_index = self._pyramid.create_tile_index(z, x, y)
+            except Exception: # TileOutOfRange
+                pass
             self._queue.put((tile_index, image_filename))
 
         self._queue.join()
