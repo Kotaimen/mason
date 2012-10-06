@@ -23,11 +23,10 @@ MAPNIK_VERSION = mapnik.mapnik_version() / 100000
 # Automatically add system font directory
 if sys.platform == 'darwin':
     mapnik.register_fonts(r'/Library/Fonts/')
-elif sys.platform == 'linux':
+elif sys.platform == 'linux2':
     mapnik.register_fonts(r'/usr/share/fonts')
 elif sys.platform == 'win32':
     mapnik.register_fonts(r'C:\Windows\Fonts')
-
 #for face in list(mapnik.FontEngine.face_names()):
 #    print face
 
