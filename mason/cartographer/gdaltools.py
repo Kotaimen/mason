@@ -154,7 +154,7 @@ class GDALHillShading(GDALProcessor):
     def __init__(self, zfactor=1, scale=1, altitude=45, azimuth=315):
         GDALProcessor.__init__(self)
         self._process_type = 'hillshading'
-        assert isinstance(zfactor, int)
+        assert isinstance(zfactor, int) or isinstance(zfactor, float)
         assert isinstance(scale, int)
         assert isinstance(altitude, int)
         assert isinstance(azimuth, int)
