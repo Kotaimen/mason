@@ -289,8 +289,10 @@ class RenderRoot(object):
     def render(self, metatile_index):
         metatile = self._renderer.render(metatile_index)
         if self._cache and self._work_mode in ['default', 'overwrite']:
-            tiles = metatile_fission(metatile)
-            self._cache.put_multi(tiles)
+            tile_indexes = metatile_index.fission()
+            if not self._cache.has_all(tile_indexes):
+                tiles = metatile_fission(metatile)
+                self._cache.put_multi(tiles)
         return metatile
 
     def close(self):
