@@ -31,3 +31,6 @@ tests/output/
 
 #server log files
 *.log
+
+#ignore all themes
+themes
