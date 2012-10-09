@@ -79,7 +79,7 @@ def parse_args(args=None):
                         dest='debug',
                         default=False,
                         action='store_true',
-                        help='''Enable debug mode, this enables "--reload" and
+                        help='''Enable debug mode, this diable "--reload" and
                         requests will be processed in single thread (default
                         is multi-processed).''',)
 
@@ -224,10 +224,12 @@ def main():
     app = build_app(options)
     host, port = tuple(options.bind.split(':'))
 
+    use_reloader = options.reload
     if options.debug:
         app.debug = True
+        # debug mode doesn't work with reload option
+        use_reloader = False
 
-    use_reloader = (options.reload or options.debug)
     if use_reloader:
         config_files = list(fn for fn in options.layers if fn.endswith('.cfg.py'))
     else:
