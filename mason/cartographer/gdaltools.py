@@ -313,13 +313,10 @@ class GDALWarper(GDALProcessor):
         self._parameter_list = [
                                 # warp parameters
                                 '-t_srs', 'EPSG:%d' % dst_epsg,
-
                                 # resample method
-                                '-r', 'cubic',
+                                '-r', 'cubicspline',
                                 # set work memory to 512M, the default is small
-                                '-wm', '512M',
-                                # enable multi-threaded
-                                '-multi',
+                                '-wm', '256M',
                                 # quite mode
                                 '-q',
                                 ]
