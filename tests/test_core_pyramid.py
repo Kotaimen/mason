@@ -24,7 +24,7 @@ class TestPyramid(unittest.TestCase):
         self.assertEqual(pyramid.buffer, 0)
         self.assertEqual(pyramid.format.name, 'ANY')
         self.assertEqual(pyramid.center.make_tuple(), (121.3, 31.1))
-        self.assertEqual(pyramid.zoom, 7)
+        self.assertEqual(pyramid.zoom, 0)
         self.assertEqual(pyramid.envelope.make_tuple(), (-180, -85.06, 180, 85.06))
 
     def testSummarize(self):

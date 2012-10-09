@@ -38,8 +38,8 @@ composite = dict(\
                 compress=False,
                 ),
      sources=(source1, source2),
-     command=''' 
-     ( $1 -virtual-pixel edge -blur 0x12 -spread 3 +noise gaussian ) 
+     command='''
+     ( $1 -virtual-pixel edge -blur 0x12 -spread 3 +noise gaussian )
      $2 -compose hardlight -composite''',
      format='png',
      )
@@ -47,6 +47,8 @@ composite = dict(\
 ROOT = dict(\
     metadata=dict(tag='world'),
     pyramid=dict(levels=range(0, 9),
+                 zoom=4,
+                 center=(121.5, 31),
                  format='png',
                  buffer=32),
     cache=dict(prototype='filesystem',
