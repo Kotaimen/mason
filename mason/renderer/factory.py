@@ -33,6 +33,7 @@ class _DataSourceRendererFactory(object):
     DATASOURCE_REGISTRY = ['mapnik', 'postgis', 'storage']
 
     def __call__(self, prototype, **params):
+        params = dict(params)
         if prototype == 'storage':
             # to avoid using the same parameter name 'prototype'
             prototype = params.pop('storage_type', None)
@@ -71,6 +72,7 @@ class _ProcessingRendererFactory(object):
                            ]
 
     def __call__(self, prototype, source, **params):
+        params = dict(params)
         if prototype in self.PROCESSING_REGISTRY:
             gdaltool = GDALProcessorFactory(prototype, **params)
             metatile_processor = GDALMetaTileProcessor(gdaltool)
@@ -92,6 +94,7 @@ class _CompositeRendererFactory(object):
     COMPOSITE_REGISTRY = ['imagemagick', ]
 
     def __call__(self, prototype, source_list, **params):
+        params = dict(params)
         if prototype in self.COMPOSITE_REGISTRY:
             # params: format, command
             composer = ImageMagickComposer(**params)

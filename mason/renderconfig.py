@@ -19,6 +19,11 @@ from .renderer import (DataSourceRendererFactory,
 #==============================================================================
 def build_cache_storage(cache_config, pyramid, metadata):
     """ create cache storage from cache configuration """
+
+    if not cache_config:
+        cache_config = dict(prototype='null')
+    cache_config = dict(cache_config)
+
     if not cache_config:
         cache_config = dict(prototype='null')
 
@@ -55,6 +60,7 @@ class RendererConfig(object):
 
     def __init__(self, renderer_config):
         """ get information """
+        renderer_config = dict(renderer_config)
         self._name = renderer_config.pop('name', None)
         self._prototype = renderer_config.pop('prototype', None)
         self._sources = renderer_config.pop('sources', tuple())
@@ -116,10 +122,13 @@ class DataSourceRendererConfig(RendererConfig):
 
     def to_renderer(self, pyramid, metadata, work_mode):
         # create renderer
-        renderer = DataSourceRendererFactory(self._prototype, **self._params)
+        try:
+            renderer = DataSourceRendererFactory(self._prototype, **self._params)
 
         # attach cache
-        storage = build_cache_storage(self._cache, pyramid, metadata)
+            storage = build_cache_storage(self._cache, pyramid, metadata)
+        except Exception as e:
+            raise RuntimeError('config error "%s": %s' % (self._name, str(e)))
         renderer = CachedRenderer(storage, renderer, work_mode)
         return renderer
 
@@ -164,12 +173,14 @@ class ProcessingRendererConfig(RendererConfig):
         # source renderer
         config = RendererConfig.from_dict(self._sources[0])
         source_renderer = config.to_renderer(pyramid, metadata, work_mode)
-
-        renderer = ProcessingRendererFactory(self._prototype,
-                                             source_renderer,
-                                             **self._params)
-        # attach cache
-        storage = build_cache_storage(self._cache, pyramid, metadata)
+        try:
+            renderer = ProcessingRendererFactory(self._prototype,
+                                                 source_renderer,
+                                                 **self._params)
+            # attach cache
+            storage = build_cache_storage(self._cache, pyramid, metadata)
+        except Exception as e:
+            raise RuntimeError('config error "%s": %s' % (self._name, str(e)))
         renderer = CachedRenderer(storage, renderer, work_mode)
 
         return renderer
@@ -213,13 +224,16 @@ class CompositeRendererConfig(RendererConfig):
             renderer = config.to_renderer(pyramid, metadata, work_mode)
             source_renderers.append(renderer)
 
-        # renderer
-        renderer = CompositeRendererFactory(self._prototype,
-                                            source_renderers,
-                                            **self._params)
+        try:
+            # renderer
+            renderer = CompositeRendererFactory(self._prototype,
+                                                source_renderers,
+                                                **self._params)
 
-        # attach cache
-        storage = build_cache_storage(self._cache, pyramid, metadata)
+            # attach cache
+            storage = build_cache_storage(self._cache, pyramid, metadata)
+        except Exception as e:
+            raise RuntimeError('config error "%s": %s' % (self._name, str(e)))
         renderer = CachedRenderer(storage, renderer, work_mode)
 
         return renderer
@@ -240,6 +254,7 @@ class RenderRoot(object):
                  work_mode='default',
                  ):
 
+
         if 'format' in pyramid_config:
             format_name = pyramid_config['format']
             pyramid_config['format'] = Format.from_name(format_name)
@@ -252,10 +267,12 @@ class RenderRoot(object):
         self._renderer = config.to_renderer(self._pyramid,
                                             self._metadata,
                                             self._work_mode)
-
-        self._cache = build_cache_storage(cache_config,
-                                          self._pyramid,
-                                          self._metadata)
+        try:
+            self._cache = build_cache_storage(cache_config,
+                                              self._pyramid,
+                                              self._metadata)
+        except Exception as e:
+            raise RuntimeError('config error "ROOT": %s' % str(e))
 
     @property
     def pyramid(self):
@@ -286,7 +303,7 @@ class RenderRoot(object):
 class RenderConfigParser(object):
 
     def __init__(self, option=dict()):
-
+        option = dict(option)
         work_mode = option.pop('mode', 'default')
         if work_mode not in ('default', 'overwrite', 'readonly', 'dryrun'):
             raise ValueError('Unknown work mode %s' % work_mode)
