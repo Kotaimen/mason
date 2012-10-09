@@ -1,4 +1,5 @@
 import warnings
+import os
 
 # Create a dictionary containing name->class map, those
 #  can't be imported will be ignored
@@ -7,54 +8,19 @@ import warnings
 
 from .tilestorage import TileStorage, NullTileStorage
 
-from .special import DefaultTileStorage
-
-from .special import CascadeTileStorage as _CascadeTileStorageImp
-
 # ===== Storage Backend ========================================================
 
 from .filesystem import FileSystemTileStorage
+from .metatilecache import MetaTileCache
 
 try:
-    from .memcached import MemCachedTileStorage
-except ImportError as e:
-    warnings.warn("Can't import memcache, MemCachedTileStorage is not available")
-    MemCachedTileStorage = None
+    from .memcached import MemcachedTileStorage
+except ImportError:
+    MemcachedTileStorage = None
 
-try:
-    from .mbtiles import MBTilesTileStorage
-except ImportError as e:
-    warnings.warn("Can't import mbtiles, MBTilesTileStorage is not available")
-    MBTilesTileStorage = None
-
+from .mbtiles import MBTilesTileStorage, MBTilesTileStorageWithBackgroundWriter
 
 # ===== Storage Factory ========================================================
-
-def CascadeTileStorage(tag, storages, read_mode='cache'):
-
-    # HACK: CascadeTileStorage only accepts storage object as parameter, but
-    #       for convince we really want to write storage parameters in the
-    #       configuration, and write nested cascade storages, thus replace
-    #       the original constructor here:
-
-    factory = TileStorageFactory()
-    storage_objects = list()
-
-    for storage_param in storages:
-        storage_param = dict(storage_param)
-        if 'tag' in storage_param:
-            t = storage_param['tag']
-            del storage_param['tag']
-        else:
-            t = tag
-        prototype = storage_param['prototype']
-        del storage_param['prototype']
-        storage_objects.append(factory(prototype, t, **storage_param))
-
-    return _CascadeTileStorageImp(tag, storage_objects,
-                                  read_mode=read_mode)
-
-CascadeTileStorage.__doc__ = _CascadeTileStorageImp.__doc__
 
 
 class TileStorageFactory(object):
@@ -62,14 +28,14 @@ class TileStorageFactory(object):
     """ Tile storage factory class """
 
     CLASS_REGISTRY = dict(null=NullTileStorage,
-                          default=DefaultTileStorage,
-                          cascade=CascadeTileStorage,
                           filesystem=FileSystemTileStorage,
-                          memcache=MemCachedTileStorage,
+                          metacache=MetaTileCache,
+                          memcache=MemcachedTileStorage,
                           mbtiles=MBTilesTileStorage,
+                          mbtilesbw=MBTilesTileStorageWithBackgroundWriter,
                           )
 
-    def __call__(self, prototype, tag, **params):
+    def __call__(self, prototype, pyramid=None, metadata=None, **params):
         try:
             class_prototype = self.CLASS_REGISTRY[prototype]
         except KeyError:
@@ -79,13 +45,31 @@ class TileStorageFactory(object):
             raise Exception('Tile storage prototype "%s" is not available, '\
                             'probably missing support driver?' % prototype)
 
-        return class_prototype(tag, **params)
+        return class_prototype(pyramid, metadata, **params)
 
 
-def create_tilestorage(prototype, tag, **params):
+def create_tilestorage(prototype, pyramid=None, metadata=None, **args):
 
     """ Create a tile storage """
 
-    # TODO: Add usage comments
+    return TileStorageFactory()(prototype, pyramid, metadata, **args)
 
-    return TileStorageFactory()(prototype, tag, **params)
+
+def attach_tilestorage(prototype, **args):
+    if prototype == 'filesystem':
+        root = args['root']
+        assert os.path.isdir(root)
+        if not os.path.exists(os.path.join(root, FileSystemTileStorage.CONFIG_FILENAME)):
+            RuntimeError('Given directory is not a FileSystemTileStorage')
+        # Assume file system tile storage
+        return FileSystemTileStorage.from_config(root)
+    elif prototype == 'metacache':
+        root = args['root']
+        assert os.path.isdir(root)
+        if not os.path.exists(os.path.join(root, FileSystemTileStorage.CONFIG_FILENAME)):
+            RuntimeError('Given directory is not a MetaTileCache')
+        return MetaTileCache.from_config(root)
+    elif prototype == 'mbtiles':
+        database = args['database']
+        return MBTilesTileStorage.from_mbtiles(database)
+    raise RuntimeError("Dont know how to attach to %s:%s" % (prototype, args))

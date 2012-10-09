@@ -1,62 +1,62 @@
-
-from ..core import create_data_type
+from .gdalraster import GDALRaster
+from .gdaltools import (GDALHillShading,
+                        GDALColorRelief,
+                        GDALRasterToPNG,
+                        GDALFixMetaData,
+                        GDALWarper,
+                        )
 
 
 #==============================================================================
 # Cartographer Prototype
 #==============================================================================
 try:
-    from .mapniker import MapnikRaster
+    from .mapniker import Mapnik
 except ImportError:
-    MapnikRaster = None
+    Mapnik = None
 
 try:
-    from .gdaldem import DEMRaster
+    from .postgis import PostGIS
 except ImportError:
-    DEMRaster = None
-
-
-def create_mapnik_cartographer(tag, **params):
-    data_type_name = params.pop('data_type', None)
-    data_parameters = params.pop('data_parameters', None)
-
-    if data_type_name is None:
-        data_type_name = 'png'
-
-    data_type = create_data_type(data_type_name, data_parameters)
-
-    return MapnikRaster(data_type, **params)
-
-
-def create_raster_cartographer(tag, **params):
-    data_type_name = params.pop('data_type', None)
-    data_parameters = params.pop('data_parameters', None)
-
-    if data_type_name is None:
-        data_type_name = 'png'
-
-    data_type = create_data_type(data_type_name, data_parameters)
-
-    return DEMRaster(data_type, **params)
+    PostGIS = None
 
 
 #==============================================================================
 # Cartographer Factory
 #==============================================================================
-class CartographerFactory(object):
+class _CartographerFactory(object):
 
-    CLASS_REGISTRY = dict(mapnik=create_mapnik_cartographer,
-                          raster=create_raster_cartographer,
+    CLASS_REGISTRY = dict(mapnik=Mapnik,
+                          postgis=PostGIS,
                           )
 
-    def __call__(self, prototype, tag, **params):
+    def __call__(self, prototype, **params):
         creator = self.CLASS_REGISTRY.get(prototype, None)
         if creator is None:
-            raise Exception('Unknown cartographer type "%s"' % prototype)
+            raise Exception('Unknown cartographer "%s"' % prototype)
 
-        return creator(tag, **params)
+        return creator(**params)
+
+CartographerFactory = _CartographerFactory()
 
 
-def create_cartographer(prototype, tag, **params):
-    """ Create a cartographer """
-    return CartographerFactory()(prototype, tag, **params)
+#==============================================================================
+# GDAL Processor Factory
+#==============================================================================
+class _GDALProcessorFactory(object):
+
+    CLASS_REGISTRY = dict(hillshading=GDALHillShading,
+                          colorrelief=GDALColorRelief,
+                          rastertopng=GDALRasterToPNG,
+                          fixmetadata=GDALFixMetaData,
+                          warp=GDALWarper,
+                          )
+
+    def __call__(self, prototype, **params):
+        creator = self.CLASS_REGISTRY.get(prototype, None)
+        if creator is None:
+            raise Exception('Unknown cartographer "%s"' % prototype)
+
+        return creator(**params)
+
+GDALProcessorFactory = _GDALProcessorFactory()

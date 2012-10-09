@@ -4,10 +4,6 @@ Created on May 2, 2012
 @author: Kotaimen
 '''
 
-
-from ..core import Tile  # unused
-
-
 class TileStorageError(Exception):
     pass
 
@@ -17,14 +13,33 @@ class TileStorage(object):
     """ Store Tile in persistence storage or a cache backend """
 
     def __init__(self,
-                 tag='tilestorage',
+                 pyramid,
+                 metadata,
                  ):
-        assert tag
-        self._tag = tag
+        """ Create a new tile storage or attaching to an existing one.
+
+        Given parameters must match attaching storage.
+        """
+
+        self._metadata = metadata
+        self._pyramid = pyramid
+
+    # Property ----------------------------------------------------------------
+    def __nonzero__(self):
+        return True
 
     @property
-    def tag(self):
-        return self._tag
+    def metadata(self):
+        return self._metadata
+
+    @property
+    def pyramid(self):
+        return self._pyramid
+
+    def attach(self):
+        pass
+
+    # Getter/Putter -----------------------------------------------------------
 
     def put(self, tile):
         """ Put given Tile into cache, overwrite existing one if necessary
@@ -58,6 +73,8 @@ class TileStorage(object):
         If Tile does not present in storage, this operation has no effect
         """
         raise NotImplementedError
+
+    # Multi --------------------------------------------------------------------
 
     def put_multi(self, tiles):
         """ Put many tiles into cache in one call
@@ -102,8 +119,6 @@ class TileStorage(object):
         """ Close the storage """
         pass
 
-#    def get_meta(self):
-#        raise NotImplementedError
 
 #===============================================================================
 # Special Tile Storages
@@ -113,6 +128,9 @@ class TileStorage(object):
 class NullTileStorage(TileStorage):
 
     """ A do-nothing TileStorage """
+
+    def __nonzero__(self):
+        return False
 
     def put(self, tile):
         pass
@@ -139,7 +157,6 @@ class ReadOnlyTileStorage(TileStorage):
 
     def delete(self, tile_index):
         pass
-
 
     def flush_all(self):
         pass

@@ -22,15 +22,15 @@ class TestCoordinate(unittest.TestCase):
         self.assertEqual(coord.latitude, 0)
         self.assertEqual(coord.lon, 0)
         self.assertEqual(coord.lat, 0)
-        self.assertEqual(coord.crs, 'ESPG:4326')
+        self.assertEqual(coord.crs, 'EPSG:4326')
 
     def testInit(self):
-        coord = Coordinate(1.0, 2.0, 'ESPG:900913')
+        coord = Coordinate(1.0, 2.0, 'EPSG:4326')
         self.assertEqual(coord.longitude, 1.0)
         self.assertEqual(coord.latitude, 2.0)
         self.assertEqual(coord.lon, 1.0)
         self.assertEqual(coord.lat, 2.0)
-        self.assertEqual(coord.crs, 'ESPG:900913')
+        self.assertEqual(coord.crs, 'EPSG:4326')
 
     def testMakeTuple(self):
         coord = Coordinate(1, 2)
@@ -59,7 +59,7 @@ class TestEnvelope(unittest.TestCase):
         self.assertEqual(envelope.righttop, Coordinate(2, 3))
         self.assertEqual(envelope.leftbottom, Coordinate(0, 1))
         self.assertEqual(envelope.rightbottom, Coordinate(2, 1))
-        self.assertEqual(envelope.crs, 'ESPG:4326')
+        self.assertEqual(envelope.crs, 'EPSG:4326')
 
     def testContains(self):
         envelope = Envelope(0, 1, 2, 3)
@@ -105,7 +105,6 @@ class TestTileCoordinates(unittest.TestCase):
 
         self.assertEqual(tile_coordinate_to_serial(0, 0, 0), 0)
         self.assertEqual(tile_coordinate_to_serial(8, 8, 8), 23901)
-
 
 
 if __name__ == "__main__":

@@ -3,13 +3,13 @@ Created on May 21, 2012
 
 @author: ray
 '''
+import io
 import os
 import re
-import tempfile
 import subprocess
 
-from ..core import RenderData
-from .composer import TileComposer, TileComposerError
+from ..utils import create_temp_filename
+from .composer import ImageComposer
 
 try:
     output = subprocess.check_output(['convert', '-version'])
@@ -32,7 +32,7 @@ class ImageMagickError(subprocess.CalledProcessError):
 #==============================================================================
 
 
-class ImageMagickComposer(TileComposer):
+class ImageMagickComposer(ImageComposer):
 
     """ ImageMagick Composer
 
@@ -62,8 +62,8 @@ class ImageMagickComposer(TileComposer):
 
     """
 
-    def __init__(self, tag, data_type, command):
-        TileComposer.__init__(self, tag, data_type)
+    def __init__(self, format, command):
+        ImageComposer.__init__(self, format)
 
         # Convert command string to list of arguments
         lines = ['convert -quiet -limit thread 1']
@@ -71,10 +71,10 @@ class ImageMagickComposer(TileComposer):
             if line.lstrip().startswith('#'):
                 continue
             lines.append(line.strip())
-        lines.append('%s:-' % self._data_type.name)
+        lines.append('%s:-' % self._format)
         self._command = ' '.join(lines).split()
 
-    def compose(self, tile_layers):
+    def compose(self, image_list):
         """ Composes tiles according to the command"""
 
         # Copy a command list since we are going to modify it in place
@@ -84,32 +84,24 @@ class ImageMagickComposer(TileComposer):
 
         for cmd_no, tile_no in self._parse_command(command):
             try:
-                tile_layer = tile_layers[tile_no - 1]
+                image_data, image_ext = image_list[tile_no - 1]
             except KeyError:
-                TileComposerError('Invalid tile source "%s"' % tile_no)
+                raise RuntimeError('Invalid tile source "%s"' % tile_no)
 
             # Generate a new tempfile for tiles not used yet
             if tile_no not in files_to_delete:
 
-                # Image extension
-                ext = tile_layer.data_type.ext
-
                 # Generate a temp file name using mkstemp
-                fd, tempname = tempfile.mkstemp(suffix='.' + ext,
-                                                prefix='mgktle$%d-' % tile_no)
-                # Close the file descriptor immediately 
-                # NOTE: Write using os.write() will cause fd being opened
-                #       forever (even after called os.close()), and 
-                #       eventually exhaust file handles, confirmed this
-                #       on darwin & linux
-                os.close(fd)
+                suffix = image_ext
+                prefix = 'mgktle$%d-' % tile_no
+                tempname = create_temp_filename(suffix=suffix, prefix=prefix)
 
                 # Delete the temp file later
                 files_to_delete[tile_no] = tempname
 
                 # Write image data to temp file
                 with open(tempname, 'wb') as fp:
-                    fp.write(tile_layer.data)
+                    fp.write(image_data)
 
             # Replace '%n' with real filename
             command[cmd_no] = tempname
@@ -125,7 +117,7 @@ class ImageMagickComposer(TileComposer):
                 raise ImageMagickError(retcode, ' '.join(command),
                                        output=stderr)
 
-            return RenderData(stdout, self._data_type)
+            return io.BytesIO(stdout)
         finally:
             # Delete temporary files
             for filename in files_to_delete.itervalues():

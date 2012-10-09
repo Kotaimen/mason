@@ -1,2 +1,7 @@
+__author__ = 'Kotaimen <kotaimen.c@gmail.com>, Ray <gliese.q@gmail.com>'
+version = (0, 9, 0, 'b')
+__version__ = '.'.join(map(str, version))
+
+
 from .mason import Mason
-from .config import create_mason_from_config
+from .renderconfig import create_render_tree_from_config
