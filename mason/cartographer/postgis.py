@@ -16,10 +16,13 @@ from .gdaltools import GDALRaster, GDALFixMetaData, GDALWarper
 RASTER_DATA_QUERY = '''
 SELECT
 ST_AsTIFF(
+    ST_Resample(
     ST_UNION(ST_CLIP(rast, %(bbox)s, true)),
+    %(width)d,%(height)d,3857,NULL,NULL,0,0,'CubicSpline'
+    ),
     ARRAY['PIXELTYPE=SIGNEDBYTE','PROFILE=GeoTIFF'],
-    4326
-    )
+    %(proj)d
+)
 AS raster_data
 FROM %(table)s
 WHERE ST_INTERSECTS(rast, %(bbox)s)
@@ -62,11 +65,23 @@ class PostGIS(Cartographer):
         epsg_int = int(projection.split(':')[1])
         self._projection = epsg_int
 
+        self._nodata = -32768
+
     def render(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
         """ Get raster data in the area of envelope from database """
 
-        bbox_stmt = "ST_MakeEnvelope(%f, %f, %f, %f, 4326)" % envelope
-        query = RASTER_DATA_QUERY % {'bbox': bbox_stmt, 'table': self._table}
+        width, height = size
+        proj = self._projection
+
+        xmin, ymin, xmax, ymax = envelope
+        bbox_stmt = "ST_Transform(ST_MakeEnvelope(%f, %f, %f, %f, 4326), %d)" \
+                        % (xmin, ymin, xmax, ymax, proj)
+
+        query = RASTER_DATA_QUERY % {'bbox': bbox_stmt,
+                                     'table': self._table,
+                                     'width': width,
+                                     'height': height,
+                                     'proj': proj}
 
         try:
             session = self._session_maker()
@@ -76,12 +91,9 @@ class PostGIS(Cartographer):
                 raise RuntimeError('No Raster data found with SQL: %s' % query)
 
             raster = GDALRaster(data, 'GTIFF')
-            fixmetadata = GDALFixMetaData(fix_srs=4326, set_nodata= -32768)
-            fixed_raster = fixmetadata.convert(raster)
+            fixer = GDALFixMetaData(fix_srs=proj, set_nodata=self._nodata)
+            output_raster = fixer.convert(raster)
 
-            warp = GDALWarper(dst_epsg=self._projection, size=size)
-            warp_raster = warp.convert(fixed_raster)
-
-            return io.BytesIO(warp_raster.data)
+            return io.BytesIO(output_raster.data)
         finally:
             session.close()
