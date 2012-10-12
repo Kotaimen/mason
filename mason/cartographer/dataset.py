@@ -68,12 +68,22 @@ class RasterDataset(Cartographer):
         dst_minx, dst_miny, __foo = srs.forward(minx, miny)
         dst_maxx, dst_maxy, __foo = srs.forward(maxx, maxy)
 
+        # HACK: fix coodinates error
+        # otherwise, gdal will project -181 to 19926188.852, which is wrong.
+        mark180, __foo, __foo = srs.forward(180, 0)
+        if minx < -180:
+            assert minx > -360
+            dst_minx = -mark180 - (mark180 - dst_minx)
+        if maxx > 180:
+            assert maxx < 360
+            dst_maxx = mark180 + (mark180 + dst_maxx)
+
         # Choose Resampling Method:
         # Forward coordinates of input envelop, which is in WGS84, to
         # the corresponding coordinates in Dataset projection.
         # Original Raster size in Dataset projection can be calculated by that
         # coordinates and the resolution of Dataset.
-        # Cubicspline works better when stretching out (target size is 
+        # Cubicspline works better when stretching out (target size is
         # larger than the original size). And Cubic results better image on the
         # opposite condition.
 
