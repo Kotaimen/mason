@@ -30,7 +30,7 @@ class _DataSourceRendererFactory(object):
     Mapnik, PostGIS, and Storage is supported now.
     """
 
-    DATASOURCE_REGISTRY = ['mapnik', 'postgis', 'storage']
+    DATASOURCE_REGISTRY = ['mapnik', 'postgis', 'storage', 'dataset']
 
     def __call__(self, prototype, **params):
         params = dict(params)

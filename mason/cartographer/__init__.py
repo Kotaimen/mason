@@ -20,6 +20,11 @@ try:
 except ImportError:
     PostGIS = None
 
+try:
+    from .dataset import RasterDataset
+except ImportError:
+    RasterDataset = None
+
 
 #==============================================================================
 # Cartographer Factory
@@ -28,6 +33,7 @@ class _CartographerFactory(object):
 
     CLASS_REGISTRY = dict(mapnik=Mapnik,
                           postgis=PostGIS,
+                          dataset=RasterDataset
                           )
 
     def __call__(self, prototype, **params):
