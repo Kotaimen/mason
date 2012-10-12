@@ -15,16 +15,38 @@ from .gdalraster import GDALTempFileRaster
 
 class RasterDataset(Cartographer):
 
-    """ Raster Dataset
+    """ GDAL Raster Data Source
 
-    Raster Dataset craft raster data from various raster datasets
+    Crop envelope and re-projects GDAL data source into target projection,
+    output result as GeoTIFF stream.
+
+    Parameters:
+    :param dataset_path:
+        pathname to GDAL raster file
+    :param target_projection:
+        target projection in EPSG:XXXX format, default is 'EPSG:3857'
+    :param target_nodata:
+        nodata value of output raster, by default, uses same value as input
+    :param resample_method'
+        resampling method, see gdalwrap help for available
+        options (near/bilinear/cubic/cubicspline/lanczos as of gdal1.9).  By
+        default, this is automatically decided from source and target resultion.
+        (cubic while reducing size, cubicspline while enlarging)
+    :param work_memory:
+        gdal work memory in MB, note value>2000 seems do not
+        work properly, default is 128, increase this
+        while rendering very large Metatile
+    :rtype:
+        bytes input stream
+
     """
 
     def __init__(self,
                  dataset_path,
                  target_projection='EPSG:3857',
                  target_nodata=None,
-                 work_mem=128):
+                 resample_method=None,
+                 work_memory=128):
         Cartographer.__init__(self, 'GTIFF')
         dataset = gdal.Open(dataset_path, gdalconst.GA_ReadOnly)
         if not dataset:
@@ -53,7 +75,8 @@ class RasterDataset(Cartographer):
         self._dataset_path = dataset_path
         self._target_projection = target_projection
         self._target_nodata = target_nodata
-        self._work_mem = work_mem
+        self._work_mem = work_memory
+        self._resample_method = resample_method
 
         self._target_epsg = int(target_projection.split(':')[1])
 
@@ -78,28 +101,30 @@ class RasterDataset(Cartographer):
             assert maxx < 360
             dst_maxx = mark180 + (mark180 + dst_maxx)
 
-        # Choose Resampling Method:
-        # Forward coordinates of input envelop, which is in WGS84, to
-        # the corresponding coordinates in Dataset projection.
-        # Original Raster size in Dataset projection can be calculated by that
-        # coordinates and the resolution of Dataset.
-        # Cubicspline works better when stretching out (target size is
-        # larger than the original size). And Cubic results better image on the
-        # opposite condition.
-
-        # calculate envelope coordinates in dataset projection
-        srs = SpatialReference(4326, self._dataset_epsg)
-        org_minx, org_miny, __foo = srs.forward(minx, miny)
-        org_maxx, org_maxy, __foo = srs.forward(maxx, maxy)
-
-        org_width = abs(org_minx - org_maxx) / self._dataset_resx
-        org_height = abs(org_maxy - org_miny) / self._dataset_resy
-
-        # it is better to use cublicspline when stretching out
-        if target_width < org_width and target_height < org_height:
-            resample_method = 'cubic'
+        if self._resample_method is not None:
+            resample_method = self._resample_method
         else:
-            resample_method = 'cubicspline'
+
+            # Choose Resampling Method:
+            # Forward coordinates of input envelop, which is in WGS84, to
+            # the corresponding coordinates in Dataset projection.
+            # Original Raster size in Dataset projection can be calculated by that
+            # coordinates and the resolution of Dataset.
+            # Cubicspline works better when stretching out (target size is
+            # larger than the original size). And Cubic results better image on the
+            # opposite condition.
+
+            # calculate envelope coordinates in dataset projection
+            srs = SpatialReference(4326, self._dataset_epsg)
+            org_minx, org_miny, __foo = srs.forward(minx, miny)
+            org_maxx, org_maxy, __foo = srs.forward(maxx, maxy)
+
+            org_width = abs(org_minx - org_maxx) / self._dataset_resx
+            org_height = abs(org_maxy - org_miny) / self._dataset_resy
+            if target_width < org_width and target_height < org_height:
+                resample_method = 'cubic'
+            else:
+                resample_method = 'cubicspline'
 
         try:
             target_raster = GDALTempFileRaster(data_format='gtiff')
