@@ -53,6 +53,7 @@ class RasterDataset(Cartographer):
         self._dataset_path = dataset_path
         self._target_projection = target_projection
         self._target_nodata = target_nodata
+        self._work_mem = work_mem
 
         self._target_epsg = int(target_projection.split(':')[1])
 
@@ -99,7 +100,7 @@ class RasterDataset(Cartographer):
                        '-dstnodata', str(self._target_nodata),
                        '-te', str(dst_minx), str(dst_miny), str(dst_maxx), str(dst_maxy),
                        '-r', resample_method,
-                       '-wm', '128',
+                       '-wm', str(int(self._work_mem)),
                        '-overwrite',
                        '-of', 'gtiff',
                        '-q',
