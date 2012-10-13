@@ -120,6 +120,7 @@ def monitor(options, statistics):
 
     # Join the queue
     try:
+        producer.join()
         queue.join()
     except KeyboardInterrupt:
         logger.info('===== Rendering Canceled =====')
