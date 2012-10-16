@@ -19,7 +19,7 @@ from werkzeug.serving import run_simple
 
 from mason import Mason, __version__ as VERSION , __author__ as AUTHOR
 from mason.tilestorage import attach_tilestorage
-from mason.renderconfig import create_render_tree_from_config
+from mason.config import create_render_tree_from_config
 from mason.utils import date_time_string
 
 from mason.mason import InvalidLayer, TileNotFound
