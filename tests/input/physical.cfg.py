@@ -1,5 +1,4 @@
 source1 = dict(\
-    name='physical',
     prototype='datasource.postgis',
     cache=dict(prototype='metacache',
                root='/tmp/physical/dem',
@@ -11,14 +10,13 @@ source1 = dict(\
     )
 
 hillshading = dict(\
-    name='hillshading',
     prototype='processing.hillshading',
     cache=dict(prototype='metacache',
                root='/tmp/physical/hillshading',
                compress=False,
                data_format='gtiff'
                ),
-    sources=(source1,),
+    sources=('source1',),
     zfactor=1,
     scale=1,
     altitude=45,
@@ -26,14 +24,13 @@ hillshading = dict(\
     )
 
 to_png = dict(\
-    name='convertpng',
     prototype='processing.rastertopng',
     cache=dict(prototype='metacache',
                root='/tmp/physical/hillshading_png',
                compress=False,
                data_format='png'
                ),
-    sources=(hillshading,),
+    sources=('hillshading',),
     )
 
 
@@ -45,5 +42,5 @@ ROOT = dict(\
     cache=dict(prototype='filesystem',
                root='/tmp/physical/world',
                compress=False),
-    renderer=to_png,
+    renderer='to_png',
     )
