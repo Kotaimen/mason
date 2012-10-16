@@ -61,10 +61,13 @@ class StorageMetaTileDataSource(MetaTileDataSource):
 
     def get(self, metatileindex):
         metatile = self._storage.get(metatileindex)
-        if metatile is None and self._default is not None:
-            return MetaTile.from_tile_index(metatileindex,
-                                            self._default,
-                                            fmt=self._storage.pyramid.format,
-                                            )
-        else:
-            return metatile
+        if metatile is None:
+            if self._default is not None:
+                return MetaTile.from_tile_index(metatileindex,
+                                                self._default,
+                                                fmt=self._storage.pyramid.format,
+                                                )
+            else:
+                raise RuntimeError('no data found %s' % str(metatileindex))
+
+        return metatile

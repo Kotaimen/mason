@@ -4,4 +4,4 @@ __version__ = '.'.join(map(str, version))
 
 
 from .mason import Mason
-from .renderconfig import create_render_tree_from_config
+from .config import create_render_tree_from_config

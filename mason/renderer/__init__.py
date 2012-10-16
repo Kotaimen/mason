@@ -1,6 +1,4 @@
 # -*- coding:utf-8 -*-
-from .factory import (DataSourceRendererFactory,
-                      ProcessingRendererFactory,
-                      CompositeRendererFactory)
+from .factory import RendererFactory
 from .renderer import NullMetaTileRenderer
 from .cacherender import CachedRenderer
