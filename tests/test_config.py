@@ -5,17 +5,16 @@ Created on Sep 13, 2012
 @author: ray
 '''
 import unittest
-from mason.renderconfig import RenderConfigParser
+from mason.config import RenderConfigParser, RenderTree
 
 
 class ConfigurationTest(unittest.TestCase):
 
     def testParse(self):
-        configure_parser = RenderConfigParser()
+        config = RenderConfigParser()
+        config.read('./input/test_config.cfg.py')
 
-        test_config = './input/test_config.cfg.py'
-        render_root = configure_parser.parse(test_config)
-        renderer = render_root.renderer
+        p = RenderTree(config)
 
 
 if __name__ == "__main__":

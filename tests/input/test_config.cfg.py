@@ -1,6 +1,6 @@
 
+
 source1 = dict(\
-    name='roads',
     prototype='datasource.mapnik',
     cache=None,
 
@@ -9,7 +9,6 @@ source1 = dict(\
     )
 
 source3 = dict(\
-    name='roads',
     prototype='datasource.mapnik',
     cache=None,
 
@@ -19,7 +18,6 @@ source3 = dict(\
 
 
 source2 = dict(\
-    name='srtm30',
     prototype='datasource.postgis',
     cache=None,
 
@@ -28,9 +26,8 @@ source2 = dict(\
     )
 
 processor1 = dict(\
-    name='hillshading_1',
     prototype='processor.hillshading',
-    sources=source2,
+    sources='source2',
     cache=None,
 
     zfactor=2,
@@ -40,9 +37,8 @@ processor1 = dict(\
     )
 
 processor2 = dict(\
-    name='hillshading_2',
     prototype='processor.hillshading',
-    sources=source2,
+    sources='source2',
     cache=None,
 
     zfactor=2,
@@ -52,18 +48,16 @@ processor2 = dict(\
 )
 
 composite = dict(\
-     name='composite_1',
      prototype='composite.imagemagick',
-     sources=(source1, source3),
+     sources=('source1', 'source3'),
      command='',
      format='png',
 )
 
 
 ROOT = dict(
-            name='test',
             prototype='root',
             metadata=dict(tag='test'),
-            pyramid=dict(),
-            renderer=composite,
+            pyramid=dict(envelope=(-180, -90, 180, 90)),
+            renderer='composite',
             )
