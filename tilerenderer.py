@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-
+# -*- encoding: utf-8 -*-
 """
 Parallel Tile Renderer
 
 Using process based producer-consumer model thus can be run efficiently
 on very large node.  (Distributed rendering not included, yet, sorry.)
+
 
 Created on May 17, 2012
 @author: Kotaimen
@@ -143,6 +144,13 @@ def parse_args():
 producer->queue->consumer model. Note: if you render the entire globe
 down to level 20, there will be zillions of tiles, literally!
 (Distributed render system is left for readers as a home exercise ).
+
+
+Test a small area before start large rendering task, as it may take weeks
+to complete.  In most setup CPU is the bottleneck. However if you set
+very large metatile size (eg: 64) then each worker may take up to serveral
+GBs of memory.  GDAL toolchains and imagemagick generates tons of temporary
+files, so mount /tmp as ramdisk if that is a problem.
 '''
                                     )
 
@@ -157,8 +165,8 @@ down to level 20, there will be zillions of tiles, literally!
     parser.add_argument('-e', '--envelope',
                         dest='envelope',
                         default='',
-                        help='''Envelope to render specify in
-                        left,bottom,right,top in layer CRS, by default, envelope
+                        help='''Render area specified in
+                        left,bottom,right,top layer CRS, by default, envelope
                         in layer configuration will be used.'''
                        )
 
@@ -174,8 +182,9 @@ down to level 20, there will be zillions of tiles, literally!
                         default=1,
                         type=int,
                         help='''Stride of MetaTile, must be power of 2.  MetaTile
-                        increases render speed at the expense higher of memory
-                        usage. Default value is %(default)s.
+                        slightly increases render speed at the expense higher of memory
+                        usage, and reduces possible labeling artificats. Default
+                        value is %(default)s.
                         '''
                         )
 
@@ -191,7 +200,7 @@ down to level 20, there will be zillions of tiles, literally!
                         dest='test',
                         default=0,
                         type=int,
-                        help='''Test configuration by just given number of MetaTiles,
+                        help='''Test configuration by render given number of MetaTiles then exit,
                         implies "-o", default is 0, note this does not start workers.''',
                         )
 

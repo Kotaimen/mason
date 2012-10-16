@@ -1,8 +1,16 @@
 #!/usr/bin/env python
-# -*- encoding: utf8 -*-
+# -*- encoding: utf-8 -*-
 
 """
-Tile map server attach to a rendered tile storage
+Simple tile map server supporting render a configuration online or attaching
+to a existing tilestorage.
+
+You can start a production server by change settings in supplied tilesvr.wsgi 
+and attach it to gunicorn(recommended) or mod_wsgi.
+
+In most cases, which dataset is small, just configure the renderer to write simple 
+filesystem cache and put the generated directory behind a standard static file 
+server.
 
 Created on Sep 9, 2012
 @author: Kotaimen
@@ -60,14 +68,6 @@ def parse_args(args=None):
                         a filename with .cfg.py extension is given, a Renderer
                         tree configuration will be assumed. ''',)
 
-#    parser.add_argument('-c', '--config',
-#                        dest='renderers',
-#                        type=str,
-#                        action='append',
-#                        metavar='RENDERER',
-#                        help='''Specify location of a renderer configuration
-#                        file.''',)
-
     parser.add_argument('-b', '--bind',
                         dest='bind',
                         default='127.0.0.1:8080',
@@ -79,7 +79,7 @@ def parse_args(args=None):
                         dest='debug',
                         default=False,
                         action='store_true',
-                        help='''Enable debug mode, this diable "--reload" and
+                        help='''Enable debug mode, this diables "--reload" and
                         requests will be processed in single thread (default
                         is multi-processed).''',)
 
@@ -91,7 +91,8 @@ def parse_args(args=None):
                         configuration file change.  You can enable this option
                         in non-debug mode which is useful for testing render
                         configurations.  For mapnik layers, this will also
-                        cause xml theme file reloaded on each render request.
+                        cause xml theme file being reloaded on each render request.
+                        (which is slow)
                         ''',)
 
     parser.add_argument('-w', '--workers',
@@ -99,25 +100,29 @@ def parse_args(args=None):
                         default=multiprocessing.cpu_count(),
                         type=int,
                         help='''Number of worker processes, default is equal
-                        to core number (%(default)s).''',)
+                        to core number (%(default)s).  Note this option is ignored under
+                        debug mode because process model don't support debugging.''',)
 
     parser.add_argument('-m', '--mode',
                         dest='mode',
                         default='hybrid',
                         choices=['hybrid', 'readonly', 'overwrite', 'dryrun',
                                  'h', 'r', 'o', 'd', ],
-                        help='''Specify rendering mode when a renderer
-                        configuration is given, default is "%(default)s", note
-                        "mode" only works with tile renderer layer.
-                        "hybrid": read from cached when possible, otherwise render
-                        tile and write cache.
-                        "readonly": read from cache, never triggers render (404
-                        error if tile not exists).
-                        "overwrite": render tile and overwrite existing cache.
-                        "dryrun": always render but updates cache.
+                        help='''Specify rendering mode for "renderer" layers.
+                        default is "%(default)s". 
+                        Note this option will not effect layers attatching to existing 
+                        stroage.
+                        "hybrid": read from stroage cache when possible, otherwise 
+                        render tile and populates the cache.
+                        "readonly": read from cache, never triggers render, returns 404
+                        error if tile does not exist.
+                        "overwrite": always render tile and update cache.
+                        "dryrun": always render tile but do not touch cache.  Use this options
+                        while testing new render configuration.
                         '''
                         )
-
+    
+    # Convert "mode" argument to the one understands by Mason
     mode2mode = dict(hybrid='default',
                      h='default',
                      readonly='readonly',
@@ -173,6 +178,7 @@ def build_app(options):
 
     @app.route('/tilesvr.js')
     def js():
+        # XXX: Should add a option allows user to select from openlayers and polymaps
         script = u'''var po = org.polymaps;
 var map = po.map();
 map.container(document.getElementById("map").appendChild(po.svg("svg")))
