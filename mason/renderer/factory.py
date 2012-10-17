@@ -113,7 +113,7 @@ class RendererFactory(object):
     ProcessingRendererFactory = _ProcessingRendererFactory()
     CompositeRendererFactory = _CompositeRendererFactory()
 
-    def __init__(self, mode):
+    def __init__(self, mode='default'):
         self._mode = mode
 
     def __call__(self, prototype, sources, storage, **attr):
