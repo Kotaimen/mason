@@ -101,10 +101,10 @@ class RasterDataset(Cartographer):
             assert maxx < 360
             dst_maxx = mark180 + (mark180 + dst_maxx)
 
-        # HACK2:
+        # HACK2: read extra data to avoid missing source data
         source_extra = 1
         if minx <= -180 or maxx >= 180:
-            source_extra = target_width
+            source_extra = target_width / 2
 
         if self._resample_method is not None:
             resample_method = self._resample_method
