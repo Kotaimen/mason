@@ -44,7 +44,7 @@ class RasterDataset(Cartographer):
     def __init__(self,
                  dataset_path,
                  target_projection='EPSG:3857',
-                 target_nodata=None,
+                 target_nodata= -32768,
                  resample_method=None,
                  work_memory=128):
         Cartographer.__init__(self, 'GTIFF')
@@ -101,6 +101,11 @@ class RasterDataset(Cartographer):
             assert maxx < 360
             dst_maxx = mark180 + (mark180 + dst_maxx)
 
+        # HACK2:
+        source_extra = 1
+        if minx <= -180 or maxx >= 180:
+            source_extra = target_width
+
         if self._resample_method is not None:
             resample_method = self._resample_method
         else:
@@ -136,13 +141,13 @@ class RasterDataset(Cartographer):
                        '-te', str(dst_minx), str(dst_miny), str(dst_maxx), str(dst_maxy),
                        '-r', resample_method,
                        '-wm', str(int(self._work_mem)),
+                       '-wo', 'SOURCE_EXTRA=%d' % source_extra,
                        '-overwrite',
                        '-of', 'gtiff',
                        '-q',
                        self._dataset_path,
                        target_raster.filename
                        ]
-
             popen = subprocess.Popen(command)
             popen.communicate()
 
