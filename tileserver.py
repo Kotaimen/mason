@@ -5,11 +5,11 @@
 Simple tile map server supporting render a configuration online or attaching
 to a existing tilestorage.
 
-You can start a production server by change settings in supplied tilesvr.wsgi 
+You can start a production server by change settings in supplied tilesvr.wsgi
 and attach it to gunicorn(recommended) or mod_wsgi.
 
-In most cases, which dataset is small, just configure the renderer to write simple 
-filesystem cache and put the generated directory behind a standard static file 
+In most cases, which dataset is small, just configure the renderer to write simple
+filesystem cache and put the generated directory behind a standard static file
 server.
 
 Created on Sep 9, 2012
@@ -22,7 +22,7 @@ import urllib
 
 import multiprocessing
 
-from flask import Flask, abort
+from flask import Flask, abort, jsonify
 from werkzeug.serving import run_simple
 
 from mason import Mason, __version__ as VERSION , __author__ as AUTHOR
@@ -109,10 +109,10 @@ def parse_args(args=None):
                         choices=['hybrid', 'readonly', 'overwrite', 'dryrun',
                                  'h', 'r', 'o', 'd', ],
                         help='''Specify rendering mode for "renderer" layers.
-                        default is "%(default)s". 
-                        Note this option will not effect layers attatching to existing 
+                        default is "%(default)s".
+                        Note this option will not effect layers attatching to existing
                         stroage.
-                        "hybrid": read from stroage cache when possible, otherwise 
+                        "hybrid": read from stroage cache when possible, otherwise
                         render tile and populates the cache.
                         "readonly": read from cache, never triggers render, returns 404
                         error if tile does not exist.
@@ -121,7 +121,7 @@ def parse_args(args=None):
                         while testing new render configuration.
                         '''
                         )
-    
+
     # Convert "mode" argument to the one understands by Mason
     mode2mode = dict(hybrid='default',
                      h='default',
@@ -221,6 +221,44 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
                    'Last-Modified': date_time_string(mtime)}
         return tile_data, 200, headers
 
+    @app.route('/tile/*')
+    def layers():
+        return jsonify(layers=mason.get_layers())
+
+    @app.route('/tile/<tag>/metadata.<ext>')
+    def metadata(tag, ext):
+        try:
+            metadata = mason.get_metadata(tag)
+        except InvalidLayer:
+            abort(405)
+        print ext
+        if ext == 'json':
+            return jsonify(**metadata)
+        elif ext == 'jsonp':
+            jsonp = \
+            '''grid({"attribution":"","bounds":%(envelope)s,"center":[0,0,4],
+            "geocoder":"",
+            "id":"mason",
+            "maxzoom":%(maxzoom)s,
+            "minzoom":%(minzoom)s,
+            "name":"%(tag)s",
+            "private":true,
+            "scheme":"xyz",
+            "tilejson":
+            "2.0.0",
+            "tiles":["http://localhost:8080/tile/%(tag)s/{z}/{x}/{y}.%(ext)s"],
+            "webpage":"http://tiles.mapbox.com/mapbox/map/mapbox-streets"});
+            ''' % dict(envelope=list(metadata['envelope']),
+                       maxzoom=max(metadata['levels']),
+                       minzoom=min(metadata['levels']),
+                       tag=metadata['tag'],
+                       ext=metadata['format']['extension'][1:],
+                       )
+            return jsonp
+        else:
+            abort(404)
+
+
     return app
 
 
@@ -234,7 +272,7 @@ def main():
     if options.debug:
         app.debug = True
         # debug mode doesn't work with reload option
-        use_reloader = False
+#        use_reloader = False 
 
     if use_reloader:
         config_files = list(fn for fn in options.layers if fn.endswith('.cfg.py'))
