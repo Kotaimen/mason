@@ -46,7 +46,7 @@ class RasterDataset(Cartographer):
                  target_projection='EPSG:3857',
                  target_nodata= -32768,
                  resample_method=None,
-                 work_memory=128):
+                 work_memory=512):
         Cartographer.__init__(self, 'GTIFF')
         dataset = gdal.Open(dataset_path, gdalconst.GA_ReadOnly)
         if not dataset:
@@ -91,7 +91,7 @@ class RasterDataset(Cartographer):
         dst_minx, dst_miny, __foo = srs.forward(minx, miny)
         dst_maxx, dst_maxy, __foo = srs.forward(maxx, maxy)
 
-        # HACK: fix coodinates error
+        # HACK 1: fix coordinates error
         # otherwise, gdal will project -181 to 19926188.852, which is wrong.
         mark180, __foo, __foo = srs.forward(180, 0)
         if minx < -180:
@@ -100,11 +100,6 @@ class RasterDataset(Cartographer):
         if maxx > 180:
             assert maxx < 360
             dst_maxx = mark180 + (mark180 + dst_maxx)
-
-        # HACK2: read extra data to avoid missing source data
-        source_extra = 1
-        if minx <= -180 or maxx >= 180:
-            source_extra = target_width / 2
 
         if self._resample_method is not None:
             resample_method = self._resample_method
@@ -135,19 +130,36 @@ class RasterDataset(Cartographer):
             target_raster = GDALTempFileRaster(data_format='gtiff')
 
             command = ['gdalwarp',
-                       '-t_srs', self._target_projection,
                        '-ts', str(target_width), str(target_height),
                        '-dstnodata', str(self._target_nodata),
-                       '-te', str(dst_minx), str(dst_miny), str(dst_maxx), str(dst_maxy),
+                       '-te', str(dst_minx), str(dst_miny),
+                              str(dst_maxx), str(dst_maxy),
                        '-r', resample_method,
                        '-wm', str(int(self._work_mem)),
-                       '-wo', 'SOURCE_EXTRA=%d' % source_extra,
                        '-overwrite',
                        '-of', 'gtiff',
                        '-q',
-                       self._dataset_path,
-                       target_raster.filename
                        ]
+
+            if self._dataset_epsg != self._target_epsg:
+                command.extend(['-t_srs', self._target_projection])
+
+                # HACK 2:
+                # GDAL transforms the destination area
+                # back to the source coordinate system by sampling
+                # a grid of points over the region.
+                # But points right on the international date line might
+                # transform two different ways.
+                # so the region selector is missing the last swath of
+                # data.
+                # Setting source_extra will read more data from the source.
+                source_extra = 1
+                if minx <= -180 or maxx >= 180:
+                    source_extra = target_width / 2
+                command.extend(['-wo', 'SOURCE_EXTRA=%d' % source_extra])
+
+            command.extend([self._dataset_path, target_raster.filename])
+
             popen = subprocess.Popen(command)
             popen.communicate()
 
