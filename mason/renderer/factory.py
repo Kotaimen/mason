@@ -17,6 +17,7 @@ from .renderer import (DataSourceMetaTileRenderer,
                        ProcessingMetaTileRenderer,
                        CompositeMetaTileRenderer,
                        )
+from .cacherender import CachedRenderer
 
 
 #==============================================================================
@@ -30,7 +31,7 @@ class _DataSourceRendererFactory(object):
     Mapnik, PostGIS, and Storage is supported now.
     """
 
-    DATASOURCE_REGISTRY = ['mapnik', 'postgis', 'storage']
+    DATASOURCE_REGISTRY = ['mapnik', 'postgis', 'storage', 'dataset']
 
     def __call__(self, prototype, **params):
         params = dict(params)
@@ -106,6 +107,39 @@ class _CompositeRendererFactory(object):
         return CompositeMetaTileRenderer(metatile_composer, source_list)
 
 
-DataSourceRendererFactory = _DataSourceRendererFactory()
-ProcessingRendererFactory = _ProcessingRendererFactory()
-CompositeRendererFactory = _CompositeRendererFactory()
+class RendererFactory(object):
+
+    DataSourceRendererFactory = _DataSourceRendererFactory()
+    ProcessingRendererFactory = _ProcessingRendererFactory()
+    CompositeRendererFactory = _CompositeRendererFactory()
+
+    def __init__(self, mode='default'):
+        self._mode = mode
+
+    def __call__(self, prototype, sources, storage, **attr):
+        try:
+            major, minor = prototype.split('.')
+        except Exception:
+            raise RuntimeError('unknown prototype "%s"' % prototype)
+
+        factory = None
+        if major == 'datasource':
+            factory = self.DataSourceRendererFactory
+            renderer = factory(minor, **attr)
+        elif major == 'processing':
+            factory = self.ProcessingRendererFactory
+            if len(sources) != 1:
+                raise RuntimeError('processor only accept one source')
+            renderer = factory(minor, sources[0], **attr)
+        elif major == 'composite':
+            factory = self.CompositeRendererFactory
+            if len(sources) < 1:
+                raise RuntimeError('composite need one or more sources')
+            renderer = factory(minor, sources, **attr)
+        else:
+            raise RuntimeError('Unknown prototype %s' % prototype)
+
+        if storage:
+            renderer = CachedRenderer(storage, renderer, work_mode=self._mode)
+
+        return renderer

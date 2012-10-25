@@ -7,11 +7,7 @@ import os
 import unittest
 from mason.core import Pyramid, Format, Metadata, MetaTile
 from mason.tilestorage import TileStorageFactory
-from mason.renderer import (DataSourceRendererFactory,
-                            ProcessingRendererFactory,
-                            CompositeRendererFactory,
-                            CachedRenderer,
-                            )
+from mason.renderer import RendererFactory
 from mason.renderer.renderer import MetaTileRenderer
 
 
@@ -27,12 +23,15 @@ class FakeRenderer(MetaTileRenderer):
 
 class RendererTest(unittest.TestCase):
 
+    def setUp(self):
+        self._factory = RendererFactory()
+
     def testDataSourceMetaTileRenderer(self):
         pyramid = Pyramid(tile_size=512)
         metatile_index = pyramid.create_metatile_index(3, 2, 2, 2)
 
         params = dict(theme='./input/world.xml', image_type='png')
-        renderer = DataSourceRendererFactory('mapnik', **params)
+        renderer = self._factory('datasource.mapnik', [], None, **params)
 
         metatile = renderer.render(metatile_index)
         self.assertIsNotNone(metatile.data)
@@ -44,8 +43,8 @@ class RendererTest(unittest.TestCase):
 
         # processor
         params = dict(zfactor=1, scale=111120, azimuth=315, altitude=45)
-        source_renderer = FakeRenderer()
-        renderer = ProcessingRendererFactory('hillshading', source_renderer, **params)
+        source_renderer = (FakeRenderer(),)
+        renderer = self._factory('processing.hillshading', source_renderer, None, **params)
 
         metatile = renderer.render(metatile_index)
         self.assertIsNotNone(metatile.data)
@@ -63,7 +62,7 @@ class RendererTest(unittest.TestCase):
         renderer2 = FakeRenderer()
         renderer3 = FakeRenderer()
         source_list = [renderer1, renderer2, renderer3]
-        renderer = CompositeRendererFactory('imagemagick', source_list, **params)
+        renderer = self._factory('composite.imagemagick', source_list, None, **params)
 
         metatile = renderer.render(metatile_index)
         self.assertIsNotNone(metatile.data)
@@ -74,7 +73,6 @@ class RendererTest(unittest.TestCase):
         metatile_index = pyramid.create_metatile_index(3, 2, 2, 2)
 
         params = dict(theme='./input/world.xml', image_type='png')
-        renderer = DataSourceRendererFactory('mapnik', **params)
 
         # storage
         metadata = Metadata.make_metadata(tag='TestCachedRenderer')
@@ -84,11 +82,10 @@ class RendererTest(unittest.TestCase):
                                         metadata=metadata,
                                         root=output_dir,
                                         compress=False,)
-
         # cached renderer
-        cached_renderer = CachedRenderer(storage, renderer)
+        renderer = self._factory('datasource.mapnik', [], storage, **params)
 
-        metatile = cached_renderer.render(metatile_index)
+        metatile = renderer.render(metatile_index)
         self.assertIsNotNone(metatile.data)
         self.assertEqual(metatile.format, Format.PNG)
 
