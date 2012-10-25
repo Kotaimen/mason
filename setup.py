@@ -8,13 +8,20 @@ Created on Apr 29, 2012
 from distutils.core import setup
 
 packages = ['mason',
+            'mason.cartographer',
+            'mason.composer',
+            'mason.core',
+            'mason.renderer',
+            'mason.tilestorage',
+            'mason.utils',
             ]
 
-data_files = []
+data_files = ['static/polymaps.css', 'static/polymaps.js']
 
-scripts = []
+scripts = ['tileserver.py', 'tilerenderer.py', 'transtorage.py']
 
-setup(name='mason',
+setup(
+    name='mason',
     version='0.9.0',
     author='Kotaimen, Ray',
     author_email='kotaimen.c@gmail.com, gliese.q@gmail.com',
@@ -22,6 +29,7 @@ setup(name='mason',
     packages=packages,
     data_files=data_files,
     scripts=scripts,
+    requires=[],  # XXX: later...
 )
 
 
