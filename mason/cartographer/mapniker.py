@@ -27,7 +27,7 @@ elif sys.platform == 'linux2':
     mapnik.register_fonts(r'/usr/share/fonts')
 elif sys.platform == 'win32':
     mapnik.register_fonts(r'C:\Windows\Fonts')
-#for face in list(mapnik.FontEngine.face_names()):
+# for face in list(mapnik.FontEngine.face_names()):
 #    print face
 
 
@@ -103,7 +103,7 @@ class Mapnik(Cartographer):
                  force_reload=False,
                  ):
         if image_type not in ['png', 'png256', 'jpg']:
-            raise TypeError('Only support PNG/PNG256/JPEG format.')
+            raise TypeError('Only support PNG/PNG256/JPEG format, got "%s"' % image_type)
 
         self._scale_factor = scale_factor
         self._buffer_size = buffer_size
@@ -127,7 +127,7 @@ class Mapnik(Cartographer):
         # PNG Parameters --------------------------------------------------
         if image_type.lower() == 'png':
             image_type = 'png'
-        elif image_type.lower() == 'jpg': # quality
+        elif image_type.lower() == 'jpg':  # quality
             image_type = 'jpeg'
             quality = image_parameters.get('quality', 85)
             if not isinstance(quality, int):
@@ -136,7 +136,7 @@ class Mapnik(Cartographer):
                 raise ValueError('JPEG quality shall be 1-100.')
             image_type += '%d' % quality
         # PNG256 Parameters -----------------------------------------------
-        elif image_type.lower() == 'png256': # palette
+        elif image_type.lower() == 'png256':  # palette
             palette = image_parameters.get('palette', None)
             if palette:
                 palette_type = os.path.splitext(palette)[1][1:].lower()

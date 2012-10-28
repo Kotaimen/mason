@@ -7,7 +7,9 @@ Created on May 2, 2012
 import shutil
 import os
 import unittest
-from mason.cartographer import create_cartographer
+from mason.cartographer import CartographerFactory
+
+create_cartographer = CartographerFactory
 
 
 def save_to_file(tag, ext, data):
@@ -46,10 +48,24 @@ class TestMapnikMaker(unittest.TestCase):
             shutil.copyfileobj(stream, fp)
         cartographer.close()
 
+    def testPNGPalette(self):
+        cartographer = create_cartographer('mapnik',
+                                           theme='./input/world.xml',
+                                           image_type='png256',
+                                           image_parameters={'palette': './input/example-palette.act'})
+
+        size = (512, 512)
+        envelope = (0, 0, 180, 85)
+        stream = cartographer.render(envelope, size)
+        with open('./output/test_cartographer_mapnik_pngpalette.png', 'wb') as fp:
+            shutil.copyfileobj(stream, fp)
+        cartographer.close()
+
+
     def testJPEG(self):
         cartographer = create_cartographer('mapnik',
                                            theme='./input/world.xml',
-                                           image_type='jpeg',
+                                           image_type='jpg',
                                            image_parameters={'quality': 60})
 
         size = (512, 512)
@@ -61,5 +77,5 @@ class TestMapnikMaker(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
+    # import sys;sys.argv = ['', 'Test.testName']
     unittest.main()

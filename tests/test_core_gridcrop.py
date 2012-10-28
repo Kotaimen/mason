@@ -22,6 +22,15 @@ class TestBufferCrop(unittest.TestCase):
         with open('./output/buffer_crop.png', 'w') as fp:
             fp.write(data)
 
+    def testPNG256(self):
+        with open('./input/test_core_gridcrop_grid_palette.png', 'r') as fp:
+            data = fp.read()
+
+        data = buffer_crop(data, 1024, 256, Format.PNG)
+
+        with open('./output/buffer_crop_palette.png', 'w') as fp:
+            fp.write(data)
+
     def testJPG(self):
         with open('./input/test_core_gridcrop_grid.jpg', 'r') as fp:
             data = fp.read()
@@ -116,5 +125,5 @@ class TestMetatileFission(unittest.TestCase):
         self.assertEqual(len(tiles), 4)
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
+    # import sys;sys.argv = ['', 'Test.testName']
     unittest.main()
