@@ -8,17 +8,17 @@ and renendering tiles.
 Check samples at Mapbox: http://tiles.mapbox.com/kotaimen.
 
 Similar wheels:
-*  TileCache (http://tilecache.org)
-*  TileStatche (http://tilestache.org)
+*  [TileCache](http://tilecache.org)
+*  [TileStatche](http://tilestache.org)
 
 Version 0.9.0
 
 Features
 --------
 
-Feature:
+Supports:
 * Render, storage, manage map tiles.
-* Mapnik2.1 as map renderer, PostGIS2.0 as raster/geometry data source.
+* Mapnik2.1 as map renderer, PostGIS2/GDAL as raster/geometry data source.
 * ImageMagick as image post processing engine.
 * Simple render tools.
 * Built in tile server
@@ -26,7 +26,7 @@ Feature:
 
 Renderers:
 * Topographic map via Mapnik2
-* Shaded relief map via PostGIS2.0, GDAL1.9
+* Shaded relief map via PostGIS2, GDAL1.9
 * Post processing/composer using ImageMagick
 
 Storage:
@@ -35,27 +35,42 @@ Storage:
 
 Suggested Tools
 ---------------
-* To view or edit geographic data, try QGIS (www.qgis.org).
-* PostGIS (www.postgis.org) is best way to handle large quality of geographic data.
+* To view or edit geographic data, try [QGIS](www.qgis.org).
+* [PostGIS](www.postgis.org) is best way to handle large quality of geographic data.
   Note PostGIS 2.0+ is required to render raster data.
-* To edit mapnik style xml, try TileMill (www.mapbox.com/tilemill).  
+* To edit mapnik style xml, try [TileMill](www.mapbox.com/tilemill). 
 
 Dependency
 ----------
-Python2.7+ is required (no support for python3 yet)
+Tested on ubuntu-12.04+ (64bit) and MacOS Lion, python 2.7+ is required.
+Most GIS tools are still in python 2.x era so python3 is not supported, yet.
 
-- Flask
-- python-memcached (not strictly required but recommendend)
-- mapnik 2.1.0 (2.0+ will work, but with limited function)
-- ImageMagick
-- GDAL 1.9 (with python binding)
-- imagemagick
+On ubuntu just type following to install everything:
+
+```
+apt-get install python-dev python-pipapt-get install imagemagick
+apt-get install gdal-dev python-gdal gdal-bin python-mapnik2 memcached
+pip install flask networkx python-memcached
+```
+
+Note ubuntu 12.x comes with gdal 1.7 and mapnik2.0, which is outdated, you need
+manually build your own version. (mapnik now comes with their own ubuntu packge, check 
+[here](https://github.com/mapnik/mapnik/wiki/UbuntuInstallation) ).
+
+On Mac with brew installed, replace `apt-get` with `brew`.
+
 
 Install
 -------
-Just extract package to anywhere and run `./tileserver.py tests/input.world.cfg.py`.
+Just extract package to anywhere and run `./tileserver.py tests/input/world.cfg.py`.
 This will start a new tile server renders a simple sketchy world map at 
-http://localhost:8080
+`http://localhost:8080`
+
+If you see warnings like this:
+```
+### LineSymbolizer properties warning: 'smooth','comp-op' are invalid,...
+```
+Then your mapnik is 2.0 and is outdated (and your map will *not* be sketchy), please upgrade to mapnik2.1.
 
 License
 -------
