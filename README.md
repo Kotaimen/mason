@@ -48,8 +48,8 @@ Most GIS tools are still in python 2.x era so python3 is not supported, yet.
 On ubuntu just type following to install everything:
 
 ```
-apt-get install python-dev python-pipapt-get install imagemagick
-apt-get install gdal-dev python-gdal gdal-bin python-mapnik2 memcached
+apt-get -y install python-dev python-pipapt-get install imagemagick
+apt-get -y install libgdal-dev python-gdal gdal-bin python-mapnik2 memcached
 pip install flask networkx python-memcached
 ```
 
