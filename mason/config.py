@@ -140,9 +140,11 @@ class RenderTree(object):
         metatile = self._renderer.render(metatile_index)
         if self._renderer_cache and self._mode in ['default', 'overwrite']:
             tile_indexes = metatile_index.fission()
-            if not self._renderer_cache.has_all(tile_indexes):
+            if self._mode == 'overwrite' or \
+                    not self._renderer_cache.has_all(tile_indexes):
                 tiles = metatile_fission(metatile)
                 self._renderer_cache.put_multi(tiles)
+
         return metatile
 
     def show(self):
