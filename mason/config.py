@@ -60,7 +60,7 @@ class RenderTree(object):
         # create renderer configuration tree
         self._pyramid = self._create_pyramid(config)
         self._metadata = self._create_metadata(config)
-        self._renderer = self._create_renderer(
+        self._rendertree = self._create_renderer(
                                config,
                                self._pyramid,
                                self._metadata)
@@ -136,8 +136,17 @@ class RenderTree(object):
     def metadata(self):
         return self._metadata
 
+    def get_single_tile(self, z, x, y):
+        if self._mode not in ['default', 'readonly']:
+            return None
+        if not self._renderer_cache:
+            return None
+
+        tile_index = self._renderer_cache.pyramid.create_tile_index(z, x, y)
+        return self._renderer_cache.get(tile_index)
+
     def render(self, metatile_index):
-        metatile = self._renderer.render(metatile_index)
+        metatile = self._rendertree.render(metatile_index)
         if self._renderer_cache and self._mode in ['default', 'overwrite']:
             tile_indexes = metatile_index.fission()
             if self._mode == 'overwrite' or \
@@ -151,7 +160,7 @@ class RenderTree(object):
         nx.write_edgelist(self._graph, sys.stdout)
 
     def close(self):
-        self._renderer.close()
+        self._rendertree.close()
 
 
 #==============================================================================
@@ -165,7 +174,7 @@ class RenderConfigParser(object):
         self._pyramid_config = dict()
         self._metadata_config = dict()
         self._cache_config = dict()
-        self._renderer = None
+        self._rendertree = None
 
         self._nodes = dict()
         self._edges = list()
@@ -205,7 +214,7 @@ class RenderConfigParser(object):
 
         self._pyramid_config = pyramid
         self._metadata_config = metadata
-        self._renderer = renderer
+        self._rendertree = renderer
         self._cache_config = cache
 
     def _parse_nodes_and_edges(self, config):
@@ -260,7 +269,7 @@ class RenderConfigParser(object):
 
     @property
     def renderer(self):
-        return self._renderer
+        return self._rendertree
 
     def render_nodes(self):
         return self._nodes.items()

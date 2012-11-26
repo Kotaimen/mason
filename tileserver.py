@@ -5,9 +5,6 @@
 Simple tile map server supporting render a configuration online or attaching
 to a existing tilestorage.
 
-You can start a production server by change settings in supplied tilesvr.wsgi
-and attach it to gunicorn(recommended) or mod_wsgi.
-
 In most cases, which dataset is small, just configure the renderer to write simple
 filesystem cache and put the generated directory behind a standard static file
 server.
@@ -22,7 +19,8 @@ import urllib
 
 import multiprocessing
 
-from flask import Flask, abort, jsonify
+from flask import Flask, abort, jsonify, current_app
+from flask import _app_ctx_stack as stack
 from werkzeug.serving import run_simple
 
 from mason import Mason, __version__ as VERSION , __author__ as AUTHOR
@@ -32,6 +30,10 @@ from mason.utils import date_time_string
 
 from mason.mason import InvalidLayer, TileNotFound
 from mason.core.pyramid import TileOutOfRange
+
+#===============================================================================
+# Arg Parser
+#===============================================================================
 
 
 def add_storage_or_renderer(mason, config, option):
@@ -54,6 +56,7 @@ def parse_args(args=None):
         epilog='''Tile server which included a tile map viewer to display
         layers of map tiles.  Can attach to a rendered storage or render
         on-the-fly from renderer configuration.
+        To start a production server, put this behind wsgi server, like gunicorn.
         ''',
         usage='%(prog)s LAYERS [OPTIONS]',)
 
@@ -79,7 +82,7 @@ def parse_args(args=None):
                         dest='debug',
                         default=False,
                         action='store_true',
-                        help='''Enable debug mode, this diables "--reload" and
+                        help='''Enable debug mode, this disables "--reload" and
                         requests will be processed in single thread (default
                         is multi-processed).''',)
 
@@ -94,6 +97,13 @@ def parse_args(args=None):
                         cause xml theme file being reloaded on each render request.
                         (which is slow)
                         ''',)
+
+    parser.add_argument('-t', '-threaded',
+                        dest='threaded',
+                        default=False,
+                        action='store_true',
+                        help='''Start a threaded server instead of forked
+                        process server. ''')
 
     parser.add_argument('-w', '--workers',
                         dest='workers',
@@ -139,13 +149,11 @@ def parse_args(args=None):
 #    print options
     return options
 
+#===============================================================================
+# Application Object
+#===============================================================================
 
-def build_app(options):
-    app = Flask(__name__)
-
-    @app.route('/')
-    def index():
-        return u'''<!DOCTYPE html>
+INDEX_TEMPLATE = u'''<!DOCTYPE html>
 <html>
   <head>
     <title>Mason Tile Server (v%(version)s)</title>
@@ -158,27 +166,61 @@ def build_app(options):
   <body id="map">
     <script type="text/javascript" src="tilesvr.js"></script>
   </body>
-</html>''' % {'version': VERSION }
+</html>'''
 
-    # Create layer manager
-    mason = Mason()
 
-    # Add storages
-    for layer_config in options.layers:
-        layer_option = dict(mode=options.mode,
-                            reload=options.reload)
-        add_storage_or_renderer(mason, layer_config, layer_option)
-    # Use first layer as base layer
-    baselayer_metadata = mason.get_metadata(mason.get_layers()[0])
-    min_level = min(baselayer_metadata['levels'])
-    max_level = max(baselayer_metadata['levels'])
-    lon = baselayer_metadata['center'][0]
-    lat = baselayer_metadata['center'][1]
-    zoom = baselayer_metadata['zoom']
+class MasonApp(object):
+
+    def __init__(self, app, options):
+        self.app = app
+        self.options = options
+        self.init_app(app)
+        self._mason = None
+
+    def init_app(self, app):
+        app.teardown_appcontext(self.teardown)
+
+    def teardown(self, exception):
+        ctx = stack.top
+        if hasattr(ctx, 'mason'):
+            ctx.mason.close()
+
+    @property
+    def mason(self):
+        ctx = stack.top
+        if ctx is not None:
+            if not hasattr(ctx, 'mason'):
+                options = self.options
+                mason = Mason()
+                # Add storages
+                for layer_config in options.layers:
+                    layer_option = dict(mode=options.mode,
+                                        reload=options.reload)
+                    add_storage_or_renderer(mason, layer_config, layer_option)
+                ctx.mason = mason
+            return ctx.mason
+        return self._mason
+
+
+def build_app(options):
+    app = Flask(__name__)
+    mason_context = MasonApp(app, options)
+
+    @app.route('/')
+    def index():
+        return INDEX_TEMPLATE % {'version': VERSION }
 
     @app.route('/tilesvr.js')
     def js():
-        # XXX: Should add a option allows user to select from openlayers and polymaps
+        # Use first layer as base layer
+        layers = mason_context.mason.get_layers()
+        baselayer_metadata = mason_context.mason.get_metadata(layers[0])
+        min_level = min(baselayer_metadata['levels'])
+        max_level = max(baselayer_metadata['levels'])
+        lon = baselayer_metadata['center'][0]
+        lat = baselayer_metadata['center'][1]
+        zoom = baselayer_metadata['zoom']
+
         script = u'''var po = org.polymaps;
 var map = po.map();
 map.container(document.getElementById("map").appendChild(po.svg("svg")))
@@ -187,9 +229,9 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
    .zoom(%(zoom)d);
 ''' % dict(lat=lat, lon=lon, min_level=min_level, max_level=max_level, zoom=zoom)
 
-        for layer in mason.get_layers():
+        for layer in layers:
             print 'Adding layer "%s"' % layer
-            metadata = mason.get_metadata(layer)
+            metadata = mason_context.mason.get_metadata(layer)
             ext = metadata['format']['extension'][1:]
             tag = urllib.quote(layer)
             script += u'''map.add(
@@ -210,7 +252,7 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
     @app.route('/tile/<tag>/<int:z>/<int:x>/<int:y>.<ext>')
     def tile(tag, z, x, y, ext):
         try:
-            tile_data, mimetype, mtime = mason.craft_tile(tag, z, x, y)
+            tile_data, mimetype, mtime = mason_context.mason.craft_tile(tag, z, x, y)
         except TileNotFound:
             abort(404)
         except InvalidLayer:
@@ -223,12 +265,13 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
 
     @app.route('/tile/*')
     def layers():
-        return jsonify(layers=mason.get_layers())
+        layers = mason_context.mason.get_layers()
+        return jsonify(layers=layers)
 
     @app.route('/tile/<tag>/metadata.<ext>')
     def metadata(tag, ext):
         try:
-            metadata = mason.get_metadata(tag)
+            metadata = mason_context.mason.get_metadata(tag)
         except InvalidLayer:
             abort(405)
         print ext
@@ -258,7 +301,6 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
         else:
             abort(404)
 
-
     return app
 
 
@@ -271,8 +313,6 @@ def main():
     use_reloader = options.reload
     if options.debug:
         app.debug = True
-        # debug mode doesn't work with reload option
-#        use_reloader = False 
 
     if use_reloader:
         config_files = list(fn for fn in options.layers if fn.endswith('.cfg.py'))
@@ -283,8 +323,8 @@ def main():
                use_reloader=use_reloader,
                use_debugger=options.debug,
                extra_files=config_files,
-               threaded=False,
-               processes=(1 if options.debug else options.workers),
+               threaded=options.threaded,
+               processes=(1 if (options.debug or options.threaded) else options.workers),
                )
 
 if __name__ == '__main__':
