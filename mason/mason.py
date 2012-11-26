@@ -43,11 +43,11 @@ class RendererLayer(object):
 
     """ RendererRoot->Layer adapter """
 
-    def __init__(self, renderer):
-        self._renderer = renderer
+    def __init__(self, rendertree):
+        self._rendertree = rendertree
         metadata = dict()
-        metadata.update(self._renderer.pyramid.summarize())
-        metadata.update(self._renderer.metadata.make_dict())
+        metadata.update(self._rendertree.pyramid.summarize())
+        metadata.update(self._rendertree.metadata.make_dict())
         self._metadata = metadata
 
     @property
@@ -55,9 +55,12 @@ class RendererLayer(object):
         return self._metadata
 
     def get_tile(self, z, x, y):
+        tile = self._rendertree.get_single_tile(z, x, y)
+        if tile is not None:
+            return tile
         # Render a 1x1 MetaTile
-        metatile_index = self._renderer.pyramid.create_metatile_index(z, x, y, 1)
-        metatile = self._renderer.render(metatile_index)
+        metatile_index = self._rendertree.pyramid.create_metatile_index(z, x, y, 1)
+        metatile = self._rendertree.render(metatile_index)
         if not metatile:
             return None
 
@@ -67,16 +70,16 @@ class RendererLayer(object):
                            metatile.index.buffer,
                            metatile.format)
         # Return a tile object
-        tile = self._renderer.pyramid.create_tile(z, x, y, data,
+        tile = self._rendertree.pyramid.create_tile(z, x, y, data,
                                                   metatile.mtime)
         return tile
 
     def render_metatile(self, z, x, y, stride):
-        metatile_index = self._renderer.pyramid.create_metatile_index(z, x, y, stride)
-        self._renderer.render(metatile_index)
+        metatile_index = self._rendertree.pyramid.create_metatile_index(z, x, y, stride)
+        self._rendertree.render(metatile_index)
 
     def close(self):
-        self._renderer.close()
+        self._rendertree.close()
 
 
 #===============================================================================
