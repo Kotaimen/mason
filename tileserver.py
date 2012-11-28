@@ -98,12 +98,12 @@ def parse_args(args=None):
                         (which is slow)
                         ''',)
 
-    parser.add_argument('-t', '-threaded',
-                        dest='threaded',
-                        default=False,
-                        action='store_true',
-                        help='''Start a threaded server instead of forked
-                        process server. ''')
+#    parser.add_argument('-t', '-threaded',
+#                        dest='threaded',
+#                        default=False,
+#                        action='store_true',
+#                        help='''Start a threaded server instead of forked
+#                        process server. ''')
 
     parser.add_argument('-w', '--workers',
                         dest='workers',
@@ -143,7 +143,7 @@ def parse_args(args=None):
                      d='dryrun')
 
     options = parser.parse_args(args)
-
+    options.threaded = False  # option disabled
     options.mode = mode2mode[options.mode]
 
 #    print options
@@ -172,33 +172,22 @@ INDEX_TEMPLATE = u'''<!DOCTYPE html>
 class MasonApp(object):
 
     def __init__(self, app, options):
-        self.app = app
-        self.options = options
-        self.init_app(app)
+        self._app = app
+        self._options = options
         self._mason = None
-
-    def init_app(self, app):
-        app.teardown_appcontext(self.teardown)
-
-    def teardown(self, exception):
-        ctx = stack.top
-        if hasattr(ctx, 'mason'):
-            ctx.mason.close()
 
     @property
     def mason(self):
-        ctx = stack.top
-        if ctx is not None:
-            if not hasattr(ctx, 'mason'):
-                options = self.options
-                mason = Mason()
-                # Add storages
-                for layer_config in options.layers:
-                    layer_option = dict(mode=options.mode,
-                                        reload=options.reload)
-                    add_storage_or_renderer(mason, layer_config, layer_option)
-                ctx.mason = mason
-            return ctx.mason
+        if self._mason is None:
+            print 'Init Mason Tile Service'
+            mason = Mason()
+            # Add storages
+            for layer_config in self._options.layers:
+                print 'Adding layer from "%s"' % layer_config
+                layer_option = dict(mode=self._options.mode,
+                                    reload=self._options.reload)
+                add_storage_or_renderer(mason, layer_config, layer_option)
+            self._mason = mason
         return self._mason
 
 
@@ -230,7 +219,6 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
 ''' % dict(lat=lat, lon=lon, min_level=min_level, max_level=max_level, zoom=zoom)
 
         for layer in layers:
-            print 'Adding layer "%s"' % layer
             metadata = mason_context.mason.get_metadata(layer)
             ext = metadata['format']['extension'][1:]
             tag = urllib.quote(layer)
@@ -326,6 +314,7 @@ def main():
                threaded=options.threaded,
                processes=(1 if (options.debug or options.threaded) else options.workers),
                )
+
 
 if __name__ == '__main__':
     main()
