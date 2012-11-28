@@ -2,14 +2,17 @@
 # -*- encoding: utf8 -*-
 
 import sys
-#sys.path.insert(0, '/path/to/the/application')
+sys.path.insert(0, '/path/to/mason')
 
 from tileserver import build_app
 
 
 class Options(object):
-    layers = ['/path/to/layer', ]
+    layers = ['/path/to/layerconfig', ]
+    mode = 'default'
+    debug = False
+    reload = False
 
 options = Options()
 application = build_app(options)
-
+# application.debug = True

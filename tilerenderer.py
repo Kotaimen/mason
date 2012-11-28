@@ -22,7 +22,7 @@ from mason import (__version__ as VERSION,
                    __author__ as AUTHOR,
                    create_render_tree_from_config)
 
-#from mason import create_mason_from_config
+# from mason import create_mason_from_config
 from mason.core import Envelope, PyramidWalker
 from mason.utils import Timer, human_size
 
@@ -45,6 +45,7 @@ class Statics(ctypes.Structure):
 
 
 def spawner(queue, statistics, options):
+    options = verify_config(options)
     render_option = dict(mode='readonly', reload=False)
     renderer = create_render_tree_from_config(options.config, render_option)
     walker = PyramidWalker(renderer.pyramid,
@@ -61,6 +62,7 @@ def spawner(queue, statistics, options):
 #===============================================================================
 
 def worker(queue, statistics, options):
+    options = verify_config(options)
     setup_logger(options.logfile)
     render_option = dict(mode=options.mode, reload=False)
     renderer = create_render_tree_from_config(options.config, render_option)
@@ -247,7 +249,7 @@ def setup_logger(log_file, level=logging.DEBUG):
 
 
 def verify_config(options):
-    setup_logger(options.logfile)
+
 
     logger.info('===== Testing Configuration =====')
 
@@ -305,16 +307,17 @@ def verify_config(options):
 
 
 def main():
-    options = parse_args()
 
+    options = parse_args()
+    setup_logger(options.logfile)
     print '=' * 70
     print 'Parallel Tile Renderer (v%s), please be very patient.' % VERSION
     print 'Press CTRL+C to break render process...'
     print '=' * 70
-    options = verify_config(options)
 
     if options.test > 0:
-        print 'Turn off testing to start rendering'
+        print 'Turn off test to start rendering'
+        options = verify_config(options)
         return
     timer = Timer('Rendering finished in %(time)s')
 
