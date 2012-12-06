@@ -20,7 +20,27 @@ except ImportError:
 
 from .mbtiles import MBTilesTileStorage, MBTilesTileStorageWithBackgroundWriter
 
+from .cascade import CascadeTileStorage as CascadeTileStorage
+
 # ===== Storage Factory ========================================================
+
+
+def CascadeTileStorageWrapper(pyramid, metadata,
+                              violate=None, presistent=None):
+
+    # HACK: CascadeTileStorage only accepts storage object as parameter, but
+    #       for convince we really want to write storage parameters in the
+    #       configuration, and write nested cascade storages, thus inject and
+    #       replace the original constructor here:
+
+    violate_storage = create_tilestorage(violate[0], pyramid,
+                                         metadata, **violate[1])
+    presistent_storage = create_tilestorage(presistent[0], pyramid,
+                                            metadata, **presistent[1])
+
+    return CascadeTileStorage(pyramid, metadata,
+                              violate=violate_storage,
+                              presistent=presistent_storage)
 
 
 class TileStorageFactory(object):
@@ -33,6 +53,7 @@ class TileStorageFactory(object):
                           memcache=MemcachedTileStorage,
                           mbtiles=MBTilesTileStorage,
                           mbtilesbw=MBTilesTileStorageWithBackgroundWriter,
+                          cascade=CascadeTileStorageWrapper,
                           )
 
     def __call__(self, prototype, pyramid=None, metadata=None, **params):
