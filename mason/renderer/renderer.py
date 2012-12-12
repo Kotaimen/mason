@@ -29,7 +29,7 @@ class MetaTileRenderer(object):
         pass
 
 
-class DataSourceMetaTileRenderer(MetaTileRenderer):
+class DataSourceRenderer(MetaTileRenderer):
 
     """ Simple MetaTile renderer
 
@@ -48,7 +48,7 @@ class DataSourceMetaTileRenderer(MetaTileRenderer):
         self._datasource.close()
 
 
-class ProcessingMetaTileRenderer(MetaTileRenderer):
+class ProcessingRenderer(MetaTileRenderer):
 
     """ Processing Renderer
 
@@ -72,7 +72,7 @@ class ProcessingMetaTileRenderer(MetaTileRenderer):
         self._source_renderer.close()
 
 
-class CompositeMetaTileRenderer(MetaTileRenderer):
+class CompositeRenderer(MetaTileRenderer):
 
     """ Composite MetaTile renderer
 
@@ -101,7 +101,20 @@ class CompositeMetaTileRenderer(MetaTileRenderer):
             source.close()
 
 
-class NullMetaTileRenderer(MetaTileRenderer):
+class ConditionalRenderer(MetaTileRenderer):
+
+    def __init__(self, condition, source_renderers):
+        assert all(isinstance(s, MetaTileRenderer) for s in source_renderers)
+        self._conditon = condition
+        self._source_renderers = source_renderers
+
+    def render(self, metatileindex):
+        for cond, renderer in zip(self._conditon, self._source_renderers):
+            if cond(metatileindex):
+                return renderer.render(metatileindex)
+
+
+class NullRenderer(MetaTileRenderer):
 
     """ Null renderer
 
