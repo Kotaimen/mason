@@ -17,6 +17,7 @@ import logging
 import os
 import ctypes
 import time
+import re
 
 from mason import (__version__ as VERSION,
                    __author__ as AUTHOR,
@@ -175,7 +176,7 @@ files, so mount /tmp as ramdisk if that is a problem.
     parser.add_argument('-l', '--levels',
                         dest='levels',
                         default='',
-                        help='''Tile layers to render as a list: (eg:1,2,3), by
+                        help='''Tile layers to render (eg:1,2,3,5-10), by
                         default levels in renderer config will be used'''
                         )
 
@@ -268,7 +269,18 @@ def verify_config(options):
     if not options.levels:
         options.levels = renderer.pyramid.levels
     else:
-        options.levels = list(map(int, options.levels.split(',')))
+        levels = []
+        for level in options.levels.split(','):
+            if re.match(r'^\d+$', level):
+                levels.append(int(level))
+            elif re.match(r'^\d+-\d+$', level):
+                start, end = tuple(map(int, level.split('-')))
+                for l in range(start, end + 1):
+                    levels.append(l)
+            else:
+                pass
+        options.levels = sorted(set(levels))
+
     assert all((l in renderer.pyramid.levels) for l in options.levels), \
         'Invalid render levels'
     logger.info('Rendering level: %r', options.levels)
