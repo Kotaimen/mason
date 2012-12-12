@@ -15,11 +15,11 @@ class CascadeTileStorage(TileStorage):
     def __init__(self, pyramid, metadata,
                  violate=None,
                  presistent=None,
-                 writeback=False
+                 write_back=False
                  ):
         TileStorage.__init__(self, pyramid, metadata)
         self._storages = [violate, presistent]
-        self._writeback = writeback
+        self._writeback = write_back
 
     def get(self, tile_index):
         for n, storage in enumerate(self._storages):
@@ -34,6 +34,8 @@ class CascadeTileStorage(TileStorage):
 
     def put(self, tile):
         # Only write to violate storage one put one tile
+        if self._writeback:
+            self._storages[1].put(tile)
         self._storages[0].put(tile)
 
     def has_all(self, tile_indexes):
@@ -43,6 +45,8 @@ class CascadeTileStorage(TileStorage):
         return self._storages[0].has_any(tile_indexes)
 
     def put_multi(self, tiles):
+        if self._writeback:
+            self._storages[1].put_multi(tiles)
         self._storages[0].put_multi(tiles)
 
     def delete(self, tile_index):

@@ -26,7 +26,7 @@ from .cascade import CascadeTileStorage as CascadeTileStorage
 
 
 def CascadeTileStorageWrapper(pyramid, metadata,
-                              violate=None, presistent=None):
+                              violate=None, presistent=None, write_back=False):
 
     # HACK: CascadeTileStorage only accepts storage object as parameter, but
     #       for convince we really want to write storage parameters in the
@@ -40,7 +40,8 @@ def CascadeTileStorageWrapper(pyramid, metadata,
 
     return CascadeTileStorage(pyramid, metadata,
                               violate=violate_storage,
-                              presistent=presistent_storage)
+                              presistent=presistent_storage,
+                              write_back=write_back)
 
 
 class TileStorageFactory(object):
