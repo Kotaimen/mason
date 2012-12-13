@@ -105,13 +105,14 @@ class ConditionalRenderer(MetaTileRenderer):
 
     def __init__(self, condition, source_renderers):
         assert all(isinstance(s, MetaTileRenderer) for s in source_renderers)
-        self._conditon = condition
+        self._condition = condition
         self._source_renderers = source_renderers
 
     def render(self, metatileindex):
-        for cond, renderer in zip(self._conditon, self._source_renderers):
-            if cond(metatileindex):
-                return renderer.render(metatileindex)
+        zlevel = metatileindex.z
+        renderer =  self._source_renderers[self._condition[zlevel]]
+        metatile = renderer.render(metatileindex)
+        return metatile
 
 
 class NullRenderer(MetaTileRenderer):
