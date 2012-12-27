@@ -210,6 +210,22 @@ class TestMBTilesTileStorage(TileStorageTestMixin, unittest.TestCase):
         self.storage.close()
 
 
+class TestCascadeTileStorage(TileStorageTestMixin, unittest.TestCase):
+
+    def setUp(self):
+        self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
+        self.metadata = Metadata.make_metadata(tag='TestMemcachedTileStorage')
+        self.output_dir = os.path.join('output', 'TestCascadeTileStorage')
+
+        self.storage = factory('cascade',
+                               self.pyramid,
+                               self.metadata,
+                               violate=['memcache', {'servers': ['localhost:11211', ]}],
+                               presistent=['filesystem', {'root': 'self.output_dir'}],
+                               )
+
+    def tearDown(self):
+        self.storage.close()
 
 
 class TestMBTilesTileStorageBackgroundWriter(unittest.TestCase):
@@ -327,5 +343,5 @@ class TestMetaTileCache(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
+    # import sys;sys.argv = ['', 'Test.testName']
     unittest.main()

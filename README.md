@@ -11,7 +11,7 @@ Similar wheels:
 *  [TileCache](http://tilecache.org)
 *  [TileStatche](http://tilestache.org)
 
-Version 0.9.1
+Version 0.9.2
 
 Features
 --------

@@ -98,13 +98,6 @@ def parse_args(args=None):
                         (which is slow)
                         ''',)
 
-#    parser.add_argument('-t', '-threaded',
-#                        dest='threaded',
-#                        default=False,
-#                        action='store_true',
-#                        help='''Start a threaded server instead of forked
-#                        process server. ''')
-
     parser.add_argument('-w', '--workers',
                         dest='workers',
                         default=multiprocessing.cpu_count(),
