@@ -1,5 +1,5 @@
 __author__ = 'Kotaimen <kotaimen.c@gmail.com>, Ray <gliese.q@gmail.com>'
-version = (0, 9, 1)
+version = (0, 9, 2)
 __version__ = '.'.join(map(str, version))
 
 
