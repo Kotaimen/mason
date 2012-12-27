@@ -13,9 +13,10 @@ from .datasource import (CartographerMetaTileDataSource,
                          )
 from .processor import GDALMetaTileProcessor
 from .composer import ImageMagicMetaTileComposer
-from .renderer import (DataSourceMetaTileRenderer,
-                       ProcessingMetaTileRenderer,
-                       CompositeMetaTileRenderer,
+from .renderer import (DataSourceRenderer,
+                       ProcessingRenderer,
+                       CompositeRenderer,
+                       ConditionalRenderer
                        )
 from .cacherender import CachedRenderer
 
@@ -52,7 +53,7 @@ class _DataSourceRendererFactory(object):
         else:
             raise RuntimeError('Unknown prototype %s' % prototype)
 
-        return DataSourceMetaTileRenderer(metatile_datasource)
+        return DataSourceRenderer(metatile_datasource)
 
 
 class _ProcessingRendererFactory(object):
@@ -81,7 +82,7 @@ class _ProcessingRendererFactory(object):
         else:
             raise RuntimeError('Unknown prototype %s' % prototype)
 
-        return ProcessingMetaTileRenderer(metatile_processor, source)
+        return ProcessingRenderer(metatile_processor, source)
 
 
 class _CompositeRendererFactory(object):
@@ -92,19 +93,25 @@ class _CompositeRendererFactory(object):
     Imagemagick composer is supported now.
     """
 
-    COMPOSITE_REGISTRY = ['imagemagick', ]
+    COMPOSITE_REGISTRY = ['imagemagick', 'selector']
 
     def __call__(self, prototype, source_list, **params):
         params = dict(params)
-        if prototype in self.COMPOSITE_REGISTRY:
+        if prototype == 'imagemagick':
             # params: format, command
             composer = ImageMagickComposer(**params)
             metatile_composer = ImageMagicMetaTileComposer(composer)
+            return CompositeRenderer(metatile_composer, source_list)
+        elif prototype == 'selector':
+            condition = params.pop('condition', None)
+            if not condition:
+                raise RuntimeError('no condition specified.')
+            if len(condition) == len(source_list):
+                raise RuntimeError('condition and sources does not match.')
 
+            return ConditionalRenderer(condition, source_list)
         else:
             raise RuntimeError('Unknown prototype %s' % prototype)
-
-        return CompositeMetaTileRenderer(metatile_composer, source_list)
 
 
 class RendererFactory(object):
