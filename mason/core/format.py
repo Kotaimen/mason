@@ -90,6 +90,15 @@ KNOWN_FORMATS = {
                     mimetype='image/tiff',
                     georeferenced='no',
                     ),
+
+    'ZIP': _Format(name='ZIP',
+                    driver='zip',
+                    type='binary',
+                    extension='.zip',
+                    mimetype='application/zip',
+                    georeferenced='no',
+                    ),
+
 }
 
 
