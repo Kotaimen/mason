@@ -126,6 +126,11 @@ class RenderTree(object):
             except Exception as e:
                 raise RuntimeError('config "%s": %s' % (node_name, str(e)))
 
+        # Dump render configuration tree as a DOT file
+#        g = nx.to_agraph(render_tree)
+#        g.layout(prog='dot')
+#        g.draw('config.dot')
+
         return render_nodes[config.renderer]
 
     @property
@@ -135,15 +140,6 @@ class RenderTree(object):
     @property
     def metadata(self):
         return self._metadata
-
-    def get_single_tile(self, z, x, y):
-        if self._mode not in ['default', 'readonly']:
-            return None
-        if not self._renderer_cache:
-            return None
-
-        tile_index = self._renderer_cache.pyramid.create_tile_index(z, x, y)
-        return self._renderer_cache.get(tile_index)
 
     def render(self, metatile_index):
         metatile = self._rendertree.render(metatile_index)
@@ -156,8 +152,25 @@ class RenderTree(object):
 
         return metatile
 
-    def show(self):
-        nx.write_edgelist(self._graph, sys.stdout)
+    # Shortcuts for bypassing renderer tree -----------------------------------
+    def get_single_tile(self, z, x, y):
+        if self._mode not in ['default', 'readonly']:
+            return None
+        if not self._renderer_cache:
+            return None
+
+        tile_index = self._renderer_cache.pyramid.create_tile_index(z, x, y)
+        return self._renderer_cache.get(tile_index)
+
+    def has_metatile(self, z, x, y, stride):
+        if self._mode in ['overwrite']:
+            return False
+        metatile_index = self._renderer_cache.pyramid.create_metatile_index(z, x, y, stride)
+        tile_indexes = list()
+        for i in range(metatile_index.x, metatile_index.x + stride):
+            for j in range(metatile_index.y, metatile_index.y + stride):
+                tile_indexes.append(self._renderer_cache.pyramid.create_tile_index(z, i, j))
+        return self._renderer_cache.has_all(tile_indexes)
 
     def close(self):
         self._rendertree.close()
