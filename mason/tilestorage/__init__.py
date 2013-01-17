@@ -87,7 +87,7 @@ def create_tilestorage(prototype, pyramid=None, metadata=None, **args):
 
 MAGIC = {FileSystemTileStorage.CONFIG_VERSION.split('-', 1)[0]: FileSystemTileStorage,
          MetaTileCache.CONFIG_VERSION.split('-', 1)[0]: MetaTileCache,
-         ClusterTileStorage.CONFIG_VERSION.split('-', 1)[0]: FileSystemTileStorage,
+         ClusterTileStorage.CONFIG_VERSION.split('-', 1)[0]: ClusterTileStorage,
          }
 
 
@@ -98,7 +98,8 @@ def attach_tilestorage(prototype, **args):
         config_filename = os.path.join(root, FileSystemTileStorage.CONFIG_FILENAME)
         if not os.path.exists(config_filename):
             RuntimeError('Given directory is not a FileSystemTileStorage')
-        magic = json.load(config_filename)['magic'].split('-', 1)[0]
+        with open(config_filename, 'r') as fp:
+            magic = json.load(fp)['magic'].split('-', 1)[0]
         return MAGIC[magic].from_config(root)
     elif prototype == 'mbtiles':
         database = args['database']

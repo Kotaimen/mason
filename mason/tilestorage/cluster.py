@@ -53,17 +53,18 @@ class TileCluster(object):
             k = keys[i]
             h = hashes[i]
             try:
-                j = hashes[0:i].index(h)  # use first one has same hash
+                j = hashes[0:i].index(h)  # use first data has same hash
                 dedup[k] = keys[j]
                 del mapping[k]
             except ValueError:
                 dedup[k] = k
 
+        # Write zipfile in memory as buffer
         zipbuf = BytesIO()
         compression = zipfile.ZIP_DEFLATED if compression else zipfile.ZIP_STORED
-        zipobj = zipfile.ZipFile(file=zipbuf, mode='w', compression=compression)
+        zipobj = zipfile.ZipFile(file=zipbuf, mode='w')
 
-        index = {'tiles': dedup, 'datas': mapping.keys(), 'extension':self._ext }
+        index = {'tiles': dedup, 'datas': mapping.keys(), 'extension': self._ext }
 
         zipobj.writestr(self.INDEX, json.dumps(index, indent=2))
         for k, data in mapping.iteritems():
@@ -92,6 +93,8 @@ class TileCluster(object):
 
 class ClusterTileStorage(FileSystemTileStorage):
 
+    """ Store adjacent tiles in a cluster """
+
     CONFIG_VERSION = 'cluster-1.0.0'
 
     def __init__(self,
@@ -108,8 +111,7 @@ class ClusterTileStorage(FileSystemTileStorage):
         self._timeout = timeout
         self._servers = servers
 
-        FileSystemTileStorage.__init__(self, pyramid, metadata, root,
-                                       compress=compress)
+        FileSystemTileStorage.__init__(self, pyramid, metadata, root,)
         if servers is not None:
             self._cache = MemcachedTileStorage(pyramid,
                                                metadata,
@@ -126,7 +128,6 @@ class ClusterTileStorage(FileSystemTileStorage):
                     pyramid=self._pyramid.summarize(),
                     metadata=self._metadata.make_dict(),
                     compress=self._compress,
-                    simple=self._simple,
                     stride=self._stride,
                     servers=self._servers,
                     timeout=self._timeout,
@@ -195,22 +196,34 @@ class ClusterTileStorage(FileSystemTileStorage):
         self._cache.put(tile)
 
     def put_multi(self, tiles):
+        assert isinstance(tiles, list)
+
+        # Assuming we are putting single tile into cache
+        if tiles[0] > 0 and len(tiles) == 1:
+            self.put(tiles[0])
+            return
+
+        # Otherwise, create a cluster form given tiles
         cluster = TileCluster(self._pyramid, tiles)
         buf = cluster.fusion(compression=self._compress)
-
         metatile = self._pyramid.create_metatile(tiles[0].index.z,
-                                                             tiles[0].index.x,
-                                                             tiles[0].index.y,
-                                                             self._stride,
-                                                             buf)
-        # Assume tiles froms a single metatile
-#        assert len(tiles) == self._stride * self._stride
-#        for tile in tiles[1:]:
-#            idx = self._pyramid.create_metatile_index(tile.index.z,
-#                                                      tile.index.x,
-#                                                      tile.index.y,
-#                                                      self._stride)
-#            assert metatile.index == idx
+                                                 tiles[0].index.x,
+                                                 tiles[0].index.y,
+                                                 self._stride,
+                                                 buf)
+        # Assume tiles comes from a single MetaTile
+        if  2 ** tiles[0].index.z >= self._stride:
+            if len(tiles) != self._stride * self._stride:
+                raise TileStorageError('Must put a fissioned MetaTile into cluster storage, '
+                                       'set render stride equal to cluster stride.')
+
+                # XXX: is this too expensive?
+#                for tile in tiles[1:]:
+#                    idx = self._pyramid.create_metatile_index(tile.index.z,
+#                                                              tile.index.x,
+#                                                              tile.index.y,
+#                                                              self._stride)
+#                    assert metatile.index == idx
 
         FileSystemTileStorage.put(self, metatile)
 
@@ -218,11 +231,12 @@ class ClusterTileStorage(FileSystemTileStorage):
         return self._cache.has(tile_index)
 
     def has_all(self, tile_indexes):
+        # NOTE: This is a "has_any" check
         metatile_index = self._pyramid.create_metatile_index(tile_indexes[0].z,
                                                              tile_indexes[0].x,
                                                              tile_indexes[0].y,
                                                              self._stride)
-        return FileSystemTileStorage.has(metatile_index)
+        return FileSystemTileStorage.has(self, metatile_index)
 
     def delete(self, tile_index):
         self._cache.delete(tile_index)

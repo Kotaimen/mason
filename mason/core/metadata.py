@@ -30,4 +30,8 @@ class Metadata(collections.namedtuple('_Metadata', '''tag description version
 
     @staticmethod
     def from_dict(mapping):
+        mapping = dict(mapping)
+        tag = mapping['tag']
+        if not isinstance(tag, str):
+            mapping['tag'] = str(tag)
         return Metadata(**mapping)
