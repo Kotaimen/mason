@@ -169,7 +169,7 @@ class RenderTree(object):
         tile_indexes = list()
         for i in range(metatile_index.x, metatile_index.x + stride):
             for j in range(metatile_index.y, metatile_index.y + stride):
-                tile_indexes.append(self._renderer_cache.pyramid.create_tile_index(z, i, j))
+                tile_indexes.append(self._renderer_cache.pyramid.create_tile_index(z, i, j, range_check=False))
         return self._renderer_cache.has_all(tile_indexes)
 
     def close(self):
