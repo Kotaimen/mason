@@ -129,6 +129,8 @@ class RendererFactory(object):
         except Exception:
             raise RuntimeError('unknown prototype "%s"' % prototype)
 
+        keep_cache = attr.pop('keep_cache', True)
+
         factory = None
         if major == 'datasource':
             factory = self.DataSourceRendererFactory
@@ -147,6 +149,6 @@ class RendererFactory(object):
             raise RuntimeError('Unknown prototype %s' % prototype)
 
         if storage:
-            renderer = CachedRenderer(storage, renderer, work_mode=self._mode)
+            renderer = CachedRenderer(storage, renderer, work_mode=self._mode, keep_cache=keep_cache)
 
         return renderer

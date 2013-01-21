@@ -89,3 +89,6 @@ class MetaTileCache(FileSystemTileStorage):
 
     def has(self, tile_index):
         return os.path.exists(self._make_pathname(tile_index))
+
+    def delete(self, tile_index):
+        FileSystemTileStorage.delete(self, tile_index)

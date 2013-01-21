@@ -5,10 +5,11 @@ Created on Oct 11, 2012
 @author: ray
 '''
 import sys
+import traceback
 import networkx as nx
 from .core import Pyramid, Metadata, Format, metatile_fission
 from .tilestorage import create_tilestorage
-from .renderer import RendererFactory
+from .renderer import RendererFactory, CachedRenderer
 
 
 class RenderConfigError(Exception):
@@ -58,6 +59,7 @@ class RenderTree(object):
         self._factory = RendererFactory(mode)
 
         # create renderer configuration tree
+        self._render_nodes = dict()
         self._pyramid = self._create_pyramid(config)
         self._metadata = self._create_metadata(config)
         self._rendertree = self._create_renderer(
@@ -91,7 +93,7 @@ class RenderTree(object):
             render_tree.add_edge(start, end)
 
         # create renderer
-        render_nodes = dict()
+
         for node in nx.dfs_postorder_nodes(render_tree, config.renderer):
             node_name, node_config = node, render_tree.node[node]
 
@@ -108,9 +110,9 @@ class RenderTree(object):
                 # sources
                 source_nodes = list()
                 for node in node_config['sources']:
-                    if node not in render_nodes:
+                    if node not in self._render_nodes:
                         raise RuntimeError('unknown source %s' % node)
-                    source_nodes.append(render_nodes[node])
+                    source_nodes.append(self._render_nodes[node])
 
                 # cache
                 cache = node_config['cache']
@@ -121,17 +123,18 @@ class RenderTree(object):
                                          storage,
                                          **attrdict)
 
-                render_nodes[node_name] = renderer
+                self._render_nodes[node_name] = renderer
 
-            except Exception as e:
-                raise RuntimeError('config "%s": %s' % (node_name, str(e)))
+            except Exception:
+                error = traceback.format_exc()
+                raise RuntimeError('config "%s": %s' % (node_name, error))
 
         # Dump render configuration tree as a DOT file
 #        g = nx.to_agraph(render_tree)
 #        g.layout(prog='dot')
 #        g.draw('config.dot')
 
-        return render_nodes[config.renderer]
+        return self._render_nodes[config.renderer]
 
     @property
     def pyramid(self):
@@ -149,6 +152,10 @@ class RenderTree(object):
                     not self._renderer_cache.has_all(tile_indexes):
                 tiles = metatile_fission(metatile)
                 self._renderer_cache.put_multi(tiles)
+
+        for __name, renderer in self._render_nodes.items():
+            if hasattr(renderer, 'keep_cache') and not renderer.keep_cache:
+                renderer.delete(metatile_index)
 
         return metatile
 

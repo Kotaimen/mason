@@ -110,7 +110,7 @@ class ConditionalRenderer(MetaTileRenderer):
 
     def render(self, metatileindex):
         zlevel = metatileindex.z
-        renderer =  self._source_renderers[self._condition[zlevel]]
+        renderer = self._source_renderers[self._condition[zlevel]]
         metatile = renderer.render(metatileindex)
         return metatile
 
