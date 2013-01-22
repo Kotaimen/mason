@@ -86,13 +86,13 @@ class RasterDataset(Cartographer):
         target_width, target_height = size
         minx, miny, maxx, maxy = envelope
 
-        # calculate envelope coordinates in target projection
+        # Calculate envelope coordinates in target projection
         srs = SpatialReference(4326, self._target_epsg)
         dst_minx, dst_miny, __foo = srs.forward(minx, miny)
         dst_maxx, dst_maxy, __foo = srs.forward(maxx, maxy)
 
-        # HACK 1: fix coordinates error
-        # otherwise, gdal will project -181 to 19926188.852, which is wrong.
+        # HACK: fix coordinates error around +/-180, otherwise, GDAL will project
+        #       -181 to 19926188.852, which causes render artifacts
         mark180, __foo, __foo = srs.forward(180, 0)
         if minx < -180:
             assert minx > -360
@@ -101,30 +101,33 @@ class RasterDataset(Cartographer):
             assert maxx < 360
             dst_maxx = mark180 + (mark180 + dst_maxx)
 
-        if self._resample_method is not None:
-            resample_method = self._resample_method
-        else:
+        # Use assigned resample method if possible
+        resample_method = self._resample_method
 
-            # Choose Resampling Method:
-            # Forward coordinates of input envelop, which is in WGS84, to
-            # the corresponding coordinates in Dataset projection.
-            # Original Raster size in Dataset projection can be calculated by that
-            # coordinates and the resolution of Dataset.
-            # Cubicspline works better when stretching out (target size is
-            # larger than the original size). And Cubic results better image on the
-            # opposite condition.
+        # Otherwise decide resampling method automatically according to resolution
+        if resample_method is None:
 
-            # calculate envelope coordinates in dataset projection
+            # Calculate envelope coordinates in dataset projection
             srs = SpatialReference(4326, self._dataset_epsg)
             org_minx, org_miny, __foo = srs.forward(minx, miny)
             org_maxx, org_maxy, __foo = srs.forward(maxx, maxy)
 
+            # Calculate envelope size in render projection
             org_width = abs(org_minx - org_maxx) / self._dataset_resx
             org_height = abs(org_maxy - org_miny) / self._dataset_resy
-            if target_width < org_width and target_height < org_height:
+
+            zoom_ratio = min([target_width / org_width , target_height / org_height])
+
+            # HACK: Use cubic when zoom out, cubic spline when zoom in, bilinear
+            #       when zoom ratio matches closely (GDAL resampling bug)
+            if zoom_ratio < 0.5:
                 resample_method = 'cubic'
-            else:
+            elif zoom_ratio > 1.2:
                 resample_method = 'cubicspline'
+            else:
+                resample_method = 'bilinear'
+
+#         print '>'*10, zoom_ratio,  resample_method
 
         try:
             target_raster = GDALTempFileRaster(data_format='gtiff')
@@ -144,14 +147,11 @@ class RasterDataset(Cartographer):
             if self._dataset_epsg != self._target_epsg:
                 command.extend(['-t_srs', self._target_projection])
 
-                # HACK 2:
-                # GDAL transforms the destination area
-                # back to the source coordinate system by sampling
-                # a grid of points over the region.
-                # But points right on the international date line might
-                # transform two different ways.
-                # so the region selector is missing the last swath of
-                # data.
+                # HACK: GDAL transforms the destination area back to the source
+                # coordinate system by sampling a grid of points over the region.
+                # But points right on the international date line might transform
+                # in two different ways.  So the region selector is missing the
+                # other part of data.
                 # Setting source_extra will read more data from the source.
                 source_extra = 1
                 if minx <= -180 or maxx >= 180:
