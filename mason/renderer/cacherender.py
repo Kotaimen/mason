@@ -16,11 +16,12 @@ class CachedRenderer(MetaTileRenderer):
     of another render.
     """
 
-    def __init__(self, storage, renderer=None, work_mode='default'):
+    def __init__(self, storage, renderer=None, work_mode='default', keep_cache=True):
         assert storage is not None
         self._renderer = renderer
         self._storage = storage
         self._work_mode = work_mode
+        self.keep_cache = keep_cache
 
     def render(self, metatileindex):
         metatile = None
@@ -42,3 +43,6 @@ class CachedRenderer(MetaTileRenderer):
             self._storage.put(metatile)
 
         return metatile
+
+    def delete(self, metatileindex):
+        self._storage.delete(metatileindex)

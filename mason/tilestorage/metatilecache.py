@@ -16,8 +16,10 @@ class MetaTileCache(FileSystemTileStorage):
 
     """ Cache MetaTile render results
 
-    Currently the cache is put on filesystem as a directory tree
+    Currently the cache is put on filesystem as tree of files
     """
+
+    CONFIG_VERSION = 'metacache-1.0.0'
 
     def __init__(self,
                  pyramid,
@@ -27,10 +29,11 @@ class MetaTileCache(FileSystemTileStorage):
                  simple=False):
         FileSystemTileStorage.__init__(self, pyramid, metadata, root,
                                        compress=compress, simple=False)
+        assert not simple
 
     @staticmethod
     def from_config(root):
-        config_file = os.path.join(root, FileSystemTileStorage.CONFIG_FILENAME)
+        config_file = os.path.join(root, ClusterTileStorage.CONFIG_FILENAME)
         with open(config_file, 'r') as fp:
             summary = json.load(fp)
             return MetaTileCache.from_summary(summary, root)
@@ -41,13 +44,17 @@ class MetaTileCache(FileSystemTileStorage):
         summary['root'] = root
         summary['pyramid'] = Pyramid.from_summary(summary['pyramid'])
         summary['metadata'] = Metadata.from_dict(summary['metadata'])
+        assert summary.pop('magic') == MetaTileCache.CONFIG_VERSION
         return MetaTileCache(**summary)
 
-    def _make_pathname(self, tile_index):
+    def _make_pathname(self, metatile_index):
         assert not self._simple
-        basename = '%d-%d-%d@%d%s' % (tile_index.z, tile_index.x, tile_index.y,
-                                      tile_index.stride, self._ext)
-        dirname = os.path.join(*tile_coordiante_to_dirname(*tile_index.coord))
+        basename = '%d-%d-%d@%d%s' % (metatile_index.z,
+                                      metatile_index.x,
+                                      metatile_index.y,
+                                      metatile_index.stride,
+                                      self._ext)
+        dirname = os.path.join(*tile_coordiante_to_dirname(*metatile_index.coord))
         if self._use_gzip:
             basename += '.gz'
         return os.path.join(self._root, dirname, basename)
@@ -82,3 +89,6 @@ class MetaTileCache(FileSystemTileStorage):
 
     def has(self, tile_index):
         return os.path.exists(self._make_pathname(tile_index))
+
+    def delete(self, tile_index):
+        FileSystemTileStorage.delete(self, tile_index)

@@ -63,7 +63,8 @@ class MemcachedTileStorage(TileStorage):
 
     def _make_key(self, tile_index):
         # Include tag in the index so differnt storage can share one memcache bucket
-        return '%s/%d/%d/%d' % (self._metadata.tag, tile_index.z, tile_index.x, tile_index.y)
+        return '%s/%d/%d/%d' % (self._metadata.tag,
+                                tile_index.z, tile_index.x, tile_index.y)
 
     def get(self, tile_index):
         key = self._make_key(tile_index)

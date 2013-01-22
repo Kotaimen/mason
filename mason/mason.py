@@ -119,7 +119,7 @@ class Mason(object):
         self._layers[tag] = RendererLayer(renderer)
 
     def craft_tile(self, tag, z, x, y):
-        """ Craft a tile from renderer or retrive one from tile storage.
+        """ Craft a tile from renderer or retrieve one from tile storage.
 
         Returns a tuple of (data, mimetype, mtime).
         data is a bytes array of tile data (usually an image)
