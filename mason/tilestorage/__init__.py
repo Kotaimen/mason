@@ -1,5 +1,9 @@
 import warnings
 import os
+try:
+    import simplejson as json
+except ImportError:
+    import json
 
 # Create a dictionary containing name->class map, those
 #  can't be imported will be ignored
@@ -12,6 +16,7 @@ from .tilestorage import TileStorage, NullTileStorage
 
 from .filesystem import FileSystemTileStorage
 from .metatilecache import MetaTileCache
+from .cluster import ClusterTileStorage
 
 try:
     from .memcached import MemcachedTileStorage
@@ -44,6 +49,8 @@ def CascadeTileStorageWrapper(pyramid, metadata,
                               write_back=write_back)
 
 
+# ===== Storage Factory ========================================================
+
 class TileStorageFactory(object):
 
     """ Tile storage factory class """
@@ -54,6 +61,7 @@ class TileStorageFactory(object):
                           memcache=MemcachedTileStorage,
                           mbtiles=MBTilesTileStorage,
                           mbtilesbw=MBTilesTileStorageWithBackgroundWriter,
+                          cluster=ClusterTileStorage,
                           cascade=CascadeTileStorageWrapper,
                           )
 
@@ -77,20 +85,22 @@ def create_tilestorage(prototype, pyramid=None, metadata=None, **args):
     return TileStorageFactory()(prototype, pyramid, metadata, **args)
 
 
+MAGIC = {FileSystemTileStorage.CONFIG_VERSION.split('-', 1)[0]: FileSystemTileStorage,
+         MetaTileCache.CONFIG_VERSION.split('-', 1)[0]: MetaTileCache,
+         ClusterTileStorage.CONFIG_VERSION.split('-', 1)[0]: ClusterTileStorage,
+         }
+
+
 def attach_tilestorage(prototype, **args):
     if prototype == 'filesystem':
         root = args['root']
         assert os.path.isdir(root)
-        if not os.path.exists(os.path.join(root, FileSystemTileStorage.CONFIG_FILENAME)):
+        config_filename = os.path.join(root, FileSystemTileStorage.CONFIG_FILENAME)
+        if not os.path.exists(config_filename):
             RuntimeError('Given directory is not a FileSystemTileStorage')
-        # Assume file system tile storage
-        return FileSystemTileStorage.from_config(root)
-    elif prototype == 'metacache':
-        root = args['root']
-        assert os.path.isdir(root)
-        if not os.path.exists(os.path.join(root, FileSystemTileStorage.CONFIG_FILENAME)):
-            RuntimeError('Given directory is not a MetaTileCache')
-        return MetaTileCache.from_config(root)
+        with open(config_filename, 'r') as fp:
+            magic = json.load(fp)['magic'].split('-', 1)[0]
+        return MAGIC[magic].from_config(root)
     elif prototype == 'mbtiles':
         database = args['database']
         return MBTilesTileStorage.from_mbtiles(database)

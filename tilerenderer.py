@@ -54,7 +54,9 @@ def spawner(queue, statistics, options):
                            stride=options.stride,
                            envelope=options.envelope)
     for index in walker.walk():
-#        print index
+        if not options.overwrite and renderer.has_metatile(index.z, index.x, index.y, index.stride):
+            logger.info('Skipping %r...', index)
+            continue
         queue.put((index.z, index.x, index.y, index.stride))
 
 

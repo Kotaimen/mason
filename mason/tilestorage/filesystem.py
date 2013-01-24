@@ -20,6 +20,18 @@ class FileSystemTileStorageError(TileStorageError):
     pass
 
 
+def _makedirs(name, mode=0777):
+    try:
+        os.makedirs(name, mode)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            # HACK: Ignore "already exists" error because os.makedirs
+            #       does not check dir exists at each creation step
+            pass
+        else:
+            raise
+
+
 class FileSystemTileStorage(TileStorage):
 
     """ Store Tiles on file system as individual files
@@ -41,7 +53,7 @@ class FileSystemTileStorage(TileStorage):
 
     """
 
-    CONFIG_VERSION = 1
+    CONFIG_VERSION = 'tilecache-1.0.0'
     CONFIG_FILENAME = 'metadata.json'
 
     def __init__(self,
@@ -59,7 +71,7 @@ class FileSystemTileStorage(TileStorage):
 
         self._root = root
         if not os.path.exists(self._root):
-            os.makedirs(self._root)
+            _makedirs(self._root)
 
         self._use_gzip = bool(compress)
         self._simple = simple
@@ -77,7 +89,7 @@ class FileSystemTileStorage(TileStorage):
 
     # Config serialization -----------------------------------------------------
     def summarize(self):
-        return dict(#version=self.CONFIG_VERSION,
+        return dict(magic=self.CONFIG_VERSION,
                     pyramid=self._pyramid.summarize(),
                     metadata=self._metadata.make_dict(),
                     compress=self._use_gzip,
@@ -90,6 +102,7 @@ class FileSystemTileStorage(TileStorage):
         summary['root'] = root
         summary['pyramid'] = Pyramid.from_summary(summary['pyramid'])
         summary['metadata'] = Metadata.from_dict(summary['metadata'])
+        assert summary.pop('magic') == FileSystemTileStorage.CONFIG_VERSION
         return FileSystemTileStorage(**summary)
 
     def write_config(self):
@@ -155,18 +168,10 @@ class FileSystemTileStorage(TileStorage):
         dirname = os.path.dirname(pathname)
         basename = os.path.basename(pathname)
         if not (os.path.exists(pathname) and os.path.isdir(pathname)):
-            try:
-                os.makedirs(dirname)
-            except OSError as e:
-                if e.errno == errno.EEXIST:
-                    # HACK: Ignore "already exists" error because os.makedirs 
-                    #       does not check dir exists at each creation step
-                    pass
-                else:
-                    raise
+            _makedirs(dirname)
 
         tempname = create_temp_filename(suffix='.tmp~',
-                                        prefix=basename,
+                                        prefix=basename + '.',
                                         dir=dirname,
                                         )
         if self._use_gzip:

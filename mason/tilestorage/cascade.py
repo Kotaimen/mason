@@ -26,7 +26,7 @@ class CascadeTileStorage(TileStorage):
             tile = storage.get(tile_index)
             if tile is not None:
                 if n == 1:
-                    # Write back to cache only if read from presistent source
+                    # Write back to cache only if read from persistent source
                     self._storages[0].put(tile)
                 return tile
         else:

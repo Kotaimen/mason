@@ -13,6 +13,7 @@ import memcache
 
 from mason.tilestorage import TileStorageFactory, MBTilesTileStorage
 from mason.core import Format, Metadata, Pyramid, Tile, MetaTile
+from mason.tilestorage.cluster import TileCluster
 
 # Tile storage factory
 factory = TileStorageFactory()
@@ -210,24 +211,6 @@ class TestMBTilesTileStorage(TileStorageTestMixin, unittest.TestCase):
         self.storage.close()
 
 
-class TestCascadeTileStorage(TileStorageTestMixin, unittest.TestCase):
-
-    def setUp(self):
-        self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
-        self.metadata = Metadata.make_metadata(tag='TestMemcachedTileStorage')
-        self.output_dir = os.path.join('output', 'TestCascadeTileStorage')
-
-        self.storage = factory('cascade',
-                               self.pyramid,
-                               self.metadata,
-                               violate=['memcache', {'servers': ['localhost:11211', ]}],
-                               presistent=['filesystem', {'root': 'self.output_dir'}],
-                               )
-
-    def tearDown(self):
-        self.storage.close()
-
-
 class TestMBTilesTileStorageBackgroundWriter(unittest.TestCase):
 
     def setUp(self):
@@ -302,6 +285,24 @@ class TestMBTilesTileStorageBackgroundWriter(unittest.TestCase):
         self.assertFalse(self.storage.has_any([tileindex1, tileindex3]))
 
 
+class TestCascadeTileStorage(TileStorageTestMixin, unittest.TestCase):
+
+    def setUp(self):
+        self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
+        self.metadata = Metadata.make_metadata(tag='TestCascadeTileStorage')
+        self.output_dir = os.path.join('output', 'TestCascadeTileStorage')
+
+        self.storage = factory('cascade',
+                               self.pyramid,
+                               self.metadata,
+                               violate=['memcache', {'servers': ['localhost:11211', ]}],
+                               presistent=['filesystem', {'root': self.output_dir}],
+                               )
+
+    def tearDown(self):
+        self.storage.close()
+
+
 class TestMetaTileCache(unittest.TestCase):
 
     def setUp(self):
@@ -341,6 +342,74 @@ class TestMetaTileCache(unittest.TestCase):
         self.storage.delete(tileindex1)
         self.assertFalse(self.storage.has(tileindex1))
 
+
+class TestTileCluster(unittest.TestCase):
+
+    def setUp(self):
+        self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
+
+    def testFusion(self):
+        tiles = [self.pyramid.create_tile(4, 0, 0, b'tile1'),
+                 self.pyramid.create_tile(4, 1, 0, b'tile2'),
+                 self.pyramid.create_tile(4, 0, 1, b'tile2'),
+                 self.pyramid.create_tile(4, 1, 1, b'tile4'), ]
+
+        cluster = TileCluster(self.pyramid, tiles)
+
+        zip_file = cluster.fusion()
+
+        with open(os.path.join('output', 'clustertest1.zip'), 'wb') as fp:
+            fp.write(zip_file)
+
+        tiles_readback = cluster.fission(self.pyramid, zip_file)
+
+        self.assertEqual(set(t.index.coord for t in tiles),
+                         set(t.index.coord for t in tiles_readback))
+
+        self.assertEqual(set(t.data_hash for t in tiles),
+                         set(t.data_hash for t in tiles_readback))
+
+
+class TestClusterStorage(TileStorageTestMixin, unittest.TestCase):
+
+    def setUp(self):
+        self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
+        self.metadata = Metadata.make_metadata(tag='TestClusterStorage',
+                                               version='1.0.0.0.0.0')
+        self.output_dir = os.path.join('output', 'TestClusterStorage')
+
+        if os.path.exists(self.output_dir):
+            shutil.rmtree(self.output_dir, ignore_errors=True)
+
+        self.storage = factory('cluster',
+                               self.pyramid,
+                               self.metadata,
+                               stride=2,
+                               servers=['localhost:11211'],
+                               timeout=0,
+                               root=self.output_dir,
+                               compress=False,)
+
+    def tearDown(self):
+#        self.storage.flush_all()
+        self.storage.close()
+
+    def testGetPutMulti(self):
+        tiles = [self.pyramid.create_tile(4, 0, 0, b'tile1'),
+                 self.pyramid.create_tile(4, 1, 0, b'tile2'),
+                 self.pyramid.create_tile(4, 0, 1, b'tile3'),
+                 self.pyramid.create_tile(4, 1, 1, b'tile2'), ]
+
+        self.storage.put_multi(tiles)
+
+        tileindex1 = self.pyramid.create_tile_index(4, 0, 1)
+        tileindex2 = self.pyramid.create_tile_index(4, 1, 1)
+
+        tile1 = self.storage.get(tileindex1)
+        self.assertEqual(tile1.data, b'tile3')
+
+        tile2 = self.storage.get(tileindex2)
+        self.assertEqual(tile2.data, b'tile2')
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
