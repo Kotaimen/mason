@@ -21,7 +21,7 @@ except ImportError:
     PostGIS = None
 
 try:
-    from .dataset import RasterDataset
+    from .rasterdataset import RasterDataset
 except ImportError:
     RasterDataset = None
 
