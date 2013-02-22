@@ -24,7 +24,7 @@ from mason import (__version__ as VERSION,
                    create_render_tree_from_config)
 
 # from mason import create_mason_from_config
-from mason.core import Envelope, PyramidWalker
+from mason.core import Envelope, PyramidWalker, TileListPyramidWalker
 from mason.utils import Timer, human_size
 
 CPU_COUNT = multiprocessing.cpu_count()
@@ -45,7 +45,7 @@ class Statics(ctypes.Structure):
 #===============================================================================
 
 
-def spawner(queue, statistics, options):
+def envelope_spawner(queue, statistics, options):
     options = verify_config(options)
     render_option = dict(mode='readonly', reload=False)
     renderer = create_render_tree_from_config(options.config, render_option)
@@ -53,11 +53,33 @@ def spawner(queue, statistics, options):
                            levels=options.levels,
                            stride=options.stride,
                            envelope=options.envelope)
+    count = 0
     for index in walker.walk():
-        if not options.overwrite and renderer.has_metatile(index.z, index.x, index.y, index.stride):
+        if not options.overwrite and renderer.has_metatile(index.z, index.x,
+                                                           index.y, index.stride):
             logger.info('Skipping %r...', index)
             continue
-        queue.put((index.z, index.x, index.y, index.stride))
+        count += 1
+        queue.put((count, index.z, index.x, index.y, index.stride))
+
+
+def tilelist_spawner(queue, statistics, options):
+    options = verify_config(options)
+    render_option = dict(mode='readonly', reload=False)
+    renderer = create_render_tree_from_config(options.config, render_option)
+    walker = TileListPyramidWalker(renderer.pyramid,
+                                   options.csv,
+                                   levels=options.levels,
+                                   stride=options.stride,
+                                   envelope=options.envelope)
+    count = 0
+    for index in walker.walk():
+        if not options.overwrite and renderer.has_metatile(index.z, index.x,
+                                                           index.y, index.stride):
+            logger.info('Skipping %r...', index)
+            continue
+        count += 1
+        queue.put((count, index.z, index.x, index.y, index.stride))
 
 
 #===============================================================================
@@ -65,6 +87,7 @@ def spawner(queue, statistics, options):
 #===============================================================================
 
 def worker(queue, statistics, options):
+
     options = verify_config(options)
     setup_logger(options.logfile)
     render_option = dict(mode=options.mode, reload=False)
@@ -77,11 +100,11 @@ def worker(queue, statistics, options):
             renderer.close()
             return
 
-        z, x, y, stride = task
+        count, z, x, y, stride = task
         index = renderer.pyramid.create_metatile_index(z, x, y, stride)
 
-        logger.info('Rendering %r...', index)
-        with Timer('...%r rendered in %%(time)s' % index, logger.info, False):
+        logger.info('Rendering #%d: %r...' % (count, index))
+        with Timer('... #%d finished in %%(time)s' % count, logger.info, False):
             try:
                 metatile = renderer.render(index)
                 if metatile:
@@ -115,6 +138,10 @@ def monitor(options, statistics):
         process.start()
 
     # Start producer
+    if options.csv:
+        spawner = tilelist_spawner
+    else:
+        spawner = envelope_spawner
     producer = multiprocessing.Process(name='spawner',
                                        target=spawner,
                                        args=(queue, statistics, options,),)
@@ -225,14 +252,12 @@ files, so mount /tmp as ramdisk if that is a problem.
                        metavar='FILE',
                        )
 
-#    parser.add_argument('--load-wkt',
-#                       dest='wkt',
-#                       default='',
-#                       help='''Load a MultiPolygon WKT file as render range, try
-#                       cover given polygon using as less MetaTile as possible (optional,
-#                       not implemented yet, requires python-gdal)''',
-#                       metavar='FILE',
-#                       )
+    parser.add_argument('-c', '--csv',
+                       dest='csv',
+                       default='',
+                       help='''Load a CSV tile list file and render tiles in it''',
+                       metavar='FILE',
+                       )
 
     options = parser.parse_args()
 
@@ -252,7 +277,6 @@ def setup_logger(log_file, level=logging.DEBUG):
 
 
 def verify_config(options):
-
 
     logger.info('===== Testing Configuration =====')
 
