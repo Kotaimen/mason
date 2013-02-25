@@ -5,14 +5,119 @@ Created on Apr 30, 2012
 @author: Kotaimen
 """
 
-import collections
+import osr
 import math
+import collections
+
+
+#===============================================================================
+# Spatial Reference System
+#===============================================================================
+class SRID(object):
+
+    """ Spatial Reference System Identifier
+
+    @param param: authority name of srid
+    @param param: integer code of srid
+    """
+    def __init__(self, authority, code):
+        self._authority = authority.upper()
+        self._code = int(code)
+
+    @property
+    def authority(self):
+        return self._authority
+
+    @property
+    def code(self):
+        return self._code
+
+    def make_tuple(self):
+        return (self._authority, self._code)
+
+    @staticmethod
+    def from_string(srid_string):
+        """ srid format: 'authority:code' """
+        authority, code = srid_string.split(':')
+        return SRID(authority, code)
+
+    def __str__(self):
+        return '%s:%s' % (self.authority, self.code)
+
+
+def create_osr_spatial_ref(srid):
+    """ Create osr spatial reference from srid
+    """
+    authority, code = srid.make_tuple()
+    reference = osr.SpatialReference()
+    if 'EPSG' == authority.upper():
+        reference.ImportFromEPSG(code)
+    else:
+        # only support EPSG now.
+        raise NotImplementedError
+    return reference
+
+
+class Datum(object):
+
+    """ Geodetic Datum of the specified Spatial Reference System
+
+    Measurements of an associated model of the shape of the Earth.
+
+    @param srid: the srid of the spatial reference that defines the datum
+    """
+
+    def __init__(self, srid):
+
+        reference = create_osr_spatial_ref(srid)
+
+        # set datum parameters
+        self._srid = srid
+        self._semi_major = reference.GetSemiMajor()
+        self._semi_minor = reference.GetSemiMinor()
+        self._flatten_factor = 1 - self._semi_minor / self._semi_major
+
+    @property
+    def srid(self):
+        return self._srid
+
+    @property
+    def semi_major(self):
+        return self._semi_major
+
+    @property
+    def semi_minor(self):
+        return self._semi_minor
+
+    @property
+    def flattening(self):
+        return self._flatten_factor
+
+
+class SpatialTransformer(object):
+
+    """ Spatial Reference System Transformer
+
+    Transform coordinates from source to target spatial reference system
+
+    @param src_srid: srid of source spatial reference system
+    @param dst_srid: srid of target spatial reference system
+    """
+
+    def __init__(self, src_srid, dst_srid):
+        source = create_osr_spatial_ref(src_srid)
+        target = create_osr_spatial_ref(dst_srid)
+
+        self._transformer = osr.CoordinateTransformation(source, target)
+
+    def transform(self, x, y, z=0):
+        x, y, z = self._transformer.TransformPoint(x, y, z)
+        return x, y, z
+
 
 #===============================================================================
 # Geography Primitives
 #===============================================================================
-
-
 class Coordinate(object):
 
     """ Geographic location """
@@ -303,7 +408,7 @@ def tile_coordiante_to_dirname(z, x, y, m=64):
         digits += 1
     hex_str = ('%%0%dX' % digits) % mn
 
-    # split hex string into 2 char tuple 
+    # split hex string into 2 char tuple
     dirs = list((hex_str[i:i + 2] for i in range(0, len(hex_str), 2)))
     dirs.insert(0, '%02d' % z)
 

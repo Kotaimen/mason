@@ -8,6 +8,58 @@ import unittest
 from mason.core.geo import *
 
 
+class TestSRID(unittest.TestCase):
+
+    def testInit(self):
+        srid = SRID('epsg', 4326)
+        self.assertEqual(srid.authority, 'EPSG')
+        self.assertEqual(srid.code, 4326)
+
+    def testFromString(self):
+        srid = SRID.from_string('epsg:4326')
+        self.assertEqual(srid.authority, 'EPSG')
+        self.assertEqual(srid.code, 4326)
+
+    def testMakeTuple(self):
+        srid = SRID('epsg', 4326)
+        self.assertEqual(srid.make_tuple(), ('EPSG', 4326))
+
+
+class TestDatum(unittest.TestCase):
+
+    def testInit(self):
+        srid = SRID.from_string('epsg:4326')
+        wgs84 = Datum(srid)
+
+        self.assertEqual(wgs84.srid.make_tuple(), srid.make_tuple())
+        self.assertAlmostEqual(wgs84.semi_major, 6378137.0)
+        self.assertAlmostEqual(wgs84.semi_minor, 6356752.3142, 4)
+        self.assertAlmostEqual(1 / wgs84.flattening, 298.257223563, 9)
+
+
+class TestSpatialTransformer(unittest.TestCase):
+
+    def testTransform(self):
+        source_srid = SRID.from_string('epsg:4326')
+        target_srid = SRID.from_string('epsg:3857')
+
+        transformer = SpatialTransformer(source_srid, target_srid)
+        (x, y, z) = transformer.transform(180.0, 0.0, 0.0)
+        self.assertAlmostEqual(x, 20037508.342789248, 9)
+        self.assertAlmostEqual(y, 0)
+        self.assertAlmostEqual(z, 0)
+
+    def testNullTransform(self):
+        source_srid = SRID.from_string('epsg:4326')
+        target_srid = SRID.from_string('epsg:4326')
+
+        transformer = SpatialTransformer(source_srid, target_srid)
+        (x, y, z) = transformer.transform(180.0, 0.0, 0.0)
+        self.assertEqual(x, 180.0)
+        self.assertEqual(y, 0)
+        self.assertEqual(z, 0)
+
+
 class TestCoordinate(unittest.TestCase):
 
     def setUp(self):
@@ -108,5 +160,5 @@ class TestTileCoordinates(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
+    # import sys;sys.argv = ['', 'Test.testName']
     unittest.main()
