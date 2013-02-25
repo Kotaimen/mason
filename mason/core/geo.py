@@ -7,6 +7,7 @@ Created on Apr 30, 2012
 
 import osr
 import math
+import shapely.geometry
 import collections
 
 
@@ -118,16 +119,20 @@ class SpatialTransformer(object):
 #===============================================================================
 # Geography Primitives
 #===============================================================================
-class Coordinate(object):
+class Location(object):
 
     """ Geographic location """
 
-    __slots__ = '_longitude', '_latitude', '_crs'
+    __slots__ = '_longitude', '_latitude', '_altitude'
 
-    def __init__(self, longitude=0.0, latitude=0.0, crs='EPSG:4326'):
+    def __init__(self,
+                 longitude=0.0,
+                 latitude=0.0,
+                 altitude=0.0,
+                 ):
         self._longitude = longitude
         self._latitude = latitude
-        self._crs = crs
+        self._altitude = altitude
 
     @property
     def longitude(self):
@@ -137,23 +142,30 @@ class Coordinate(object):
     def latitude(self):
         return self._latitude
 
+    @property
+    def altitude(self):
+        return self._altitude
+
     # Shorthand
     lon = longitude
     lat = latitude
-
-    @property
-    def crs(self):
-        return self._crs
+    alt = altitude
 
     def make_tuple(self):
-        return (self._longitude, self._latitude)
+        return (self._longitude, self._latitude, self._altitude)
+
+    def make_geometry(self):
+        return shapely.geometry.Point(self.lon, self.lat)
 
     @staticmethod
     def from_tuple(t):
-        return Coordinate(*t)
+        return Location(*t)
 
     def __repr__(self):
-        return '%s(%s, %s)' % (self.__class__.__name__, self._longitude, self._latitude)
+        return '%s(%s, %s, %s)' % (self.__class__.__name__,
+                                   self._longitude,
+                                   self._latitude,
+                                   self._altitude)
 
     def __eq__(self, other):
         return self.make_tuple() == other.make_tuple()
@@ -166,14 +178,13 @@ class Envelope(object):
     Envelope is not supposed to cross -180/180 longitude
     """
 
-    __slots__ = '_left', '_bottom', '_right', '_top', '_crs'
+    __slots__ = '_left', '_bottom', '_right', '_top', '_box'
 
-    def __init__(self, left, bottom, right, top, crs='EPSG:4326'):
+    def __init__(self, left, bottom, right, top):
         self._left = left
         self._bottom = bottom
         self._right = right
         self._top = top
-        self._crs = crs
 
     @property
     def left(self):
@@ -192,42 +203,30 @@ class Envelope(object):
         return self._top
 
     @property
-    def crs(self):
-        return self._crs
-
-    @property
     def lefttop(self):
-        return Coordinate(self._left, self._top, self._crs)
+        return Location(self._left, self._top)
 
     @property
     def righttop(self):
-        return Coordinate(self._right, self._top, self._crs)
+        return Location(self._right, self._top)
 
     @property
     def leftbottom(self):
-        return Coordinate(self._left, self._bottom, self._crs)
+        return Location(self._left, self._bottom)
 
     @property
     def rightbottom(self):
-        return Coordinate(self._right, self._bottom, self._crs)
+        return Location(self._right, self._bottom)
 
-    def contains(self, coordinate):
-        """ Checks whether the envelop contains the given point """
-        assert self.crs == coordinate.crs
-        return coordinate.lon >= self.left and coordinate.lon <= self.right \
-            and coordinate.lat >= self.bottom and coordinate.lat <= self.top
+    def make_geometry(self):
+        return shapely.geometry.box(self._left,
+                                    self._bottom,
+                                    self._right,
+                                    self._top)
 
     def intersects(self, other):
         """ Checks whether the envelop intersects with given one """
-        assert self.crs == other.crs
-        # Stupid brute force implement ...don't want depend on a geographic
-        # library (eg: django.contrib.geodjango) here
-        other_corners = (other.lefttop, other.righttop, other.leftbottom,
-                         other.rightbottom)
-        this_corners = (self.lefttop, self.righttop,
-                        self.leftbottom, self.rightbottom)
-        return any(self.contains(p) for p in other_corners) or \
-               any(other.contains(p) for p in this_corners)
+        return self.make_geometry().intersects(other.make_geometry())
 
     def make_tuple(self):
         return (self._left, self._bottom, self._right, self._top)
@@ -277,8 +276,7 @@ class GoogleMercatorProjection(object):
 
         Note the result point is in normalized ((0, 0), (1, 1)) plane.
         """
-        assert coordinate.crs == 'EPSG:4326'
-        lon, lat = coordinate.make_tuple()
+        lon, lat, alt = coordinate.make_tuple()
         x = lon / 360. + 0.5
         y = math.log(math.tan(math.pi / 4. + math.radians(lat) / 2.))
         y = 0.5 - y / 2. / math.pi
@@ -291,7 +289,7 @@ class GoogleMercatorProjection(object):
         lon = (x - 0.5) * 360.
         lat = math.degrees(2 * math.atan(math.exp((1. - 2. * y) * math.pi)) - \
                            math.pi / 2.)
-        return Coordinate(lon, lat)
+        return Location(lon, lat)
 
     def coord2tile(self, coordinate, z):
         """ Coordinate to tile """

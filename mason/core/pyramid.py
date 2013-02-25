@@ -7,7 +7,7 @@ Created on Apr 29, 2012
 import copy
 
 from .tile import TileIndex, Tile, MetaTileIndex, MetaTile
-from .geo import Envelope, Coordinate, create_projection, tile_coordinate_to_serial
+from .geo import Envelope, Location, create_projection, tile_coordinate_to_serial
 from .format import Format
 
 #===============================================================================
@@ -90,7 +90,7 @@ class Pyramid(object):
         self._format = format
 
         self._envelope = Envelope.from_tuple(envelope)
-        self._center = Coordinate.from_tuple(center)
+        self._center = Location.from_tuple(center)
         self._zoom = zoom
         self._crs = crs
         self._proj = proj
@@ -187,7 +187,7 @@ class Pyramid(object):
 
     @staticmethod
     def from_summary(summary):
-        summary = dict(summary) # copy dict object
+        summary = dict(summary)  # copy dict object
         summary['format'] = Format.from_dict(summary['format'])
         return Pyramid(**summary)
 

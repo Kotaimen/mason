@@ -69,34 +69,35 @@ class TestCoordinate(unittest.TestCase):
         pass
 
     def testInitDefault(self):
-        coord = Coordinate()
+        coord = Location()
         self.assertEqual(coord.longitude, 0)
         self.assertEqual(coord.latitude, 0)
         self.assertEqual(coord.lon, 0)
         self.assertEqual(coord.lat, 0)
-        self.assertEqual(coord.crs, 'EPSG:4326')
+        self.assertEqual(coord.alt, 0)
 
     def testInit(self):
-        coord = Coordinate(1.0, 2.0, 'EPSG:4326')
+        coord = Location(1.0, 2.0, 3.0)
         self.assertEqual(coord.longitude, 1.0)
         self.assertEqual(coord.latitude, 2.0)
         self.assertEqual(coord.lon, 1.0)
         self.assertEqual(coord.lat, 2.0)
-        self.assertEqual(coord.crs, 'EPSG:4326')
+        self.assertEqual(coord.alt, 3.0)
 
     def testMakeTuple(self):
-        coord = Coordinate(1, 2)
+        coord = Location(1, 2, 3)
         self.assertEqual(coord.longitude, 1)
         self.assertEqual(coord.latitude, 2)
-        self.assertEqual(coord.make_tuple(), (1, 2))
+        self.assertEqual(coord.altitude, 3)
+        self.assertEqual(coord.make_tuple(), (1, 2, 3))
 
     def testFromTuple(self):
-        coord = Coordinate.from_tuple((1, 2))
-        self.assertEqual(coord, Coordinate(1, 2))
+        coord = Location.from_tuple((1, 2, 3))
+        self.assertEqual(coord, Location(1, 2, 3))
 
     def testRepr(self):
-        coord = Coordinate(1, 2)
-        self.assertEqual(repr(coord), 'Coordinate(1, 2)')
+        coord = Location(1, 2, 3)
+        self.assertEqual(repr(coord), 'Location(1, 2, 3)')
 
 
 class TestEnvelope(unittest.TestCase):
@@ -107,18 +108,10 @@ class TestEnvelope(unittest.TestCase):
         self.assertEqual(envelope.bottom, 1)
         self.assertEqual(envelope.right, 2)
         self.assertEqual(envelope.top, 3)
-        self.assertEqual(envelope.lefttop, Coordinate(0, 3))
-        self.assertEqual(envelope.righttop, Coordinate(2, 3))
-        self.assertEqual(envelope.leftbottom, Coordinate(0, 1))
-        self.assertEqual(envelope.rightbottom, Coordinate(2, 1))
-        self.assertEqual(envelope.crs, 'EPSG:4326')
-
-    def testContains(self):
-        envelope = Envelope(0, 1, 2, 3)
-        self.assertTrue(envelope.contains(Coordinate(0.5, 1.5)))
-        self.assertTrue(envelope.contains(Coordinate(0, 1)))
-        self.assertTrue(envelope.contains(Coordinate(2, 3)))
-        self.assertFalse(envelope.contains(Coordinate(3, 3)))
+        self.assertEqual(envelope.lefttop, Location(0, 3))
+        self.assertEqual(envelope.righttop, Location(2, 3))
+        self.assertEqual(envelope.leftbottom, Location(0, 1))
+        self.assertEqual(envelope.rightbottom, Location(2, 1))
 
     def testIntersects(self):
         envelope = Envelope(0, 1, 2, 3)
@@ -138,12 +131,12 @@ class TestProjection(unittest.TestCase):
         self.proj = GoogleMercatorProjection()
 
     def testProject(self):
-        coord = Coordinate(0, 0)
+        coord = Location(0, 0)
         self.assertEqual(self.proj.project(coord), Point(0.5, 0.5))
 
     def testUnproject(self):
         point = Point(0.5, 0.5)
-        self.assertEqual(self.proj.unproject(point), Coordinate(0, 0))
+        self.assertEqual(self.proj.unproject(point), Location(0, 0))
 
     def testTileEnvelope(self):
         z, x, y = 0, 0, 0
