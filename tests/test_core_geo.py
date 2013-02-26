@@ -44,17 +44,37 @@ class TestSpatialTransformer(unittest.TestCase):
         target_srid = SRID.from_string('epsg:3857')
 
         transformer = SpatialTransformer(source_srid, target_srid)
-        (x, y, z) = transformer.transform(180.0, 0.0, 0.0)
-        self.assertAlmostEqual(x, 20037508.342789248, 9)
+        (x, y, z) = transformer.forward(-180.0, -85.0511287798065, 0.0)
+        self.assertAlmostEqual(x, -20037508.3427892, 6)
+        self.assertAlmostEqual(y, -20037508.3427892, 6)
+        self.assertAlmostEqual(z, 0)
+
+        (x, y, z) = transformer.forward(180.0, 85.0511287798065, 0.0)
+        self.assertAlmostEqual(x, 20037508.3427892, 6)
+        self.assertAlmostEqual(y, 20037508.3427892, 6)
+        self.assertAlmostEqual(z, 0)
+
+        (x, y, z) = transformer.forward(0.0, 0.0, 0.0)
+        self.assertAlmostEqual(x, 0)
         self.assertAlmostEqual(y, 0)
         self.assertAlmostEqual(z, 0)
+
+        (x, y, z) = transformer.reverse(20037508.3427892, 20037508.3427892, 0.0)
+        self.assertAlmostEqual(x, 180.0)
+        self.assertAlmostEqual(y, 85.0511287798065)
+        self.assertAlmostEqual(z, 0.0)
+
+        (x, y, z) = transformer.reverse(-20037508.3427892, -20037508.3427892, 0.0)
+        self.assertAlmostEqual(x, -180.0)
+        self.assertAlmostEqual(y, -85.0511287798065)
+        self.assertAlmostEqual(z, 0.0)
 
     def testNullTransform(self):
         source_srid = SRID.from_string('epsg:4326')
         target_srid = SRID.from_string('epsg:4326')
 
         transformer = SpatialTransformer(source_srid, target_srid)
-        (x, y, z) = transformer.transform(180.0, 0.0, 0.0)
+        (x, y, z) = transformer.forward(180.0, 0.0, 0.0)
         self.assertEqual(x, 180.0)
         self.assertEqual(y, 0)
         self.assertEqual(z, 0)

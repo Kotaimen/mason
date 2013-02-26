@@ -109,12 +109,16 @@ class SpatialTransformer(object):
         source = create_osr_spatial_ref(src_srid)
         target = create_osr_spatial_ref(dst_srid)
 
-        self._transformer = osr.CoordinateTransformation(source, target)
+        self._forward = osr.CoordinateTransformation(source, target)
+        self._reverse = osr.CoordinateTransformation(target, source)
 
-    def transform(self, x, y, z=0):
-        x, y, z = self._transformer.TransformPoint(x, y, z)
+    def forward(self, x, y, z=0):
+        x, y, z = self._forward.TransformPoint(x, y, z)
         return x, y, z
 
+    def reverse(self, x, y, z=0):
+        x, y, z = self._reverse.TransformPoint(x, y, z)
+        return x, y, z
 
 #===============================================================================
 # Geography Primitives
