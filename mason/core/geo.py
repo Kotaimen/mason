@@ -45,6 +45,14 @@ class SRID(object):
     def __str__(self):
         return '%s:%s' % (self.authority, self.code)
 
+    def __repr__(self):
+        return '%s(%r, %s)' % (self.__class__.__name__,
+                               self._authority,
+                               self._code)
+
+    def __eq__(self, other):
+        return self.make_tuple() == other.make_tuple()
+
 
 def create_osr_spatial_ref(srid):
     """ Create osr spatial reference from srid
@@ -120,59 +128,59 @@ class SpatialTransformer(object):
         x, y, z = self._reverse.TransformPoint(x, y, z)
         return x, y, z
 
+
 #===============================================================================
-# Geography Primitives
+# Spatial Primitives
 #===============================================================================
 class Location(object):
 
-    """ Geographic location """
+    """ Spatial location """
 
-    __slots__ = '_longitude', '_latitude', '_altitude'
+    __slots__ = '_x', '_y', '_z', '_srid'
 
-    def __init__(self,
-                 longitude=0.0,
-                 latitude=0.0,
-                 altitude=0.0,
-                 ):
-        self._longitude = longitude
-        self._latitude = latitude
-        self._altitude = altitude
+    def __init__(self, x=0.0, y=0.0, z=0.0, srid=SRID('EPSG', 4326)):
+        assert isinstance(srid, SRID)
+        self._x = x
+        self._y = y
+        self._z = z
+        self._srid = srid
 
     @property
-    def longitude(self):
-        return self._longitude
+    def x(self):
+        return self._x
 
     @property
-    def latitude(self):
-        return self._latitude
+    def y(self):
+        return self._y
 
     @property
-    def altitude(self):
-        return self._altitude
+    def z(self):
+        return self._z
 
-    # Shorthand
-    lon = longitude
-    lat = latitude
-    alt = altitude
+    @property
+    def srid(self):
+        return self._srid
 
     def make_tuple(self):
-        return (self._longitude, self._latitude, self._altitude)
+        return (self._x, self._y, self._z)
 
     def make_geometry(self):
-        return shapely.geometry.Point(self.lon, self.lat)
+        return shapely.geometry.Point(self._x, self._y, self._z)
 
     @staticmethod
     def from_tuple(t):
         return Location(*t)
 
     def __repr__(self):
-        return '%s(%s, %s, %s)' % (self.__class__.__name__,
-                                   self._longitude,
-                                   self._latitude,
-                                   self._altitude)
+        return '%s(%s, %s, %s, %s)' % (self.__class__.__name__,
+                                       self._x,
+                                       self._y,
+                                       self._z,
+                                       repr(self._srid))
 
     def __eq__(self, other):
-        return self.make_tuple() == other.make_tuple()
+        return self.make_tuple() == other.make_tuple() \
+            and self.srid == other.srid
 
 
 class Envelope(object):
@@ -324,8 +332,8 @@ class GoogleMercatorProjection(object):
     def tile_envelope(self, z, x, y):
         left_bottom = self.pixel2coord(z, x, y, 0., 1., 1.)
         right_top = self.pixel2coord(z, x, y, 1., 0., 1.)
-        return Envelope(left=left_bottom.lon, bottom=left_bottom.lat,
-                        right=right_top.lon, top=right_top.lat)
+        return Envelope(left=left_bottom.x, bottom=left_bottom.y,
+                        right=right_top.x, top=right_top.y)
 
     def coord2worldpixel(self, coordinate, z, tile_size=256):
 

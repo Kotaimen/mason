@@ -90,25 +90,23 @@ class TestCoordinate(unittest.TestCase):
 
     def testInitDefault(self):
         coord = Location()
-        self.assertEqual(coord.longitude, 0)
-        self.assertEqual(coord.latitude, 0)
-        self.assertEqual(coord.lon, 0)
-        self.assertEqual(coord.lat, 0)
-        self.assertEqual(coord.alt, 0)
+        self.assertEqual(coord.x, 0)
+        self.assertEqual(coord.y, 0)
+        self.assertEqual(coord.z, 0)
+        self.assertEqual(coord.srid, SRID('EPSG', 4326))
 
     def testInit(self):
-        coord = Location(1.0, 2.0, 3.0)
-        self.assertEqual(coord.longitude, 1.0)
-        self.assertEqual(coord.latitude, 2.0)
-        self.assertEqual(coord.lon, 1.0)
-        self.assertEqual(coord.lat, 2.0)
-        self.assertEqual(coord.alt, 3.0)
+        coord = Location(1.0, 2.0, 3.0, SRID('EPSG', 3857))
+        self.assertEqual(coord.x, 1.0)
+        self.assertEqual(coord.y, 2.0)
+        self.assertEqual(coord.z, 3.0)
+        self.assertEqual(coord.srid, SRID('EPSG', 3857))
 
     def testMakeTuple(self):
         coord = Location(1, 2, 3)
-        self.assertEqual(coord.longitude, 1)
-        self.assertEqual(coord.latitude, 2)
-        self.assertEqual(coord.altitude, 3)
+        self.assertEqual(coord.x, 1)
+        self.assertEqual(coord.y, 2)
+        self.assertEqual(coord.z, 3)
         self.assertEqual(coord.make_tuple(), (1, 2, 3))
 
     def testFromTuple(self):
@@ -117,7 +115,7 @@ class TestCoordinate(unittest.TestCase):
 
     def testRepr(self):
         coord = Location(1, 2, 3)
-        self.assertEqual(repr(coord), 'Location(1, 2, 3)')
+        self.assertEqual(repr(coord), "Location(1, 2, 3, SRID('EPSG', 4326))")
 
 
 class TestEnvelope(unittest.TestCase):

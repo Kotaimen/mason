@@ -156,8 +156,8 @@ class Pyramid(object):
         rb_buf_lat = rb_org_pixel[1] + buffer_size
         rb_buf = proj.worldpixel2coord(z, rb_buf_lon, rb_buf_lat, tile_size)
 
-        buffered = Envelope(left=lt_buf.lon, bottom=rb_buf.lat,
-                            right=rb_buf.lon, top=lt_buf.lat)
+        buffered = Envelope(left=lt_buf.x, bottom=rb_buf.y,
+                            right=rb_buf.x, top=lt_buf.y)
 
         return buffered
 
