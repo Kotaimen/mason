@@ -175,8 +175,8 @@ class Pyramid(object):
                     tile_size=self._tile_size,
                     buffer=self._buffer,
                     format=self._format.make_dict(),
-                    envelope=self._envelope.make_tuple(),
-                    center=self._center.make_tuple(),
+                    envelope=self._envelope.coords(),
+                    center=self._center.coords(),
                     zoom=self._zoom,
                     crs=self._crs,
                     proj=self._proj

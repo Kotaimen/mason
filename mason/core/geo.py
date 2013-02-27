@@ -164,8 +164,11 @@ class Location(object):
     def srid(self):
         return self._srid
 
-    def make_tuple(self):
+    def coords(self):
         return (self._x, self._y, self._z)
+
+#    def make_tuple(self, hello):
+#        return (self._x, self._y, self._z, self._srid)
 
     def make_geometry(self):
         return shapely.geometry.Point(self._x, self._y, self._z)
@@ -182,7 +185,7 @@ class Location(object):
                                        repr(self._srid))
 
     def __eq__(self, other):
-        return self.make_tuple() == other.make_tuple() \
+        return self.coords() == other.coords() \
             and self.srid == other.srid
 
 
@@ -249,8 +252,11 @@ class Envelope(object):
         assert self.srid == other.srid
         return self.make_geometry().intersects(other.make_geometry())
 
-    def make_tuple(self):
+    def coords(self):
         return (self._left, self._bottom, self._right, self._top)
+
+#    def make_tuple(self):
+#        return (self._left, self._bottom, self._right, self._top)
 
     @staticmethod
     def from_tuple(t):
@@ -262,7 +268,7 @@ class Envelope(object):
                                                  self._srid)
 
     def __eq__(self, other):
-        return self.make_tuple() == other.make_tuple() and \
+        return self.coords() == other.coords() and \
             self.srid == other.srid
 
 
@@ -300,7 +306,7 @@ class GoogleMercatorProjection(object):
 
         Note the result point is in normalized ((0, 0), (1, 1)) plane.
         """
-        lon, lat, alt = coordinate.make_tuple()
+        lon, lat, alt = coordinate.coords()
         x = lon / 360. + 0.5
         y = math.log(math.tan(math.pi / 4. + math.radians(lat) / 2.))
         y = 0.5 - y / 2. / math.pi

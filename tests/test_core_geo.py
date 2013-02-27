@@ -102,12 +102,12 @@ class TestCoordinate(unittest.TestCase):
         self.assertEqual(coord.z, 3.0)
         self.assertEqual(coord.srid, SRID('EPSG', 3857))
 
-    def testMakeTuple(self):
+    def testCoords(self):
         coord = Location(1, 2, 3)
         self.assertEqual(coord.x, 1)
         self.assertEqual(coord.y, 2)
         self.assertEqual(coord.z, 3)
-        self.assertEqual(coord.make_tuple(), (1, 2, 3))
+        self.assertEqual(coord.coords(), (1, 2, 3))
 
     def testFromTuple(self):
         coord = Location.from_tuple((1, 2, 3))
@@ -131,7 +131,7 @@ class TestEnvelope(unittest.TestCase):
         self.assertEqual(envelope.righttop, Location(2, 3, srid=test_srid))
         self.assertEqual(envelope.leftbottom, Location(0, 1, srid=test_srid))
         self.assertEqual(envelope.rightbottom, Location(2, 1, srid=test_srid))
-        self.assertEqual(envelope.srid, SRID('EPSG', 3857))
+        self.assertEqual(envelope.srid, test_srid)
 
     def testIntersects(self):
         test_srid = SRID('EPSG', 3857)
@@ -142,8 +142,9 @@ class TestEnvelope(unittest.TestCase):
         self.assertTrue(envelope.intersects(Envelope(0.5, 1.5, 3, 4, test_srid)))
 
     def testFromTuple(self):
-        envelope = Envelope.from_tuple((0, 1, 2, 3))
-        self.assertEqual(envelope, Envelope(0, 1, 2, 3))
+        test_srid = SRID('EPSG', 3857)
+        envelope = Envelope.from_tuple((0, 1, 2, 3, test_srid))
+        self.assertEqual(envelope, Envelope(0, 1, 2, 3, srid=test_srid))
 
 
 class TestProjection(unittest.TestCase):

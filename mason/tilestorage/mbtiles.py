@@ -61,7 +61,7 @@ def create_sqlite_database(filename, pyramid, metadata):
                       version=metadata.version,
                       description=metadata.description,
                       attribution=metadata.attribution,
-                      bounds=repr(pyramid.envelope.make_tuple())[1:-1],
+                      bounds=repr(pyramid.envelope.coords())[1:-1],
                       center='%f,%f,%d' % (pyramid.center.x, pyramid.center.y, pyramid.zoom),
                       minzoom=str(min(pyramid.levels)),
                       maxzoom=str(max(pyramid.levels)),
