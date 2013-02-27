@@ -121,22 +121,25 @@ class TestCoordinate(unittest.TestCase):
 class TestEnvelope(unittest.TestCase):
 
     def testInit(self):
-        envelope = Envelope(0, 1, 2, 3)
+        test_srid = SRID('EPSG', 3857)
+        envelope = Envelope(0, 1, 2, 3, test_srid)
         self.assertEqual(envelope.left, 0)
         self.assertEqual(envelope.bottom, 1)
         self.assertEqual(envelope.right, 2)
         self.assertEqual(envelope.top, 3)
-        self.assertEqual(envelope.lefttop, Location(0, 3))
-        self.assertEqual(envelope.righttop, Location(2, 3))
-        self.assertEqual(envelope.leftbottom, Location(0, 1))
-        self.assertEqual(envelope.rightbottom, Location(2, 1))
+        self.assertEqual(envelope.lefttop, Location(0, 3, srid=test_srid))
+        self.assertEqual(envelope.righttop, Location(2, 3, srid=test_srid))
+        self.assertEqual(envelope.leftbottom, Location(0, 1, srid=test_srid))
+        self.assertEqual(envelope.rightbottom, Location(2, 1, srid=test_srid))
+        self.assertEqual(envelope.srid, SRID('EPSG', 3857))
 
     def testIntersects(self):
-        envelope = Envelope(0, 1, 2, 3)
-        self.assertTrue(envelope.intersects(Envelope(0, 1, 2, 3)))
-        self.assertTrue(envelope.intersects(Envelope(2, 3, 4, 5)))
-        self.assertFalse(envelope.intersects(Envelope(4, 5, 6, 7)))
-        self.assertTrue(envelope.intersects(Envelope(0.5, 1.5, 3, 4)))
+        test_srid = SRID('EPSG', 3857)
+        envelope = Envelope(0, 1, 2, 3, test_srid)
+        self.assertTrue(envelope.intersects(Envelope(0, 1, 2, 3, test_srid)))
+        self.assertTrue(envelope.intersects(Envelope(2, 3, 4, 5, test_srid)))
+        self.assertFalse(envelope.intersects(Envelope(4, 5, 6, 7, test_srid)))
+        self.assertTrue(envelope.intersects(Envelope(0.5, 1.5, 3, 4, test_srid)))
 
     def testFromTuple(self):
         envelope = Envelope.from_tuple((0, 1, 2, 3))

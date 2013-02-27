@@ -21,6 +21,9 @@ class SRID(object):
     @param param: authority name of srid
     @param param: integer code of srid
     """
+
+    __slots__ = '_authority', '_code'
+
     def __init__(self, authority, code):
         self._authority = authority.upper()
         self._code = int(code)
@@ -190,13 +193,14 @@ class Envelope(object):
     Envelope is not supposed to cross -180/180 longitude
     """
 
-    __slots__ = '_left', '_bottom', '_right', '_top', '_box'
+    __slots__ = '_left', '_bottom', '_right', '_top', '_box', '_srid'
 
-    def __init__(self, left, bottom, right, top):
+    def __init__(self, left, bottom, right, top, srid=SRID('EPSG', 4326)):
         self._left = left
         self._bottom = bottom
         self._right = right
         self._top = top
+        self._srid = srid
 
     @property
     def left(self):
@@ -216,19 +220,23 @@ class Envelope(object):
 
     @property
     def lefttop(self):
-        return Location(self._left, self._top)
+        return Location(self._left, self._top, 0, self._srid)
 
     @property
     def righttop(self):
-        return Location(self._right, self._top)
+        return Location(self._right, self._top, 0, self._srid)
 
     @property
     def leftbottom(self):
-        return Location(self._left, self._bottom)
+        return Location(self._left, self._bottom, 0, self._srid)
 
     @property
     def rightbottom(self):
-        return Location(self._right, self._bottom)
+        return Location(self._right, self._bottom, 0, self._srid)
+
+    @property
+    def srid(self):
+        return self._srid
 
     def make_geometry(self):
         return shapely.geometry.box(self._left,
@@ -238,6 +246,7 @@ class Envelope(object):
 
     def intersects(self, other):
         """ Checks whether the envelop intersects with given one """
+        assert self.srid == other.srid
         return self.make_geometry().intersects(other.make_geometry())
 
     def make_tuple(self):
@@ -248,10 +257,13 @@ class Envelope(object):
         return Envelope(*t)
 
     def __repr__(self):
-        return 'Envelope%r' % (self.make_tuple(),)
+        return 'Envelope(%s, %s, %s, %s, %r)' % (self._left, self._bottom,
+                                                 self._right, self._top,
+                                                 self._srid)
 
     def __eq__(self, other):
-        return self.make_tuple() == other.make_tuple()
+        return self.make_tuple() == other.make_tuple() and \
+            self.srid == other.srid
 
 
 class Point(collections.namedtuple('Point', 'x y')):
