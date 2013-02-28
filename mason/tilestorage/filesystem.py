@@ -89,12 +89,14 @@ class FileSystemTileStorage(TileStorage):
 
     # Config serialization -----------------------------------------------------
     def summarize(self):
-        return dict(magic=self.CONFIG_VERSION,
+        summ = dict(magic=self.CONFIG_VERSION,
                     pyramid=self._pyramid.summarize(),
                     metadata=self._metadata.make_dict(),
                     compress=self._use_gzip,
                     simple=self._simple,
                     )
+        print summ
+        return summ
 
     @staticmethod
     def from_summary(summary, root):

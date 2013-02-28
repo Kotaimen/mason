@@ -5,9 +5,10 @@ Created on Apr 29, 2012
 """
 
 import copy
-
+import math
 from .tile import TileIndex, Tile, MetaTileIndex, MetaTile
 from .geo import Envelope, Location, create_projection, tile_coordinate_to_serial
+from .geo import SRID, Datum, SpatialTransformer
 from .format import Format
 
 #===============================================================================
@@ -89,13 +90,29 @@ class Pyramid(object):
         self._buffer = buffer
         self._format = format
 
-        self._envelope = Envelope.from_tuple(envelope)
-        self._center = Location.from_tuple(center)
+#        self._envelope = Envelope.from_tuple(envelope)
+#        self._center = Location.from_tuple(center)
         self._zoom = zoom
-        self._crs = crs
-        self._proj = proj
-        self._projector = create_projection(input=self._crs,
-                                            output=self._proj)
+#        self._crs = crs
+#        self._proj = proj
+#        self._projector = create_projection(input=self._crs,
+#                                            output=self._proj)
+
+    # # after
+        self._proj_srid = SRID.from_string(proj)
+#        if self._proj_srid.is_projected()
+        self._wgs84 = SRID.from_string('EPSG:4326')
+
+        minx, miny, maxx, maxy = envelope
+        self._envelope = Envelope.from_tuple((minx, miny, maxx, maxy, self._wgs84))
+
+        lon, lat = center
+        self._center = Location.from_tuple((lon, lat, 0, self._wgs84))
+
+        self._datum = Datum(self._proj_srid)
+        self._perimeter = 2 * math.pi * self._datum.semi_major
+
+        self._projctor = SpatialTransformer(self._wgs84, self._proj_srid)
 
     # Getter ------------------------------------------------------------------
 
@@ -132,37 +149,70 @@ class Pyramid(object):
         return self._proj
 
     # Aux Tile Methods ---------------------------------------------------------
+    def _coords_xyz2world(self, z, x, y, delta_x, delta_y):
+        wx = float(x + delta_x) / (2 ** z)
+        wy = float(y + delta_y) / (2 ** z)
+        return wx, wy
+
+    def _coords_world2pixel(self, z, wx, wy):
+        pixel_size = self._tile_size * (2 ** z)
+        px = wx * pixel_size
+        py = wy * pixel_size
+        return px, py
+
+    def _coords_pixel2world(self, z, px, py):
+        pixel_size = self._tile_size * (2 ** z)
+        wx = px / pixel_size
+        wy = py / pixel_size
+        return wx, wy
+
+    def _coords_world2wgs84(self, z, wx, wy):
+        perimeter = self._perimeter
+        wx = (wx - 0.5) * perimeter
+        wy = (0.5 - wy) * perimeter
+        lon, lat, _alt = self._projctor.reverse(wx, wy, 0)
+        return lon, lat
+
+    def _coords_wgs842world(self, z, lon, lat):
+        wx, wy, _wz = self._projctor.forward(lon, lat)
+        perimeter = self._perimeter
+        wx = wx / perimeter
+        wy = wy / perimeter
+        return wx, wy
 
     def calculate_tile_buffered_envelope(self, z, x, y):
-        # XXX: This does not check whether tile is already clipping world boundary
-        tile_size = self._tile_size
-        buffer_size = self._buffer
-        proj = self._projector
 
-        envelope = proj.tile_envelope(z, x, y)
+        buff_size = self._buffer
 
-        lt_org = envelope.lefttop
-        lt_org_pixel = proj.coord2worldpixel(lt_org, z, tile_size)
-        rb_org = envelope.rightbottom
-        rb_org_pixel = proj.coord2worldpixel(rb_org, z, tile_size)
+        wminx, wminy = self._coords_xyz2world(z, x, y, 0, 1)
+        wmaxx, wmaxy = self._coords_xyz2world(z, x, y, 1, 0)
 
-        # left top coordinate
-        lt_buf_lon = lt_org_pixel[0] - buffer_size
-        lt_buf_lat = lt_org_pixel[1] - buffer_size
-        lt_buf = proj.worldpixel2coord(z, lt_buf_lon, lt_buf_lat, tile_size)
+        pminx, pminy = self._coords_world2pixel(z, wminx, wminy)
+        pmaxx, pmaxy = self._coords_world2pixel(z, wmaxx, wmaxy)
 
-        # right bottom coordinate
-        rb_buf_lon = rb_org_pixel[0] + buffer_size
-        rb_buf_lat = rb_org_pixel[1] + buffer_size
-        rb_buf = proj.worldpixel2coord(z, rb_buf_lon, rb_buf_lat, tile_size)
+        # expand envelope with buffer size
+        buffpminx, buffpminy = pminx - buff_size, pminy - buff_size
+        buffpmaxx, buffpmaxy = pmaxx + buff_size, pmaxy + buff_size
 
-        buffered = Envelope(left=lt_buf.x, bottom=rb_buf.y,
-                            right=rb_buf.x, top=lt_buf.y)
+        buffwminx, buffwminy = self._coords_pixel2world(z, buffpminx, buffpminy)
+        buffwmaxx, buffwmaxy = self._coords_pixel2world(z, buffpmaxx, buffpmaxy)
 
-        return buffered
+        # transform to wgs84
+        minx, miny = self._coords_world2wgs84(z, buffwminx, buffwminy)
+        maxx, maxy = self._coords_world2wgs84(z, buffwmaxx, buffwmaxy)
+
+        return Envelope(minx, miny, maxx, maxy, srid=self._wgs84)
 
     def calculate_tile_envelope(self, z, x, y):
-        return self._projector.tile_envelope(z, x, y)
+
+        wminx, wminy = self._coords_xyz2world(z, x, y, 0, 1)
+        wmaxx, wmaxy = self._coords_xyz2world(z, x, y, 1, 0)
+
+        # transform to wgs84
+        minx, miny = self._coords_world2wgs84(z, wminx, wminy)
+        maxx, maxy = self._coords_world2wgs84(z, wmaxx, wmaxy)
+
+        return Envelope(minx, miny, maxx, maxy, srid=self._wgs84)
 
     def calculate_tile_serial(self, z, x, y):
         return tile_coordinate_to_serial(z, x, y)
@@ -178,8 +228,8 @@ class Pyramid(object):
                     envelope=self._envelope.coords(),
                     center=self._center.coords(),
                     zoom=self._zoom,
-                    crs=self._crs,
-                    proj=self._proj
+                    crs=str(self._wgs84),
+                    proj=str(self._proj_srid)
                     )
 
     def __repr__(self):
