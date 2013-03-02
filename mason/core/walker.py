@@ -5,7 +5,7 @@ Created on Aug 31, 2012
 @author: Kotaimen
 """
 
-from .geo import GoogleMercatorProjection, Envelope
+from .geo import SRID, Envelope
 
 
 class PyramidWalker(object):
@@ -17,18 +17,26 @@ class PyramidWalker(object):
         else:
             self._levels = pyramid.levels
         if envelope is not None:
-            self._envelope = Envelope.from_tuple(envelope)
+            minx, miny, maxx, maxxy = envelope
+            srid = SRID('epsg', 4326)
+            evelope = (minx, miny, maxx, maxxy, srid)
+            self._envelope = Envelope.from_tuple(evelope)
         else:
             self._envelope = pyramid.envleope
         self._stride = stride
         assert pyramid.projection == 'EPSG:3857'
-        self._proj = GoogleMercatorProjection()
 
     def walk(self):
         stride = self._stride
         for z in self._levels:
-            left, top = self._proj.coord2tile(self._envelope.lefttop, z)
-            right, bottom = self._proj.coord2tile(self._envelope.rightbottom, z)
+            lt_x, lt_y = self._envelope.lefttop
+            rb_x, rb_y = self._envelope.rightbottom\
+
+            left, top = self._pyramid.coords_wgs842xyz(z, lt_x, lt_y)
+            right, bottom = self._pyramid.coords_wgs842xyz(z, rb_x, rb_y)
+
+#            left, top = self._proj.coord2tile(self._envelope.lefttop, z)
+#            right, bottom = self._proj.coord2tile(self._envelope.rightbottom, z)
 
             x_min = left // stride * stride
             y_min = top // stride * stride

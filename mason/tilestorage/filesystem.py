@@ -95,7 +95,6 @@ class FileSystemTileStorage(TileStorage):
                     compress=self._use_gzip,
                     simple=self._simple,
                     )
-        print summ
         return summ
 
     @staticmethod

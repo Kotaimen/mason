@@ -7,7 +7,7 @@ Created on Apr 29, 2012
 import copy
 import math
 from .tile import TileIndex, Tile, MetaTileIndex, MetaTile
-from .geo import Envelope, Location, create_projection, tile_coordinate_to_serial
+from .geo import Envelope, Location, tile_coordinate_to_serial
 from .geo import SRID, Datum, SpatialTransformer
 from .format import Format
 
@@ -69,7 +69,7 @@ class Pyramid(object):
         zoom
             Default zoom level
 
-        crs
+        crs (deprecated)
             Authority ID of geography coordinate reference system, default is
             4326 (WGS84)
 
@@ -89,18 +89,10 @@ class Pyramid(object):
         self._tile_size = tile_size
         self._buffer = buffer
         self._format = format
-
-#        self._envelope = Envelope.from_tuple(envelope)
-#        self._center = Location.from_tuple(center)
         self._zoom = zoom
-#        self._crs = crs
-#        self._proj = proj
-#        self._projector = create_projection(input=self._crs,
-#                                            output=self._proj)
 
-    # # after
         self._proj_srid = SRID.from_string(proj)
-#        if self._proj_srid.is_projected()
+        # internal spatial reference id
         self._wgs84 = SRID.from_string('EPSG:4326')
 
         minx, miny, maxx, maxy = envelope
@@ -109,9 +101,11 @@ class Pyramid(object):
         lon, lat = center
         self._center = Location.from_tuple((lon, lat, 0, self._wgs84))
 
+        # datum of the projection
         self._datum = Datum(self._proj_srid)
         self._perimeter = 2 * math.pi * self._datum.semi_major
 
+        # projection between internal srid and specified srid
         self._projctor = SpatialTransformer(self._wgs84, self._proj_srid)
 
     # Getter ------------------------------------------------------------------
@@ -149,68 +143,87 @@ class Pyramid(object):
         return self._proj
 
     # Aux Tile Methods ---------------------------------------------------------
-    def _coords_xyz2world(self, z, x, y, delta_x, delta_y):
+    def coords_xyz2world(self, z, x, y, delta_x, delta_y):
         wx = float(x + delta_x) / (2 ** z)
         wy = float(y + delta_y) / (2 ** z)
         return wx, wy
 
-    def _coords_world2pixel(self, z, wx, wy):
+    def coords_world2xyz(self, z, wx, wy):
+        total = 2 ** z
+        x, y = (int(math.floor(total * wx)),
+                int(math.floor(total * wy)))
+        if x < 0:
+            x = 0
+        if y < 0:
+            y = 0
+        if x >= total:
+            x = total - 1
+        if y >= total:
+            y = total - 1
+
+        return x, y
+
+    def coords_world2pixel(self, z, wx, wy):
         pixel_size = self._tile_size * (2 ** z)
         px = wx * pixel_size
         py = wy * pixel_size
         return px, py
 
-    def _coords_pixel2world(self, z, px, py):
+    def coords_pixel2world(self, z, px, py):
         pixel_size = self._tile_size * (2 ** z)
         wx = px / pixel_size
         wy = py / pixel_size
         return wx, wy
 
-    def _coords_world2wgs84(self, z, wx, wy):
+    def coords_world2wgs84(self, z, wx, wy):
         perimeter = self._perimeter
         wx = (wx - 0.5) * perimeter
         wy = (0.5 - wy) * perimeter
         lon, lat, _alt = self._projctor.reverse(wx, wy, 0)
         return lon, lat
 
-    def _coords_wgs842world(self, z, lon, lat):
+    def coords_wgs842world(self, z, lon, lat):
         wx, wy, _wz = self._projctor.forward(lon, lat)
         perimeter = self._perimeter
         wx = wx / perimeter
         wy = wy / perimeter
         return wx, wy
 
+    def coords_wgs842xyz(self, z, lon, lat):
+        wx, wy = self.coords_wgs842world(z, lon, lat)
+        return self.coords_world2xyz(z, wx, wy)
+
+    def coords_xyz2wgs84(self, z, x, y):
+        wx, wy = self.coords_xyz2world(z, x, y, 0, 0)
+        return self.coords_world2wgs84(z, wx, wy)
+
     def calculate_tile_buffered_envelope(self, z, x, y):
 
         buff_size = self._buffer
 
-        wminx, wminy = self._coords_xyz2world(z, x, y, 0, 1)
-        wmaxx, wmaxy = self._coords_xyz2world(z, x, y, 1, 0)
+        wminx, wminy = self.coords_xyz2world(z, x, y, 0, 1)
+        wmaxx, wmaxy = self.coords_xyz2world(z, x, y, 1, 0)
 
-        pminx, pminy = self._coords_world2pixel(z, wminx, wminy)
-        pmaxx, pmaxy = self._coords_world2pixel(z, wmaxx, wmaxy)
+        pminx, pminy = self.coords_world2pixel(z, wminx, wminy)
+        pmaxx, pmaxy = self.coords_world2pixel(z, wmaxx, wmaxy)
 
         # expand envelope with buffer size
         buffpminx, buffpminy = pminx - buff_size, pminy - buff_size
         buffpmaxx, buffpmaxy = pmaxx + buff_size, pmaxy + buff_size
 
-        buffwminx, buffwminy = self._coords_pixel2world(z, buffpminx, buffpminy)
-        buffwmaxx, buffwmaxy = self._coords_pixel2world(z, buffpmaxx, buffpmaxy)
+        buffwminx, buffwminy = self.coords_pixel2world(z, buffpminx, buffpminy)
+        buffwmaxx, buffwmaxy = self.coords_pixel2world(z, buffpmaxx, buffpmaxy)
 
         # transform to wgs84
-        minx, miny = self._coords_world2wgs84(z, buffwminx, buffwminy)
-        maxx, maxy = self._coords_world2wgs84(z, buffwmaxx, buffwmaxy)
+        minx, miny = self.coords_world2wgs84(z, buffwminx, buffwminy)
+        maxx, maxy = self.coords_world2wgs84(z, buffwmaxx, buffwmaxy)
 
         return Envelope(minx, miny, maxx, maxy, srid=self._wgs84)
 
     def calculate_tile_envelope(self, z, x, y):
 
-        wminx, wminy = self._coords_xyz2world(z, x, y, 0, 1)
-        wmaxx, wmaxy = self._coords_xyz2world(z, x, y, 1, 0)
-
-        # transform to wgs84
-        minx, miny = self._coords_world2wgs84(z, wminx, wminy)
-        maxx, maxy = self._coords_world2wgs84(z, wmaxx, wmaxy)
+        minx, miny = self.coords_xyz2wgs84(z, x, y + 1)
+        maxx, maxy = self.coords_xyz2wgs84(z, x + 1, y)
 
         return Envelope(minx, miny, maxx, maxy, srid=self._wgs84)
 
@@ -228,8 +241,8 @@ class Pyramid(object):
                     envelope=self._envelope.coords(),
                     center=self._center.coords(),
                     zoom=self._zoom,
-                    crs=str(self._wgs84),
-                    proj=str(self._proj_srid)
+#                    crs=self._wgs84.to_string(),
+                    proj=self._proj_srid.to_string()
                     )
 
     def __repr__(self):

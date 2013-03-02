@@ -6,17 +6,18 @@ Created on Sep 7, 2012
 import unittest
 
 from mason.core.pyramid import Pyramid
-from mason.core.geo import GoogleMercatorProjection, Location
+from mason.core.geo import Location, SRID
 from mason.core.walker import PyramidWalker
 
 
 class TestWalker(unittest.TestCase):
 
     def testProj(self):
-        proj = GoogleMercatorProjection()
-        self.assertEqual(proj.coord2tile(Location(-180, 85), 6), (0, 0))
-        self.assertEqual(proj.coord2tile(Location(-180, -85), 6), (0, 2 ** 6 - 1))
-        self.assertEqual(proj.coord2tile(Location(180, -85), 6), (2 ** 6 - 1, 2 ** 6 - 1))
+        srid = SRID.from_string('epsg:4326')
+        pyramid = Pyramid()
+        self.assertEqual(pyramid.coords_wgs842xyz(Location(-180, 85, srid=srid), 6), (0, 0))
+        self.assertEqual(pyramid.coords_wgs842xyz(Location(-180, -85, srid=srid), 6), (0, 2 ** 6 - 1))
+        self.assertEqual(pyramid.coords_wgs842xyz(Location(180, -85, srid=srid), 6), (2 ** 6 - 1, 2 ** 6 - 1))
 
     def testWalk(self):
         pyramid = Pyramid()
