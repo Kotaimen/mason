@@ -20,7 +20,7 @@ def create_temp_filename(suffix='', prefix='tmp', dir=None):
         dir = tempfile.gettempdir()
 
     if not os.path.exists(dir):
-        raise IOError(errno.EEXIST, "Folder %s not exists" % dir)
+        raise IOError(errno.EEXIST, "Folder %s does not exist." % dir)
 
     names = tempfile._get_candidate_names()
     for _seq in xrange(tempfile.TMP_MAX):
