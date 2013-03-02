@@ -4,7 +4,7 @@ Geographic calculations
 Created on Apr 30, 2012
 @author: Kotaimen
 """
-
+import re
 import osr
 import math
 import shapely.geometry
@@ -14,6 +14,10 @@ import collections
 #===============================================================================
 # Spatial Reference System
 #===============================================================================
+class InvalidSRID(Exception):
+    pass
+
+
 class SRID(object):
 
     """ Spatial Reference System Identifier
@@ -42,8 +46,15 @@ class SRID(object):
     @staticmethod
     def from_string(srid_string):
         """ srid format: 'authority:code' """
-        authority, code = srid_string.split(':')
+        m = re.match('(?P<authority>\w+):(?P<code>\d+)', srid_string)
+        if not m:
+            raise InvalidSRID(srid_string)
+        authority = m.group('authority')
+        code = m.group('code')
         return SRID(authority, code)
+
+    def to_string(self):
+        return str(self)
 
     def __str__(self):
         return '%s:%s' % (self.authority, self.code)
