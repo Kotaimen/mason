@@ -21,7 +21,8 @@ import re
 
 from mason import (__version__ as VERSION,
                    __author__ as AUTHOR,
-                   create_render_tree_from_config)
+                   create_render_tree_from_config,)
+from mason.utils import create_temp_filename
 
 # from mason import create_mason_from_config
 from mason.core import Envelope, PyramidWalker, TileListPyramidWalker
@@ -86,7 +87,7 @@ def tilelist_spawner(queue, statistics, options):
 # Consumer
 #===============================================================================
 
-def worker(queue, statistics, options):
+def render_worker(queue, statistics, options):
 
     options = verify_config(options)
     setup_logger(options.logfile)
@@ -128,14 +129,16 @@ def monitor(options, statistics):
     # Task queue
     queue = multiprocessing.JoinableQueue(maxsize=QUEUE_LIMIT)
 
+    workers = list()
+
     # Start all workers
     for w in range(options.workers):
-        logging.info('Starting worker #%d' % w)
-        process = multiprocessing.Process(name='worker#%d' % w,
-                                          target=worker,
-                                          args=(queue, statistics, options))
-        process.daemon = True
-        process.start()
+        logging.info('Creating worker #%d' % w)
+        worker = multiprocessing.Process(name='worker#%d' % w,
+                                         target=render_worker,
+                                         args=(queue, statistics, options))
+        worker.daemon = True
+        workers.append(worker)
 
     # Start producer
     if options.csv:
@@ -150,6 +153,13 @@ def monitor(options, statistics):
 
     # Sleep a little so producer can popularize the queue
     time.sleep(1)
+
+    # Start
+    for worker in workers:
+        # Start the workers one by one to avoid starving
+        time.sleep(0.1)
+        logging.info('Starting worker #%d' % w)
+        worker.start()
 
     # Join the queue
     try:
@@ -236,6 +246,13 @@ files, so mount /tmp as ramdisk if that is a problem.
                         implies "-o", default is 0, note this does not start workers.''',
                         )
 
+    parser.add_argument('--profile',
+                        dest='profile',
+                        default=False,
+                        action='store_true',
+                        help='''Enable profiling (only works with --test)''',
+                        )
+
     parser.add_argument('-w', '--workers',
                        dest='workers',
                        default=CPU_COUNT,
@@ -270,7 +287,7 @@ def setup_logger(log_file, level=logging.DEBUG):
         return
     logger = multiprocessing.log_to_stderr(level=level)
     formatter = logging.Formatter('[%(asctime)s - %(levelname)s/%(processName)s] %(message)s')
-    handler = logging.FileHandler(log_file, 'w')
+    handler = logging.FileHandler(log_file)
     handler.setFormatter(formatter)
     handler.setLevel(logging.WARNING)
     logger.addHandler(handler)
@@ -355,7 +372,17 @@ def main():
 
     if options.test > 0:
         print 'Turn off test to start rendering'
-        options = verify_config(options)
+        if options.profile:
+            import cProfile as profile
+            import pstats
+            stats = create_temp_filename(suffix='.pstats')
+            profile.runctx('verify_config(options)', globals(), locals(), stats)
+            p = pstats.Stats(stats)
+            p.strip_dirs().sort_stats('time', 'calls').print_stats(0.25)
+            p.print_callers(0.2)
+            p.print_callees(0.05)
+        else:
+            verify_config(options)
         return
     timer = Timer('Rendering finished in %(time)s')
 
