@@ -106,7 +106,11 @@ class TestPyramid(unittest.TestCase):
         index = pyramid.create_metatile_index(4, 1, 2, 2)
         tile = MetaTile.from_tile_index(index, b'data')
 
+    def testClone(self):
+        pyramid1 = Pyramid()
+        pyramid2 = pyramid1.clone(format=Format.JPG)
+
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
+    # import sys;sys.argv = ['', 'Test.testName']
     unittest.main()
