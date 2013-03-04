@@ -13,7 +13,7 @@ import json
 
 from .tilestorage import TileStorage, TileStorageError
 from ..core import Tile, tile_coordiante_to_dirname, Pyramid, Metadata
-from ..utils.adhoc import create_temp_filename
+from ..utils import create_temp_filename
 
 
 class FileSystemTileStorageError(TileStorageError):

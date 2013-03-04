@@ -8,4 +8,4 @@ from .pyramid import Pyramid
 from .format import Format
 from .gridcrop import metatile_fission, grid_crop, buffer_crop
 from .metadata import Metadata
-from .walker import PyramidWalker
+from .walker import PyramidWalker, TileListPyramidWalker

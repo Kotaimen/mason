@@ -21,10 +21,11 @@ import re
 
 from mason import (__version__ as VERSION,
                    __author__ as AUTHOR,
-                   create_render_tree_from_config)
+                   create_render_tree_from_config,)
+from mason.utils import create_temp_filename
 
 # from mason import create_mason_from_config
-from mason.core import Envelope, PyramidWalker
+from mason.core import Envelope, PyramidWalker, TileListPyramidWalker
 from mason.utils import Timer, human_size
 
 CPU_COUNT = multiprocessing.cpu_count()
@@ -45,7 +46,7 @@ class Statics(ctypes.Structure):
 #===============================================================================
 
 
-def spawner(queue, statistics, options):
+def envelope_spawner(queue, statistics, options):
     options = verify_config(options)
     render_option = dict(mode='readonly', reload=False)
     renderer = create_render_tree_from_config(options.config, render_option)
@@ -53,18 +54,41 @@ def spawner(queue, statistics, options):
                            levels=options.levels,
                            stride=options.stride,
                            envelope=options.envelope)
+    count = 0
     for index in walker.walk():
-        if not options.overwrite and renderer.has_metatile(index.z, index.x, index.y, index.stride):
+        if not options.overwrite and renderer.has_metatile(index.z, index.x,
+                                                           index.y, index.stride):
             logger.info('Skipping %r...', index)
             continue
-        queue.put((index.z, index.x, index.y, index.stride))
+        count += 1
+        queue.put((count, index.z, index.x, index.y, index.stride))
+
+
+def tilelist_spawner(queue, statistics, options):
+    options = verify_config(options)
+    render_option = dict(mode='readonly', reload=False)
+    renderer = create_render_tree_from_config(options.config, render_option)
+    walker = TileListPyramidWalker(renderer.pyramid,
+                                   options.csv,
+                                   levels=options.levels,
+                                   stride=options.stride,
+                                   envelope=options.envelope)
+    count = 0
+    for index in walker.walk():
+        if not options.overwrite and renderer.has_metatile(index.z, index.x,
+                                                           index.y, index.stride):
+            logger.info('Skipping %r...', index)
+            continue
+        count += 1
+        queue.put((count, index.z, index.x, index.y, index.stride))
 
 
 #===============================================================================
 # Consumer
 #===============================================================================
 
-def worker(queue, statistics, options):
+def render_worker(queue, statistics, options):
+
     options = verify_config(options)
     setup_logger(options.logfile)
     render_option = dict(mode=options.mode, reload=False)
@@ -77,11 +101,11 @@ def worker(queue, statistics, options):
             renderer.close()
             return
 
-        z, x, y, stride = task
+        count, z, x, y, stride = task
         index = renderer.pyramid.create_metatile_index(z, x, y, stride)
 
-        logger.info('Rendering %r...', index)
-        with Timer('...%r rendered in %%(time)s' % index, logger.info, False):
+        logger.info('Rendering #%d: %r...' % (count, index))
+        with Timer('... #%d finished in %%(time)s' % count, logger.info, False):
             try:
                 metatile = renderer.render(index)
                 if metatile:
@@ -105,16 +129,22 @@ def monitor(options, statistics):
     # Task queue
     queue = multiprocessing.JoinableQueue(maxsize=QUEUE_LIMIT)
 
+    workers = list()
+
     # Start all workers
     for w in range(options.workers):
-        logging.info('Starting worker #%d' % w)
-        process = multiprocessing.Process(name='worker#%d' % w,
-                                          target=worker,
-                                          args=(queue, statistics, options))
-        process.daemon = True
-        process.start()
+        logging.info('Creating worker #%d' % w)
+        worker = multiprocessing.Process(name='worker#%d' % w,
+                                         target=render_worker,
+                                         args=(queue, statistics, options))
+        worker.daemon = True
+        workers.append(worker)
 
     # Start producer
+    if options.csv:
+        spawner = tilelist_spawner
+    else:
+        spawner = envelope_spawner
     producer = multiprocessing.Process(name='spawner',
                                        target=spawner,
                                        args=(queue, statistics, options,),)
@@ -123,6 +153,13 @@ def monitor(options, statistics):
 
     # Sleep a little so producer can popularize the queue
     time.sleep(1)
+
+    # Start
+    for worker in workers:
+        # Start the workers one by one to avoid starving
+        time.sleep(0.1)
+        logging.info('Starting worker #%d' % w)
+        worker.start()
 
     # Join the queue
     try:
@@ -209,6 +246,13 @@ files, so mount /tmp as ramdisk if that is a problem.
                         implies "-o", default is 0, note this does not start workers.''',
                         )
 
+    parser.add_argument('--profile',
+                        dest='profile',
+                        default=False,
+                        action='store_true',
+                        help='''Enable profiling (only works with --test)''',
+                        )
+
     parser.add_argument('-w', '--workers',
                        dest='workers',
                        default=CPU_COUNT,
@@ -225,14 +269,12 @@ files, so mount /tmp as ramdisk if that is a problem.
                        metavar='FILE',
                        )
 
-#    parser.add_argument('--load-wkt',
-#                       dest='wkt',
-#                       default='',
-#                       help='''Load a MultiPolygon WKT file as render range, try
-#                       cover given polygon using as less MetaTile as possible (optional,
-#                       not implemented yet, requires python-gdal)''',
-#                       metavar='FILE',
-#                       )
+    parser.add_argument('-c', '--csv',
+                       dest='csv',
+                       default='',
+                       help='''Load a CSV tile list file and render tiles in it''',
+                       metavar='FILE',
+                       )
 
     options = parser.parse_args()
 
@@ -245,14 +287,13 @@ def setup_logger(log_file, level=logging.DEBUG):
         return
     logger = multiprocessing.log_to_stderr(level=level)
     formatter = logging.Formatter('[%(asctime)s - %(levelname)s/%(processName)s] %(message)s')
-    handler = logging.FileHandler(log_file, 'w')
+    handler = logging.FileHandler(log_file)
     handler.setFormatter(formatter)
     handler.setLevel(logging.WARNING)
     logger.addHandler(handler)
 
 
 def verify_config(options):
-
 
     logger.info('===== Testing Configuration =====')
 
@@ -331,7 +372,17 @@ def main():
 
     if options.test > 0:
         print 'Turn off test to start rendering'
-        options = verify_config(options)
+        if options.profile:
+            import cProfile as profile
+            import pstats
+            stats = create_temp_filename(suffix='.pstats')
+            profile.runctx('verify_config(options)', globals(), locals(), stats)
+            p = pstats.Stats(stats)
+            p.strip_dirs().sort_stats('time', 'calls').print_stats(0.25)
+            p.print_callers(0.2)
+            p.print_callees(0.05)
+        else:
+            verify_config(options)
         return
     timer = Timer('Rendering finished in %(time)s')
 
