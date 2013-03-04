@@ -32,7 +32,7 @@ class CartographerMetaTileDataSource(MetaTileDataSource):
         self._cartographer = cartographer
 
     def get(self, metatileindex):
-        envelope = metatileindex.buffered_envelope.coords()
+        envelope = metatileindex.buffered_envelope.make_tuple()
         tile_size = metatileindex.buffered_tile_size
         size = (tile_size, tile_size)
         data_stream = self._cartographer.render(envelope, size)

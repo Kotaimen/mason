@@ -166,14 +166,14 @@ class MetaTileIndex(TileIndex):
         right_top_index = pyramid.create_tile_index(z, x + stride - 1, y, range_check=False)
         left_bottom = left_bottom_index.envelope.leftbottom
         right_top = right_top_index.envelope.righttop
-        self._envelope = Envelope(left_bottom.x, left_bottom.y,
-                                  right_top.x, right_top.y)
+        self._envelope = Envelope(left_bottom.lon, left_bottom.lat,
+                                  right_top.lon, right_top.lat)
         buffered_left_bottom = left_bottom_index._buffered_envelope.leftbottom
         buffered_right_top = right_top_index._buffered_envelope.righttop
-        self._buffered_envelope = Envelope(buffered_left_bottom.x,
-                                           buffered_left_bottom.y,
-                                           buffered_right_top.x,
-                                           buffered_right_top.y)
+        self._buffered_envelope = Envelope(buffered_left_bottom.lon,
+                                           buffered_left_bottom.lat,
+                                           buffered_right_top.lon,
+                                           buffered_right_top.lat)
 
         # Overwrite tilesize
         self._tile_size = self._tile_size * stride

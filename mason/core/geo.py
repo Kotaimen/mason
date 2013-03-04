@@ -7,8 +7,8 @@ Created on Apr 30, 2012
 import re
 import osr
 import math
-import shapely.geometry
 import collections
+import shapely.geometry
 
 
 #===============================================================================
@@ -71,6 +71,7 @@ class SRID(object):
 def create_osr_spatial_ref(srid):
     """ Create osr spatial reference from srid
     """
+    assert isinstance(srid, SRID)
     authority, code = srid.make_tuple()
     reference = osr.SpatialReference()
     if 'EPSG' == authority.upper():
@@ -81,13 +82,11 @@ def create_osr_spatial_ref(srid):
     return reference
 
 
-class Datum(object):
+class SpatialReference(object):
 
-    """ Geodetic Datum of the specified Spatial Reference System
+    """ Spatial Reference System
 
-    Measurements of an associated model of the shape of the Earth.
-
-    @param srid: the srid of the spatial reference that defines the datum
+    @param srid: the srid of the spatial reference
     """
 
     def __init__(self, srid):
@@ -144,60 +143,47 @@ class SpatialTransformer(object):
 
 
 #===============================================================================
-# Spatial Primitives
+# Geographic Primitives
 #===============================================================================
 class Location(object):
 
-    """ Spatial location """
+    """ Geographic Location """
 
-    __slots__ = '_x', '_y', '_z', '_srid'
+    __slots__ = '_lon', '_lat', '_alt'
 
-    def __init__(self, x=0.0, y=0.0, z=0.0, srid=SRID('EPSG', 4326)):
-        assert isinstance(srid, SRID)
-        self._x = x
-        self._y = y
-        self._z = z
-        self._srid = srid
+    def __init__(self, lon=0.0, lat=0.0, alt=0.0):
+        self._lon = lon
+        self._lat = lat
+        self._alt = alt
 
     @property
-    def x(self):
-        return self._x
+    def lon(self):
+        return self._lon
 
     @property
-    def y(self):
-        return self._y
+    def lat(self):
+        return self._lat
 
     @property
-    def z(self):
-        return self._z
+    def alt(self):
+        return self._alt
 
-    @property
-    def srid(self):
-        return self._srid
-
-    def coords(self):
-        return (self._x, self._y, self._z)
-
-#    def make_tuple(self, hello):
-#        return (self._x, self._y, self._z, self._srid)
-
-    def make_geometry(self):
-        return shapely.geometry.Point(self._x, self._y, self._z)
+    def make_tuple(self):
+        return (self._lon, self._lat, self._alt)
 
     @staticmethod
     def from_tuple(t):
         return Location(*t)
 
     def __repr__(self):
-        return '%s(%s, %s, %s, %s)' % (self.__class__.__name__,
-                                       self._x,
-                                       self._y,
-                                       self._z,
-                                       repr(self._srid))
+        return '%s(%s, %s, %s)' % (self.__class__.__name__,
+                                   self._lon,
+                                   self._lat,
+                                   self._alt,
+                                   )
 
     def __eq__(self, other):
-        return self.coords() == other.coords() \
-            and self.srid == other.srid
+        return self.make_tuple() == other.make_tuple()
 
 
 class Envelope(object):
@@ -207,80 +193,95 @@ class Envelope(object):
     Envelope is not supposed to cross -180/180 longitude
     """
 
-    __slots__ = '_left', '_bottom', '_right', '_top', '_box', '_srid'
+    __slots__ = '_minx', '_miny', '_maxx', '_maxy',
 
-    def __init__(self, left, bottom, right, top, srid=SRID('EPSG', 4326)):
-        self._left = left
-        self._bottom = bottom
-        self._right = right
-        self._top = top
-        self._srid = srid
+    def __init__(self, minx, miny, maxx, maxy):
+        self._minx = minx
+        self._miny = miny
+        self._maxx = maxx
+        self._maxy = maxy
 
     @property
     def left(self):
-        return self._left
+        return self._minx
 
     @property
     def bottom(self):
-        return self._bottom
+        return self._miny
 
     @property
     def right(self):
-        return self._right
+        return self._maxx
 
     @property
     def top(self):
-        return self._top
+        return self._maxy
 
     @property
     def lefttop(self):
-        return Location(self._left, self._top, 0, self._srid)
+        return Location(self._minx, self._maxy, 0)
 
     @property
     def righttop(self):
-        return Location(self._right, self._top, 0, self._srid)
+        return Location(self._maxx, self._maxy, 0)
 
     @property
     def leftbottom(self):
-        return Location(self._left, self._bottom, 0, self._srid)
+        return Location(self._minx, self._miny, 0)
 
     @property
     def rightbottom(self):
-        return Location(self._right, self._bottom, 0, self._srid)
-
-    @property
-    def srid(self):
-        return self._srid
+        return Location(self._maxx, self._miny, 0)
 
     def make_geometry(self):
-        return shapely.geometry.box(self._left,
-                                    self._bottom,
-                                    self._right,
-                                    self._top)
+        return shapely.geometry.box(self._minx, self._miny, self._maxx, self._maxy)
 
     def intersects(self, other):
         """ Checks whether the envelop intersects with given one """
-        assert self.srid == other.srid
         return self.make_geometry().intersects(other.make_geometry())
 
-    def coords(self):
-        return (self._left, self._bottom, self._right, self._top)
-
-#    def make_tuple(self):
-#        return (self._left, self._bottom, self._right, self._top)
+    def make_tuple(self):
+        return (self._minx, self._miny, self._maxx, self._maxy)
 
     @staticmethod
     def from_tuple(t):
         return Envelope(*t)
 
     def __repr__(self):
-        return 'Envelope(%s, %s, %s, %s, %r)' % (self._left, self._bottom,
-                                                 self._right, self._top,
-                                                 self._srid)
+        return 'Envelope(%s, %s, %s, %s)' % (self._minx,
+                                             self._miny,
+                                             self._maxx,
+                                             self._maxy
+                                            )
 
     def __eq__(self, other):
-        return self.coords() == other.coords() and \
-            self.srid == other.srid
+        return self.make_tuple() == other.make_tuple()
+
+
+#===============================================================================
+# Projection Primitives
+#===============================================================================
+class Point2D(collections.namedtuple('Point', 'x y')):
+    pass
+
+
+class WGS84Projector(object):
+
+    WGS84 = SRID.from_string('epsg:4326')
+
+    def __init__(self, proj_srid):
+        self._proj_srid = SRID.from_string(proj_srid)
+        self._transformer = SpatialTransformer(self.WGS84, self._proj_srid)
+
+    def project(self, location):
+        lon, lat, alt = location.make_tuple()
+        x, y, _z = self._transformer.forward(lon, lat, alt)
+        return Point2D(x, y)
+
+    def unproject(self, point):
+        x, y = point
+        lon, lat, _alt = self._transformer.reverse(x, y, 0)
+        return Location(lon, lat)
 
 
 #===============================================================================

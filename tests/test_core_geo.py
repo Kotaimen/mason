@@ -20,16 +20,24 @@ class TestSRID(unittest.TestCase):
         self.assertEqual(srid.authority, 'EPSG')
         self.assertEqual(srid.code, 4326)
 
+    def testToString(self):
+        srid = SRID.from_string('epsg:3857')
+        self.assertEqual(srid.to_string(), 'EPSG:3857')
+
     def testMakeTuple(self):
         srid = SRID('epsg', 4326)
         self.assertEqual(srid.make_tuple(), ('EPSG', 4326))
 
+    def testREPR(self):
+        srid = SRID('epsg', 4326)
+        self.assertEqual(repr(srid), "SRID('EPSG', 4326)")
 
-class TestDatum(unittest.TestCase):
+
+class TestSpatialReference(unittest.TestCase):
 
     def testInit(self):
         srid = SRID.from_string('epsg:4326')
-        wgs84 = Datum(srid)
+        wgs84 = SpatialReference(srid)
 
         self.assertEqual(wgs84.srid.make_tuple(), srid.make_tuple())
         self.assertAlmostEqual(wgs84.semi_major, 6378137.0)
@@ -80,7 +88,7 @@ class TestSpatialTransformer(unittest.TestCase):
         self.assertEqual(z, 0)
 
 
-class TestCoordinate(unittest.TestCase):
+class TestLocation(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -90,24 +98,22 @@ class TestCoordinate(unittest.TestCase):
 
     def testInitDefault(self):
         coord = Location()
-        self.assertEqual(coord.x, 0)
-        self.assertEqual(coord.y, 0)
-        self.assertEqual(coord.z, 0)
-        self.assertEqual(coord.srid, SRID('EPSG', 4326))
+        self.assertEqual(coord.lon, 0)
+        self.assertEqual(coord.lat, 0)
+        self.assertEqual(coord.alt, 0)
 
     def testInit(self):
-        coord = Location(1.0, 2.0, 3.0, SRID('EPSG', 3857))
-        self.assertEqual(coord.x, 1.0)
-        self.assertEqual(coord.y, 2.0)
-        self.assertEqual(coord.z, 3.0)
-        self.assertEqual(coord.srid, SRID('EPSG', 3857))
+        coord = Location(1.0, 2.0, 3.0)
+        self.assertEqual(coord.lon, 1.0)
+        self.assertEqual(coord.lat, 2.0)
+        self.assertEqual(coord.alt, 3.0)
 
     def testCoords(self):
         coord = Location(1, 2, 3)
-        self.assertEqual(coord.x, 1)
-        self.assertEqual(coord.y, 2)
-        self.assertEqual(coord.z, 3)
-        self.assertEqual(coord.coords(), (1, 2, 3))
+        self.assertEqual(coord.lon, 1)
+        self.assertEqual(coord.lat, 2)
+        self.assertEqual(coord.alt, 3)
+        self.assertEqual(coord.make_tuple(), (1, 2, 3))
 
     def testFromTuple(self):
         coord = Location.from_tuple((1, 2, 3))
@@ -115,55 +121,32 @@ class TestCoordinate(unittest.TestCase):
 
     def testRepr(self):
         coord = Location(1, 2, 3)
-        self.assertEqual(repr(coord), "Location(1, 2, 3, SRID('EPSG', 4326))")
+        self.assertEqual(repr(coord), "Location(1, 2, 3)")
 
 
 class TestEnvelope(unittest.TestCase):
 
     def testInit(self):
-        test_srid = SRID('EPSG', 3857)
-        envelope = Envelope(0, 1, 2, 3, test_srid)
+        envelope = Envelope(0, 1, 2, 3)
         self.assertEqual(envelope.left, 0)
         self.assertEqual(envelope.bottom, 1)
         self.assertEqual(envelope.right, 2)
         self.assertEqual(envelope.top, 3)
-        self.assertEqual(envelope.lefttop, Location(0, 3, srid=test_srid))
-        self.assertEqual(envelope.righttop, Location(2, 3, srid=test_srid))
-        self.assertEqual(envelope.leftbottom, Location(0, 1, srid=test_srid))
-        self.assertEqual(envelope.rightbottom, Location(2, 1, srid=test_srid))
-        self.assertEqual(envelope.srid, test_srid)
+        self.assertEqual(envelope.lefttop, Location(0, 3))
+        self.assertEqual(envelope.righttop, Location(2, 3))
+        self.assertEqual(envelope.leftbottom, Location(0, 1))
+        self.assertEqual(envelope.rightbottom, Location(2, 1))
 
     def testIntersects(self):
-        test_srid = SRID('EPSG', 3857)
-        envelope = Envelope(0, 1, 2, 3, test_srid)
-        self.assertTrue(envelope.intersects(Envelope(0, 1, 2, 3, test_srid)))
-        self.assertTrue(envelope.intersects(Envelope(2, 3, 4, 5, test_srid)))
-        self.assertFalse(envelope.intersects(Envelope(4, 5, 6, 7, test_srid)))
-        self.assertTrue(envelope.intersects(Envelope(0.5, 1.5, 3, 4, test_srid)))
+        envelope = Envelope(0, 1, 2, 3)
+        self.assertTrue(envelope.intersects(Envelope(0, 1, 2, 3)))
+        self.assertTrue(envelope.intersects(Envelope(2, 3, 4, 5)))
+        self.assertFalse(envelope.intersects(Envelope(4, 5, 6, 7)))
+        self.assertTrue(envelope.intersects(Envelope(0.5, 1.5, 3, 4)))
 
     def testFromTuple(self):
-        test_srid = SRID('EPSG', 3857)
-        envelope = Envelope.from_tuple((0, 1, 2, 3, test_srid))
-        self.assertEqual(envelope, Envelope(0, 1, 2, 3, srid=test_srid))
-
-
-class TestProjection(unittest.TestCase):
-
-    def setUp(self):
-        self.proj = GoogleMercatorProjection()
-
-    def testProject(self):
-        coord = Location(0, 0)
-        self.assertEqual(self.proj.project(coord), Point(0.5, 0.5))
-
-    def testUnproject(self):
-        point = Point(0.5, 0.5)
-        self.assertEqual(self.proj.unproject(point), Location(0, 0))
-
-    def testTileEnvelope(self):
-        z, x, y = 0, 0, 0
-        self.assertEqual(self.proj.tile_envelope(z, x, y).make_tuple(),
-                        (-180, -85.051128779806589, 180, 85.051128779806604))
+        envelope = Envelope.from_tuple((0, 1, 2, 3))
+        self.assertEqual(envelope, Envelope(0, 1, 2, 3))
 
 
 class TestTileCoordinates(unittest.TestCase):

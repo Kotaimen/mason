@@ -15,9 +15,12 @@ class TestWalker(unittest.TestCase):
     def testProj(self):
         srid = SRID.from_string('epsg:4326')
         pyramid = Pyramid()
-        self.assertEqual(pyramid.coords_wgs842xyz(Location(-180, 85, srid=srid), 6), (0, 0))
-        self.assertEqual(pyramid.coords_wgs842xyz(Location(-180, -85, srid=srid), 6), (0, 2 ** 6 - 1))
-        self.assertEqual(pyramid.coords_wgs842xyz(Location(180, -85, srid=srid), 6), (2 ** 6 - 1, 2 ** 6 - 1))
+        p = Location(-180, 85)
+        self.assertEqual(pyramid.coords_wgs842xyz(6, p.lon, p.lat), (0, 0))
+        p = Location(-180, -85)
+        self.assertEqual(pyramid.coords_wgs842xyz(6, p.lon, p.lat), (0, 2 ** 6 - 1))
+        p = Location(180, -85)
+        self.assertEqual(pyramid.coords_wgs842xyz(6, p.lon, p.lat), (2 ** 6 - 1, 2 ** 6 - 1))
 
     def testWalk(self):
         pyramid = Pyramid()

@@ -7,8 +7,8 @@ Created on Apr 29, 2012
 import copy
 import math
 from .tile import TileIndex, Tile, MetaTileIndex, MetaTile
-from .geo import Envelope, Location, tile_coordinate_to_serial
-from .geo import SRID, Datum, SpatialTransformer
+from .geo import Envelope, Location, Point2D, tile_coordinate_to_serial
+from .geo import SRID, SpatialReference, WGS84Projector
 from .format import Format
 
 #===============================================================================
@@ -90,23 +90,25 @@ class Pyramid(object):
         self._buffer = buffer
         self._format = format
         self._zoom = zoom
+        self._proj = proj
 
-        self._proj_srid = SRID.from_string(proj)
         # internal spatial reference id
         self._wgs84 = SRID.from_string('EPSG:4326')
 
-        minx, miny, maxx, maxy = envelope
-        self._envelope = Envelope.from_tuple((minx, miny, maxx, maxy, self._wgs84))
+        # wgs84 envelope
+        self._envelope = Envelope.from_tuple(envelope)
 
+        # wgs84 center
         lon, lat = center
-        self._center = Location.from_tuple((lon, lat, 0, self._wgs84))
+        self._center = Location.from_tuple((lon, lat, 0))
 
-        # datum of the projection
-        self._datum = Datum(self._proj_srid)
+        # datum
+        self._proj_srid = SRID.from_string(proj)
+        self._datum = SpatialReference(self._proj_srid)
+
         self._perimeter = 2 * math.pi * self._datum.semi_major
-
         # projection between internal srid and specified srid
-        self._projctor = SpatialTransformer(self._wgs84, self._proj_srid)
+        self._projctor = WGS84Projector(proj)
 
     # Getter ------------------------------------------------------------------
 
@@ -176,17 +178,16 @@ class Pyramid(object):
         return wx, wy
 
     def coords_world2wgs84(self, z, wx, wy):
-        perimeter = self._perimeter
-        wx = (wx - 0.5) * perimeter
-        wy = (0.5 - wy) * perimeter
-        lon, lat, _alt = self._projctor.reverse(wx, wy, 0)
-        return lon, lat
+        wx = (wx - 0.5) * self._perimeter
+        wy = (0.5 - wy) * self._perimeter
+        location = self._projctor.unproject(Point2D(wx, wy))
+        return location.lon, location.lat
 
     def coords_wgs842world(self, z, lon, lat):
-        wx, wy, _wz = self._projctor.forward(lon, lat)
-        perimeter = self._perimeter
-        wx = wx / perimeter
-        wy = wy / perimeter
+        point = self._projctor.project(Location(lon, lat))
+        wx, wy = point
+        wx = wx / self._perimeter + 0.5
+        wy = 0.5 - wy / self._perimeter
         return wx, wy
 
     def coords_wgs842xyz(self, z, lon, lat):
@@ -218,14 +219,14 @@ class Pyramid(object):
         minx, miny = self.coords_world2wgs84(z, buffwminx, buffwminy)
         maxx, maxy = self.coords_world2wgs84(z, buffwmaxx, buffwmaxy)
 
-        return Envelope(minx, miny, maxx, maxy, srid=self._wgs84)
+        return Envelope(minx, miny, maxx, maxy)
 
     def calculate_tile_envelope(self, z, x, y):
 
         minx, miny = self.coords_xyz2wgs84(z, x, y + 1)
         maxx, maxy = self.coords_xyz2wgs84(z, x + 1, y)
 
-        return Envelope(minx, miny, maxx, maxy, srid=self._wgs84)
+        return Envelope(minx, miny, maxx, maxy)
 
     def calculate_tile_serial(self, z, x, y):
         return tile_coordinate_to_serial(z, x, y)
@@ -238,10 +239,10 @@ class Pyramid(object):
                     tile_size=self._tile_size,
                     buffer=self._buffer,
                     format=self._format.make_dict(),
-                    envelope=self._envelope.coords(),
-                    center=self._center.coords(),
+                    envelope=self._envelope.make_tuple(),
+                    center=(self._center.lon, self._center.lat),
                     zoom=self._zoom,
-#                    crs=self._wgs84.to_string(),
+                    crs=self._wgs84.to_string(),
                     proj=self._proj_srid.to_string()
                     )
 
