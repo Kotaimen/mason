@@ -23,7 +23,7 @@ class TestPyramid(unittest.TestCase):
         self.assertEqual(pyramid.tile_size, 256)
         self.assertEqual(pyramid.buffer, 0)
         self.assertEqual(pyramid.format.name, 'ANY')
-        self.assertEqual(pyramid.center.make_tuple(), (121.3, 31.1))
+        self.assertEqual(pyramid.center.make_tuple(), (121.3, 31.1, 0))
         self.assertEqual(pyramid.zoom, 0)
         self.assertEqual(pyramid.envelope.make_tuple(), (-180, -85.06, 180, 85.06))
 
@@ -49,11 +49,17 @@ class TestPyramid(unittest.TestCase):
         self.assertEqual(tile.index.serial, 14)
         self.assertEqual(tile.index.tile_size, 256)
 
-        self.assertEqual(tile.index.envelope.make_tuple(),
-                         (-90.0, -66.51326044311185, 0.0, 0.0))
+        minx, miny, maxx, maxy = tile.index.envelope.make_tuple()
+        self.assertAlmostEqual(minx, -90.0)
+        self.assertAlmostEqual(miny, -66.51326044311185)
+        self.assertAlmostEqual(maxx, 0.0)
+        self.assertAlmostEqual(maxy, 0.0)
 
-        self.assertEqual(tile.index.buffered_envelope.make_tuple(),
-                         (-90.0, -66.51326044311185, 0.0, 0.0))
+        minx, miny, maxx, maxy = tile.index.buffered_envelope.make_tuple()
+        self.assertAlmostEqual(minx, -90.0)
+        self.assertAlmostEqual(miny, -66.51326044311185)
+        self.assertAlmostEqual(maxx, 0.0)
+        self.assertAlmostEqual(maxy, 0.0)
 
         self.assertEqual(tile.data, b'data')
         self.assertEqual(tile.data_hash, hashlib.sha256(b'data').hexdigest())
@@ -75,8 +81,11 @@ class TestPyramid(unittest.TestCase):
         self.assertEqual(tile.index.tile_size, 512)
         self.assertEqual(tile.index.buffered_tile_size, 576)
 
-        self.assertEqual(tile.index.buffered_envelope.make_tuple(),
-                         (-5.625, -5.615985819155327, 95.625, 68.65655498475735))
+        minx, miny, maxx, maxy = tile.index.buffered_envelope.make_tuple()
+        self.assertAlmostEqual(minx, -5.625)
+        self.assertAlmostEqual(miny, -5.615985819155327)
+        self.assertAlmostEqual(maxx, 95.625)
+        self.assertAlmostEqual(maxy, 68.65655498475735)
 
         self.assertEqual(tile.data, b'data2')
         self.assertEqual(tile.data_hash, hashlib.sha256(b'data2').hexdigest())
@@ -108,5 +117,5 @@ class TestPyramid(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
+    # import sys;sys.argv = ['', 'Test.testName']
     unittest.main()

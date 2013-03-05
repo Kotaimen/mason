@@ -209,8 +209,8 @@ class Pyramid(object):
         pmaxx, pmaxy = self.coords_world2pixel(z, wmaxx, wmaxy)
 
         # expand envelope with buffer size
-        buffpminx, buffpminy = pminx - buff_size, pminy - buff_size
-        buffpmaxx, buffpmaxy = pmaxx + buff_size, pmaxy + buff_size
+        buffpminx, buffpminy = pminx - buff_size, pminy + buff_size
+        buffpmaxx, buffpmaxy = pmaxx + buff_size, pmaxy - buff_size
 
         buffwminx, buffwminy = self.coords_pixel2world(z, buffpminx, buffpminy)
         buffwmaxx, buffwmaxy = self.coords_pixel2world(z, buffpmaxx, buffpmaxy)
