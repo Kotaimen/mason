@@ -127,6 +127,8 @@ class SpatialTransformer(object):
     """
 
     def __init__(self, src_srid, dst_srid):
+        self._src_srid = src_srid
+        self._dst_srid = dst_srid
         source = create_osr_spatial_ref(src_srid)
         target = create_osr_spatial_ref(dst_srid)
 
@@ -140,6 +142,9 @@ class SpatialTransformer(object):
     def reverse(self, x, y, z=0):
         x, y, z = self._reverse.TransformPoint(x, y, z)
         return x, y, z
+
+    def __deepcopy__(self, memo):
+        return SpatialTransformer(self._src_srid, self._dst_srid)
 
 
 #===============================================================================
