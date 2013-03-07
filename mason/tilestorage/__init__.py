@@ -23,6 +23,12 @@ try:
 except ImportError:
     MemcachedTileStorage = None
 
+try:
+    from .s3 import S3TileStorage
+except ImportError:
+    S3TileStorage = None
+
+
 from .mbtiles import MBTilesTileStorage, MBTilesTileStorageWithBackgroundWriter
 
 from .cascade import CascadeTileStorage as CascadeTileStorage
@@ -63,6 +69,7 @@ class TileStorageFactory(object):
                           mbtilesbw=MBTilesTileStorageWithBackgroundWriter,
                           cluster=ClusterTileStorage,
                           cascade=CascadeTileStorageWrapper,
+                          s3=S3TileStorage,
                           )
 
     def __call__(self, prototype, pyramid=None, metadata=None, **params):
