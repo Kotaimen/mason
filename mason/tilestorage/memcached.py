@@ -4,7 +4,23 @@ Created on May 3, 2012
 @author: Kotaimen
 '''
 
-import memcache
+
+try:
+    import pylibmc
+except ImportError:
+    import memcache
+    def client(servers, max_size):
+        return memcache.Client(servers,
+                               pickleProtocol= -1,
+                               server_max_value_length=max_size,
+                               )
+else:
+    def client(servers, max_size):
+        return pylibmc.Client(servers,
+                              binary=True,
+                              behaviors={'tcp_nodelay': True,
+                                         'ketama': True}
+                              )
 
 from .tilestorage import TileStorage, TileStorageError
 
@@ -49,12 +65,9 @@ class MemcachedTileStorage(TileStorage):
         TileStorage.__init__(self, pyramid, metadata)
 
         # Create memcached client, use highest pickle protocol
-        self._client = memcache.Client(servers,
-                                       pickleProtocol= -1,
-                                       server_max_value_length=max_size,
-                                       )
+        self._client = client(servers, max_size)
 
-        # Test connection here
+        # Test connection heres
         if not self._client.get_stats():
             raise MemcachedTileStorageError("Can't connect to memcached: %s" % servers)
 
