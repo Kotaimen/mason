@@ -91,7 +91,7 @@ class TileCluster(object):
         return tiles
 
 
-class ClusterTileStorage(FileSystemTileStorage):
+class FileClusterTileStorage(FileSystemTileStorage):
 
     """ Store adjacent tiles in a cluster """
 
@@ -216,14 +216,6 @@ class ClusterTileStorage(FileSystemTileStorage):
             if len(tiles) != self._stride * self._stride:
                 raise TileStorageError('Must put a fissioned MetaTile into cluster storage, '
                                        'set render stride equal to cluster stride.')
-
-                # XXX: is this too expensive?
-#                for tile in tiles[1:]:
-#                    idx = self._pyramid.create_metatile_index(tile.index.z,
-#                                                              tile.index.x,
-#                                                              tile.index.y,
-#                                                              self._stride)
-#                    assert metatile.index == idx
 
         FileSystemTileStorage.put(self, metatile)
 
