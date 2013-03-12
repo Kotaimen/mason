@@ -47,9 +47,7 @@ class Statics(ctypes.Structure):
 
 
 def envelope_spawner(queue, statistics, options):
-    options = verify_config(options)
-    render_option = dict(mode='readonly', reload=False)
-    renderer = create_render_tree_from_config(options.config, render_option)
+    renderer, options = verify_config(options)
     walker = PyramidWalker(renderer.pyramid,
                            levels=options.levels,
                            stride=options.stride,
@@ -65,9 +63,7 @@ def envelope_spawner(queue, statistics, options):
 
 
 def tilelist_spawner(queue, statistics, options):
-    options = verify_config(options)
-    render_option = dict(mode='readonly', reload=False)
-    renderer = create_render_tree_from_config(options.config, render_option)
+    renderer, options = verify_config(options)
     walker = TileListPyramidWalker(renderer.pyramid,
                                    options.csv,
                                    levels=options.levels,
@@ -88,11 +84,8 @@ def tilelist_spawner(queue, statistics, options):
 #===============================================================================
 
 def render_worker(queue, statistics, options):
-
-    options = verify_config(options)
+    renderer, options = verify_config(options)
     setup_logger(options.logfile)
-    render_option = dict(mode=options.mode, reload=False)
-    renderer = create_render_tree_from_config(options.config, render_option)
 
     while True:
         task = queue.get()
@@ -182,17 +175,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='''Single Node Tile Renderer''',
                                      usage='%(prog)s RENDERER_CONFIG [OPTIONS]',
                                      epilog=\
-'''Render tiles concurrently on a single node use process based
-producer->queue->consumer model. Note: if you render the entire globe
-down to level 20, there will be zillions of tiles, literally!
-(Distributed render system is left for readers as a home exercise ).
-
-
-Test a small area before start large rendering task, as it may take weeks
-to complete.  In most setup CPU is the bottleneck. However if you set
-very large metatile size (eg: 64) then each worker may take up to serveral
-GBs of memory.  GDAL toolchains and imagemagick generates tons of temporary
-files, so mount /tmp as ramdisk if that is a problem.
+'''Render tiles concurrently on a single node use multiprocessing.
+(Distributed render system is left for readers as a home exercise).
 '''
                                     )
 
@@ -295,16 +279,10 @@ def setup_logger(log_file, level=logging.DEBUG):
 
 def verify_config(options):
 
-    logger.info('===== Testing Configuration =====')
-
-    logger.info('Loading renderer configuration: "%s"', options.config)
-    logger.info('Saving log to: "%s"', os.path.abspath(options.logfile))
-
     if options.overwrite:
         options.mode = 'overwrite'
     else:
         options.mode = 'default'
-    logger.info('Rendering mode is "%s"', options.mode)
 
     render_option = dict(mode=options.mode, reload=False)
     renderer = create_render_tree_from_config(options.config, render_option)
@@ -326,21 +304,25 @@ def verify_config(options):
 
     assert all((l in renderer.pyramid.levels) for l in options.levels), \
         'Invalid render levels'
-    logger.info('Rendering level: %r', options.levels)
 
     if not options.envelope:
         options.envelope = renderer.pyramid.envelope.make_tuple()
     else:
         options.envelope = tuple(map(float, options.envelope.split(',')))
-    logger.info('Rendering envelope: %s', options.envelope)
 
+    return renderer, options
+
+
+def test_render(renderer, options):
+    logger.info('Loading renderer configuration: "%s"', options.config)
+    logger.info('Logging to: "%s"', os.path.abspath(options.logfile))
+    logger.info('Rendering mode is "%s"', options.mode)
+    logger.info('Rendering level: %r', options.levels)
+    logger.info('Rendering envelope: %s', options.envelope)
     logger.info('Rendering using meta tile stride=%d', options.stride)
     logger.info('Rendering using %d workers on %d cores', options.workers,
                 CPU_COUNT)
-
-    logger.info('===== Configuration is OK =====')
-
-    logger.info('===== Test Rendering %d Tiles =====' % options.test)
+    logger.info('Test render %d Tiles' % options.test)
 
     walker = PyramidWalker(renderer.pyramid,
                            levels=options.levels,
@@ -354,38 +336,41 @@ def verify_config(options):
         with Timer('%s rendered in %%(time)s' % index, logger.info, False):
             metatile = renderer.render(index)
 
-    renderer.close()
+    logger.info('Test complete')
 
-    logger.info('===== Done =====')
 
-    return options
-
+#===============================================================================
+# Entry
+#===============================================================================
 
 def main():
 
     options = parse_args()
-    setup_logger(options.logfile)
+
     print '=' * 70
     print 'Parallel Tile Renderer (v%s), please be very patient.' % VERSION
     print 'Press CTRL+C to break render process...'
     print '=' * 70
 
+    setup_logger(options.logfile)
+
     if options.test > 0:
-        print 'Turn off test to start rendering'
+        print 'Test configuration, turn off test to start rendering.'
+        renderer, options = verify_config(options)
         if options.profile:
             import cProfile as profile
             import pstats
             stats = create_temp_filename(suffix='.pstats')
-            profile.runctx('verify_config(options)', globals(), locals(), stats)
+            profile.runctx('test_render(renderer, options)', globals(), locals(), stats)
             p = pstats.Stats(stats)
             p.strip_dirs().sort_stats('time', 'calls').print_stats(0.25)
             p.print_callers(0.2)
             p.print_callees(0.05)
         else:
-            verify_config(options)
+            test_render(renderer, options)
         return
-    timer = Timer('Rendering finished in %(time)s')
 
+    timer = Timer('Rendering finished in %(time)s')
     statistics = multiprocessing.sharedctypes.Value(Statics, 0, 0, 0)
 
     try:
