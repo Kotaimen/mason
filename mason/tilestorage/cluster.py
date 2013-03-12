@@ -135,10 +135,10 @@ class FileClusterTileStorage(FileSystemTileStorage):
 
     @staticmethod
     def from_config(root):
-        config_file = os.path.join(root, ClusterTileStorage.CONFIG_FILENAME)
+        config_file = os.path.join(root, FileClusterTileStorage.CONFIG_FILENAME)
         with open(config_file, 'r') as fp:
             summary = json.load(fp)
-            return ClusterTileStorage.from_summary(summary, root)
+            return FileClusterTileStorage.from_summary(summary, root)
 
     @staticmethod
     def from_summary(summary, root):
@@ -146,8 +146,8 @@ class FileClusterTileStorage(FileSystemTileStorage):
         summary['root'] = root
         summary['pyramid'] = Pyramid.from_summary(summary['pyramid'])
         summary['metadata'] = Metadata.from_dict(summary['metadata'])
-        assert summary.pop('magic') == ClusterTileStorage.CONFIG_VERSION
-        return ClusterTileStorage(**summary)
+        assert summary.pop('magic') == FileClusterTileStorage.CONFIG_VERSION
+        return FileClusterTileStorage(**summary)
 
     # Aux ---------------------------------------------------------------------
 
