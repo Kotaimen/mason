@@ -4,6 +4,7 @@ Created on May 3, 2012
 @author: Kotaimen
 '''
 import os, os.path
+import sys
 import shutil
 import time
 import unittest
@@ -31,6 +32,8 @@ class TileStorageTestMixin(object):
         self.assertTrue(self.storage.get(tileindex2) is None)
 
         tile3 = self.storage.get(tileindex1)
+
+        self.assertTrue(tile3 is not None)
 
         self.assertEqual(tile1.index, tile3.index)
         self.assertEqual(tile1.data, tile3.data)
@@ -303,6 +306,25 @@ class TestCascadeTileStorage(TileStorageTestMixin, unittest.TestCase):
         self.storage.close()
 
 
+class TestS3TileStorage(TileStorageTestMixin, unittest.TestCase):
+
+    def setUp(self):
+        self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
+        self.metadata = Metadata.make_metadata(tag='S3StorageTest')
+        self.storage = factory('s3',
+                               self.pyramid,
+                               self.metadata,
+                               access_key=None,
+                               secret_key=None,
+                               bucket_name='tilestorage',
+                               simple=False,
+#                               tag_name='foobar'
+                               )
+
+    def tearDown(self):
+        self.storage.close()
+
+
 class TestMetaTileCache(unittest.TestCase):
 
     def setUp(self):
@@ -370,7 +392,7 @@ class TestTileCluster(unittest.TestCase):
                          set(t.data_hash for t in tiles_readback))
 
 
-class TestClusterStorage(TileStorageTestMixin, unittest.TestCase):
+class TestFileClusterStorage(TileStorageTestMixin, unittest.TestCase):
 
     def setUp(self):
         self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
@@ -410,6 +432,27 @@ class TestClusterStorage(TileStorageTestMixin, unittest.TestCase):
 
         tile2 = self.storage.get(tileindex2)
         self.assertEqual(tile2.data, b'tile2')
+
+
+class TestS3ClusterStorage(TestFileClusterStorage):
+
+    def setUp(self):
+        self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
+        self.metadata = Metadata.make_metadata(tag='S3ClusterStorageTest',
+                                               version='2.0')
+
+        self.storage = factory('s3cluster',
+                               self.pyramid,
+                               self.metadata,
+                               stride=2,
+                               servers=['localhost:11211'],
+                               timeout=0,
+                               access_key=None,
+                               secret_key=None,
+                               bucket_name='tilestorage',
+                               compress=True,
+                               )
+
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
