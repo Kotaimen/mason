@@ -15,6 +15,10 @@ class MissingSource(Exception):
     pass
 
 
+class UnknownParentNode(Exception):
+    pass
+
+
 #===============================================================================
 # Context
 #===============================================================================
@@ -97,21 +101,32 @@ class RenderTree(object):
 
     def __init__(self, root):
         self._graph = nx.DiGraph()
-        self._graph.add_node(root.name, node=root)
         self._root = root
-        self._resource_pool = dict()
+        self._graph.add_node(root.name, node=root)
 
-    def add_node(self, node):
-        pass
-
-    def add_edge(self, parent, child):
-        pass
+    def add_node(self, node, parent):
+        assert isinstance(node, RenderNode)
+        if parent not in self._graph.nodes():
+            raise UnknownParentNode(parent)
+        self._graph.add_node(node.name, node=node)
+        self._graph.add_edge(parent, node.name)
+        return node
 
     def render(self, context):
-        pass
+        root_name = self._root.name
+        for node_name in nx.dfs_postorder_nodes(self._graph, root_name):
+            node = self._graph.node[node_name]['node']
+            result = node.render(context)
+
+            if node_name == root_name:
+                return result
+        else:
+            assert False
 
     def close(self):
-        pass
+        for node_name in self._graph.nodes():
+            node = self._graph.node[node_name]['node']
+            node.close()
 
     @staticmethod
     def summary():
@@ -120,5 +135,3 @@ class RenderTree(object):
     @staticmethod
     def from_summary(summary):
         pass
-
-
