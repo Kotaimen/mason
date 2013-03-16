@@ -12,7 +12,8 @@ Created on May 17, 2012
 """
 
 import argparse
-import multiprocessing, multiprocessing.sharedctypes
+import multiprocessing
+import multiprocessing.sharedctypes
 import logging
 import os
 import ctypes
@@ -126,7 +127,7 @@ def monitor(options, statistics):
 
     # Start all workers
     for w in range(options.workers):
-        logging.info('Creating worker #%d' % w)
+        logging.info('Creating worker #%d', w)
         worker = multiprocessing.Process(name='worker#%d' % w,
                                          target=render_worker,
                                          args=(queue, statistics, options))
@@ -151,7 +152,7 @@ def monitor(options, statistics):
     for worker in workers:
         # Start the workers one by one to avoid starving
         time.sleep(0.1)
-        logging.info('Starting worker #%d' % w)
+        logging.info('Starting worker #%d', w)
         worker.start()
 
     # Join the queue
@@ -174,11 +175,9 @@ def parse_args():
 
     parser = argparse.ArgumentParser(description='''Single Node Tile Renderer''',
                                      usage='%(prog)s RENDERER_CONFIG [OPTIONS]',
-                                     epilog=\
-'''Render tiles concurrently on a single node use multiprocessing.
-(Distributed render system is left for readers as a home exercise).
-'''
-                                    )
+                                     epilog='''Render tiles concurrently on a
+single node use multiprocessing. (Distributed render system is left for
+readers as a home exercise).''')
 
     parser.add_argument('config',
                         default='renderer.cfg.py',
@@ -403,4 +402,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

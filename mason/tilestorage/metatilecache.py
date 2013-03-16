@@ -33,7 +33,7 @@ class MetaTileCache(FileSystemTileStorage):
 
     @staticmethod
     def from_config(root):
-        config_file = os.path.join(root, ClusterTileStorage.CONFIG_FILENAME)
+        config_file = os.path.join(root, FileSystemTileStorage.CONFIG_FILENAME)
         with open(config_file, 'r') as fp:
             summary = json.load(fp)
             return MetaTileCache.from_summary(summary, root)
