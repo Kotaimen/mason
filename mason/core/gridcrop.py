@@ -225,14 +225,14 @@ def grid_crop_imagemagick(image_data, stride, size, buffer, format):
 #===============================================================================
 
 def buffer_crop(image_data, size, buffer, format):
-    if HAS_PIL and format in [Format.JPG, Format.PNG]:
+    if False:  # HAS_PIL and format in [Format.JPG, Format.PNG]:
         return buffer_crop_pil(image_data, size, buffer, format)
     else:
         return buffer_crop_imagemagick(image_data, size, buffer, format)
 
 
 def grid_crop(image_data, stride, size, buffer, format):
-    if 0:  # HAS_PIL and format in [Format.JPG, Format.PNG]:
+    if False:  # HAS_PIL and format in [Format.JPG, Format.PNG]:
         return grid_crop_pil(image_data, stride, size, buffer, format)
     else:
         return grid_crop_imagemagick(image_data, stride, size, buffer, format)
