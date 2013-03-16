@@ -319,15 +319,23 @@ def test_render(renderer, options):
     logger.info('Rendering mode is "%s"', options.mode)
     logger.info('Rendering level: %r', options.levels)
     logger.info('Rendering envelope: %s', options.envelope)
+    logger.info('Rendering tile list: %s', options.csv)
     logger.info('Rendering using meta tile stride=%d', options.stride)
     logger.info('Rendering using %d workers on %d cores', options.workers,
                 CPU_COUNT)
     logger.info('Test render %d Tiles' % options.test)
 
-    walker = PyramidWalker(renderer.pyramid,
-                           levels=options.levels,
-                           stride=options.stride,
-                           envelope=options.envelope)
+    if options.csv is None:
+        walker = PyramidWalker(renderer.pyramid,
+                               levels=options.levels,
+                               stride=options.stride,
+                               envelope=options.envelope)
+    else:
+        walker = TileListPyramidWalker(renderer.pyramid,
+                                       options.csv,
+                                       levels=options.levels,
+                                       stride=options.stride,
+                                       envelope=options.envelope)
 
     for n, index in enumerate(walker.walk()):
         if n >= options.test:
