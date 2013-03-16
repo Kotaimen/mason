@@ -18,6 +18,7 @@ class _Format(collections.namedtuple('_Format',
     def make_dict(self):
         return self._asdict()
 
+
 KNOWN_FORMATS = {
     'ANY': _Format(name='ANY',
                    driver='',
@@ -66,14 +67,6 @@ KNOWN_FORMATS = {
                    mimetype='image/jpeg',
                    georeferenced='no',
                    ),
-#
-#    'JPEG': _Format(name='JPG',
-#                   driver='JPEG',
-#                   type='raster',
-#                   extension='.jpg',
-#                   mimetype='image/jpeg',
-#                   georeferenced='no',
-#                   ),
 
     'GTIFF': _Format(name='GTIFF',
                      driver='Geo TIFF',
@@ -141,7 +134,18 @@ class Format(object):
         else:
             raise KeyError(extension)
 
-# Inject formats into class so can use them like Enum
-for k, v in KNOWN_FORMATS.iteritems():
-    setattr(Format, k, v)
+    # Known Formats ------------------------------------------------------------
+
+    PNG = KNOWN_FORMATS['PNG']
+    ZIP = KNOWN_FORMATS['ZIP']
+    TIFF = KNOWN_FORMATS['TIFF']
+    PNG256 = KNOWN_FORMATS['PNG256']
+    JPG = KNOWN_FORMATS['JPG']
+    GTIFF = KNOWN_FORMATS['GTIFF']
+    DATA = KNOWN_FORMATS['DATA']
+    ANY = KNOWN_FORMATS['ANY']
+    GEOJSON = KNOWN_FORMATS['GEOJSON']
+
+# for k, v in KNOWN_FORMATS.iteritems():
+#    print "%(k)s = KNOWN_FORMATS['%(k)s']" % {'k':k}
 
