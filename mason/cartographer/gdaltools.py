@@ -336,3 +336,52 @@ class GDALWarper(GDALProcessor):
         command_list.extend(self._parameter_list)
         command_list.extend([source_file, target_file])
         _subprocess_call(command_list)
+
+
+def gdal_hillshading(src, dst, zfactor, scale, altitude, azimuth):
+    """
+    @param zfactor: vertical exaggeration
+    @param scale: ratio of vertical units to horizontal
+        Feet:Latlong use scale=370400
+        Meters:LatLong use scale=111120
+    @param azimuth: azimuth of the light.
+    @param altitude: altitude of the light, in degrees.
+   """
+    command_list = [
+        'gdaldem', 'hillshade',
+        src, dst,
+        # shading parameters
+        '-z', str(zfactor),
+        '-s', str(scale),
+        '-alt', str(altitude),
+        '-az', str(azimuth),
+
+        # compute pixel on edges
+        '-compute_edges',
+        # quite mode
+        '-q',
+    ]
+    _subprocess_call(command_list)
+
+
+def gdal_colorrelief(src, dst, color_context):
+    """
+    @param color_context: color description:
+            3500   white
+            2500   235:220:175
+            50%    190 185 135
+            700    240 250 150
+            0      50  180  50
+            nv     0   0   0
+    """
+    command_list = ['gdaldem', 'color-relief',
+                    # input and output
+                    src,
+                    color_context,
+                    dst,
+                    # add an alpha channel
+                    '-alpha',
+                    # quite mode
+                    '-q'
+                    ]
+    _subprocess_call(command_list)
