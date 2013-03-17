@@ -21,11 +21,20 @@ class DummyRenderNode(RenderNode):
     def __init__(self, name, source_names=[]):
         RenderNode.__init__(self, name, source_names)
 
-    def __render__(self, context, sources):
+    def render(self, context):
+        pool = context.source_pool
+
+        sources = list()
+        for name in self._source_names:
+            source = pool.get(name)
+            if not source:
+                raise MissingSource(name)
+            sources.append(source)
+
         result = self._name
-        temp = '&'.join(item for item in sources.values())
-        if temp:
-            result = ':'.join((self._name, temp))
+        if sources:
+            result = ':'.join((self._name, '&'.join(sources)))
+        pool.put(self._name, result)
         return result
 
 
@@ -78,3 +87,8 @@ class TestRenderTree(unittest.TestCase):
         root = DummyRenderNode('root', ['dummy1'])
         tree = RenderTree(root)
         tree.close()
+
+
+if __name__ == "__main__":
+    # import sys;sys.argv = ['', 'Test.testName']
+    unittest.main()

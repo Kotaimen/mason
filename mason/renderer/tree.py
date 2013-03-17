@@ -60,7 +60,7 @@ class RenderNode(object):
     @param sources: list of name of the dependent render nodes
     """
 
-    def __init__(self, name, source_names):
+    def __init__(self, name, source_names=list()):
         self._name = name
         self._source_names = source_names
 
@@ -71,20 +71,18 @@ class RenderNode(object):
 
     def render(self, context):
         """ render process """
-        pool = context.source_pool
-        sources = dict()
-        for name in self._source_names:
-            source = pool.get(name)
-            if not source:
-                raise MissingSource('%s can not find source %s' % \
-                                    (self._name, name))
-            sources[name] = source
-
-        result = self.__render__(context, sources)
-        pool.put(self._name, result)
-        return result
-
-    def __render__(self, context, sources):
+#        pool = context.source_pool
+#        sources = dict()
+#        for name in self._source_names:
+#            source = pool.get(name)
+#            if not source:
+#                raise MissingSource('%s can not find source %s' % \
+#                                    (self._name, name))
+#            sources[name] = source
+#
+#        result = self.__render__(context, sources)
+#        pool.put(self._name, result)
+#        return result
         raise NotImplementedError
 
     def close(self):

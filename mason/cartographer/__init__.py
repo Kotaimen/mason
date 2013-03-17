@@ -4,6 +4,8 @@ from .gdaltools import (GDALHillShading,
                         GDALRasterToPNG,
                         GDALFixMetaData,
                         GDALWarper,
+                        gdal_hillshading,
+                        gdal_colorrelief
                         )
 
 
