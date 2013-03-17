@@ -30,3 +30,28 @@ def create_temp_filename(suffix='', prefix='tmp', dir=None):
             return filename
 
     raise IOError(errno.EEXIST, "No usable temporary filename found")
+
+
+class TempFile(object):
+
+    def __init__(self, prefix='', suffix=str(os.getpid())):
+        """ create a temporary raster file """
+        self._filename = create_temp_filename(suffix, prefix)
+
+    @property
+    def filename(self):
+        """ return temporary filename """
+        return self._filename
+
+    def read(self):
+        """ load data from file """
+        with open(self._filename, 'rb') as fp:
+            return fp.read()
+
+    def write(self, data):
+        """ save data to file"""
+        with open(self._filename, 'wb') as fp:
+            fp.write(data)
+
+    def close(self):
+        os.remove(self._filename)
