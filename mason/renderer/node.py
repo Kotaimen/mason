@@ -6,9 +6,11 @@ Created on Mar 17, 2013
 @author: ray
 '''
 import time
-from ..cartographer import gdal_hillshading, gdal_colorrelief
+from ..cartographer import Mapnik, RasterDataset
+from ..composer import ImageMagickComposer
+from ..tilestorage import attach_tilestorage
 from ..core import MetaTile, Format
-from ..utils import TempFile
+from ..utils import TempFile, gdal_hillshading, gdal_colorrelief
 from .tree import RenderNode, RenderContext, MissingSource
 
 
@@ -166,8 +168,9 @@ class ColorReliefRenderNode(GDALRenderNode):
 class StorageRenderNode(MetaTileRenderNode):
 
     def __init__(self, name, storage_cfg):
-        MetaTileRenderNode.__init__(self, name)
-        self._storage = None
+        MetaTileRenderNode.__init__(self, name, source_names=list())
+        self._storage = attach_tilestorage(**storage_cfg)
+        self._default = None
 
     def __render__(self, metatile_index, metatile_sources):
         assert len(metatile_sources) == 0
@@ -188,24 +191,74 @@ class MapnikRenderNode(MetaTileRenderNode):
 
     def __init__(self, name, mapnik_cfg):
         MetaTileRenderNode.__init__(self, name, source_names=list())
+        self._mapniker = Mapnik(**mapnik_cfg)
 
     def __render__(self, metatile_index, metatile_sources):
-        pass
+        assert len(metatile_sources) == 0
+
+        envelope = metatile_index.buffered_envelope.make_tuple()
+        width = height = metatile_index.buffered_tile_size
+        size = (width, height)
+        data_stream = self._mapniker.render(envelope, size)
+        try:
+            data_format = Format.from_name(self._mapniker.output_format)
+            mtime = time.time()
+            metatile = MetaTile.from_tile_index(metatile_index,
+                                                data_stream.getvalue(),
+                                                data_format,
+                                                mtime)
+        finally:
+            data_stream.close()
+
+        return metatile
 
 
 class RasterRenderNode(MetaTileRenderNode):
 
     def __init__(self, name, dataset_cfg):
         MetaTileRenderNode.__init__(self, name, source_names=list())
+        self._dataset = RasterDataset(**dataset_cfg)
 
     def __render__(self, metatile_index, metatile_sources):
-        pass
+        assert len(metatile_sources) == 0
+
+        envelope = metatile_index.buffered_envelope.make_tuple()
+        width = height = metatile_index.buffered_tile_size
+        size = (width, height)
+        data_stream = self._dataset.render(envelope, size)
+        try:
+            data_format = Format.from_name(self._dataset.output_format)
+            mtime = time.time()
+            metatile = MetaTile.from_tile_index(metatile_index,
+                                                data_stream.getvalue(),
+                                                data_format,
+                                                mtime)
+        finally:
+            data_stream.close()
+
+        return metatile
 
 
 class ImageMagicRenderNode(MetaTileRenderNode):
 
-    def __init__(self, name, source_names, command):
+    def __init__(self, name, source_names, format, command):
         MetaTileRenderNode.__init__(self, name, source_names)
+        self._composer = ImageMagickComposer(format, command)
 
     def __render__(self, metatile_index, metatile_sources):
-        pass
+        assert len(metatile_sources) >= 1
+
+        image_list = list((m.data, m.format.extension) for m in metatile_sources)
+
+        data_stream = self._composer.compose(image_list)
+        try:
+            data_format = Format.from_name(self._composer.output_format)
+            mtime = time.time()
+
+            metatile = MetaTile.from_tile_index(metatile_index,
+                                                data_stream.getvalue(),
+                                                data_format,
+                                                mtime)
+        finally:
+            data_stream.close()
+        return metatile

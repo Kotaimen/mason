@@ -9,7 +9,6 @@ import traceback
 import networkx as nx
 from .core import Pyramid, Metadata, Format, metatile_fission
 from .tilestorage import create_tilestorage
-from .renderer import RendererFactory, CachedRenderer
 
 
 class RenderConfigError(Exception):
