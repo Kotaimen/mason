@@ -324,7 +324,7 @@ def test_render(renderer, options):
                 CPU_COUNT)
     logger.info('Test render %d Tiles' % options.test)
 
-    if options.csv is None:
+    if not options.csv:
         walker = PyramidWalker(renderer.pyramid,
                                levels=options.levels,
                                stride=options.stride,

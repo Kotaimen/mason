@@ -13,8 +13,6 @@ import subprocess
 from .format import Format
 from .tile import Tile, MetaTile
 
-
-
 #===============================================================================
 # Check what engine we have...
 #===============================================================================
@@ -104,14 +102,11 @@ def buffer_crop_pil(image_data, size, buffer, format):
 
 def grid_crop_pil(image_data, stride, size, buffer, format):
     big_image = Image.open(_BytesIO(image_data))
-
     width, height = size, size
     rows, columns = stride, stride
-
-    grid_width = grid_height = (size - buffer * 2) // stride
+    grid_width = grid_height = size // stride
 
     cropped = dict()
-
     for row in range(0, rows):
         for column in range(0, columns):
             left = row * grid_width + buffer
@@ -120,7 +115,6 @@ def grid_crop_pil(image_data, stride, size, buffer, format):
             bottom = top + grid_height
 
             crop_box = (left, top, right, bottom)
-            print crop_box
             grid_image = big_image.crop(crop_box)
             buf = _BytesIO()
 
@@ -179,11 +173,7 @@ def convert(input_data, command, input_format, output_format=None):
 
 
 def buffer_crop_imagemagick(image_data, size, buffer, format):
-    if buffer == 0:
-        return image_data
-
     command = ['-shave', '%dx%d' % (buffer, buffer), ]
-
     return convert(image_data, command, format)
 
 
@@ -225,14 +215,16 @@ def grid_crop_imagemagick(image_data, stride, size, buffer, format):
 #===============================================================================
 
 def buffer_crop(image_data, size, buffer, format):
-    if False:  # HAS_PIL and format in [Format.JPG, Format.PNG]:
+    if buffer == 0:
+        return image_data
+    if HAS_PIL and format in [Format.JPG, Format.PNG]:
         return buffer_crop_pil(image_data, size, buffer, format)
     else:
         return buffer_crop_imagemagick(image_data, size, buffer, format)
 
 
 def grid_crop(image_data, stride, size, buffer, format):
-    if False:  # HAS_PIL and format in [Format.JPG, Format.PNG]:
+    if HAS_PIL and format in [Format.JPG, Format.PNG]:
         return grid_crop_pil(image_data, stride, size, buffer, format)
     else:
         return grid_crop_imagemagick(image_data, stride, size, buffer, format)
