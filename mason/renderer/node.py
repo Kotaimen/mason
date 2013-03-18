@@ -167,7 +167,7 @@ class ColorReliefRenderNode(GDALRenderNode):
 
 class StorageRenderNode(MetaTileRenderNode):
 
-    def __init__(self, name, storage_cfg):
+    def __init__(self, name, source_names, storage_cfg):
         MetaTileRenderNode.__init__(self, name, source_names=list())
         self._storage = attach_tilestorage(**storage_cfg)
         self._default = None
@@ -189,7 +189,7 @@ class StorageRenderNode(MetaTileRenderNode):
 
 class MapnikRenderNode(MetaTileRenderNode):
 
-    def __init__(self, name, mapnik_cfg):
+    def __init__(self, name, source_names, mapnik_cfg):
         MetaTileRenderNode.__init__(self, name, source_names=list())
         self._mapniker = Mapnik(**mapnik_cfg)
 
@@ -215,7 +215,7 @@ class MapnikRenderNode(MetaTileRenderNode):
 
 class RasterRenderNode(MetaTileRenderNode):
 
-    def __init__(self, name, dataset_cfg):
+    def __init__(self, name, source_names, dataset_cfg):
         MetaTileRenderNode.__init__(self, name, source_names=list())
         self._dataset = RasterDataset(**dataset_cfg)
 
