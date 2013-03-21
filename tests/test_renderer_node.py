@@ -11,11 +11,16 @@ from mason.tilestorage import create_tilestorage
 from mason.renderer.node import *
 
 
-def get_test_context(z, x, y, sride):
+def create_metatile_index(z, x, y, sride):
     pyramid = Pyramid(levels=list(range(0, z + 1)))
     metatile_index = pyramid.create_metatile_index(z, x, y, sride)
-    context = MetaTileContext(metatile_index)
-    return context
+    return metatile_index
+
+
+def create_metatile(metatile_index):
+    with open('./input/hailey.tif', 'rb') as fp:
+            data = fp.read()
+    return MetaTile.from_tile_index(metatile_index, data)
 
 
 def write(filename, data):
@@ -35,40 +40,33 @@ def remove(filename):
 
 class HillShadingRenderNodeTest(unittest.TestCase):
 
-    def setUp(self):
-        self._context = get_test_context(15, 5926, 11962, 2)
-
-        # create a test metatile
-        with open('./input/hailey.tif', 'rb') as fp:
-            data = fp.read()
-        metatile_index = self._context.metatile_index
-        metatile = MetaTile.from_tile_index(metatile_index, data)
-
-        # put metatile into the source pool
-        key = 'elev' + repr(metatile_index)
-        self._context.source_pool.put(key, metatile)
-
-    def tearDown(self):
-        pass
-
     def testRender(self):
-        render_node = HillShadingRenderNode('dummy', source_names=['elev'],
+        metatile_index = create_metatile_index(15, 5926, 11962, 2)
+        metatile = create_metatile(metatile_index)
+
+        render_node = HillShadingRenderNode('dummy',
                                             zfactor=1,
                                             scale=111120,
                                             altitude=45,
                                             azimuth=315)
-        metatile = render_node.render(self._context)
+        metatile = render_node.__render_metatile__(metatile_index,
+                                                   dict(test=metatile))
+
         self.assertIsNotNone(metatile.data)
         remove('./output/hailey_hillshading1.tif')
         write('./output/hailey_hillshading1.tif', metatile.data)
 
     def testLambda(self):
-        render_node = HillShadingRenderNode('dummy', source_names=['elev'],
+        metatile_index = create_metatile_index(15, 5926, 11962, 2)
+        metatile = create_metatile(metatile_index)
+
+        render_node = HillShadingRenderNode('dummy',
                                             zfactor=lambda z, x, y: 10,
                                             scale=lambda z, x, y: 111120,
                                             altitude=lambda z, x, y: 45,
                                             azimuth=lambda z, x, y: 315)
-        metatile = render_node.render(self._context)
+        metatile = render_node.__render_metatile__(metatile_index,
+                                                   dict(test=metatile))
         self.assertIsNotNone(metatile.data)
         remove('./output/hailey_hillshading2.tif')
         write('./output/hailey_hillshading2.tif', metatile.data)
@@ -76,29 +74,14 @@ class HillShadingRenderNodeTest(unittest.TestCase):
 
 class ColorReliefRenderNodeTest(unittest.TestCase):
 
-    def setUp(self):
-        self._context = get_test_context(15, 5926, 11962, 2)
-
-        # create a test metatile
-        with open('./input/hailey.tif', 'rb') as fp:
-            data = fp.read()
-        metatile_index = self._context.metatile_index
-        metatile = MetaTile.from_tile_index(metatile_index, data)
-
-        # put metatile into the source pool
-        key = 'elev' + repr(metatile_index)
-        self._context.source_pool.put(key, metatile)
-
-        self._color_context = './input/hypsometric-map-world.txt'
-
-    def tearDown(self):
-        pass
-
     def testRender(self):
-        render_node = ColorReliefRenderNode('dummy',
-                                            ['elev'],
-                                            self._color_context)
-        metatile = render_node.render(self._context)
+        metatile_index = create_metatile_index(15, 5926, 11962, 2)
+        metatile = create_metatile(metatile_index)
+        color_context = './input/hypsometric-map-world.txt'
+
+        render_node = ColorReliefRenderNode('dummy', color_context)
+        metatile = render_node.__render_metatile__(metatile_index,
+                                                   dict(test=metatile))
         self.assertIsNotNone(metatile.data)
         remove('./output/hailey_colorrelief.tif')
         write('./output/hailey_colorrelief.tif', metatile.data)
@@ -124,10 +107,11 @@ class StorageRenderNodeTest(unittest.TestCase):
                                compress=False,
                                simple=False,)
 
-        self._context = get_test_context(15, 5928, 11962, 2)
-        metatile_index = self._context.metatile_index
+        metatile_index = create_metatile_index(15, 5928, 11962, 2)
         metatile = MetaTile.from_tile_index(metatile_index, b'test')
         self._storage.put(metatile)
+
+        self._context = MetaTileContext(metatile_index)
 
     def tearDown(self):
         self._storage.close()
@@ -135,6 +119,7 @@ class StorageRenderNodeTest(unittest.TestCase):
     def testRender(self):
         storage_cfg = dict(prototype='filesystem', root=self._output_dir)
         render_node = StorageRenderNode('storage', storage_cfg)
+
         metatile = render_node.render(self._context)
         self.assertEqual(metatile.data, b'test')
 
@@ -142,7 +127,8 @@ class StorageRenderNodeTest(unittest.TestCase):
 class MapnikRenderNodeTest(unittest.TestCase):
 
     def setUp(self):
-        self._context = get_test_context(3, 2, 2, 2)
+        metatile_index = create_metatile_index(3, 2, 2, 2)
+        self._context = MetaTileContext(metatile_index)
 
     def tearDown(self):
         pass
@@ -159,7 +145,8 @@ class MapnikRenderNodeTest(unittest.TestCase):
 class RasterRenderNodeTest(unittest.TestCase):
 
     def setUp(self):
-        self._context = get_test_context(15, 5928, 11962, 2)
+        metatile_index = create_metatile_index(15, 5928, 11962, 2)
+        self._context = MetaTileContext(metatile_index)
 
     def tearDown(self):
         pass

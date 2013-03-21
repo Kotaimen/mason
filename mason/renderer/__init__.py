@@ -1,2 +1,2 @@
 # -*- coding:utf-8 -*-
-from .factory import RendererFactory
+from .factory import RenderNodeFactory

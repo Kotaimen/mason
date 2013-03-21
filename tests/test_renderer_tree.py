@@ -6,8 +6,7 @@ Created on Mar 16, 2013
 @author: ray
 '''
 import unittest
-from mason.renderer.tree import RenderContext, RenderNode, RenderTree
-from mason.renderer.tree import UnknownParentNode, MissingSource
+from mason.renderer.tree import RenderContext, RenderNode
 
 
 class DummyContext(RenderContext):
@@ -18,23 +17,10 @@ class DummyContext(RenderContext):
 
 class DummyRenderNode(RenderNode):
 
-    def __init__(self, name, source_names=[]):
-        RenderNode.__init__(self, name, source_names)
-
-    def render(self, context):
-        pool = context.source_pool
-
-        sources = list()
-        for name in self._source_names:
-            source = pool.get(name)
-            if not source:
-                raise MissingSource(name)
-            sources.append(source)
-
+    def __render__(self, context, sources):
         result = self._name
         if sources:
-            result = ':'.join((self._name, '&'.join(sources)))
-        pool.put(self._name, result)
+            result = ':'.join((self._name, '&'.join(sources.values())))
         return result
 
 
@@ -44,49 +30,31 @@ class TestRenderNode(unittest.TestCase):
         node = DummyRenderNode('dummy')
         self.assertEqual(node.name, 'dummy')
 
-    def testRender(self):
+    def testAddNode(self):
         node = DummyRenderNode('dummy')
-        context = DummyContext()
-        self.assertEqual(node.render(context), 'dummy')
-        self.assertEqual(context.source_pool.get('dummy'), 'dummy')
+        child = DummyRenderNode('child')
+        node.add_child(child)
 
-        node = DummyRenderNode('dummy', source_names=['wrong'])
         context = DummyContext()
-        self.assertRaises(MissingSource, node.render, context)
+        self.assertEqual(node.render(context), 'dummy:child')
+
+    def testRender(self):
+        root = DummyRenderNode('root')
+        child1 = DummyRenderNode('child1')
+        child2 = DummyRenderNode('child2')
+        child3 = DummyRenderNode('child3')
+
+        root.add_child(child1)
+        root.add_child(child2)
+
+        child1.add_child(child3)
+
+        context = DummyContext()
+        self.assertEqual(root.render(context), 'root:child1:child3&child2')
 
     def testRepr(self):
         node = DummyRenderNode('dummy')
         self.assertEqual(repr(node), "DummyRenderNode('dummy')")
-
-
-class TestRenderTree(unittest.TestCase):
-
-    def testAddNode(self):
-        root = DummyRenderNode('root')
-        tree = RenderTree(root)
-
-        node = DummyRenderNode('dummy')
-        self.assertRaises(UnknownParentNode, tree.add_node, node, 'wrong')
-
-        self.assertEqual(tree.add_node(node, 'root'), node)
-
-    def testRender(self):
-        root = DummyRenderNode('root', ['dummy1'])
-        tree = RenderTree(root)
-
-        node1 = DummyRenderNode('dummy1', ['dummy2'])
-        tree.add_node(node1, 'root')
-
-        node2 = DummyRenderNode('dummy2')
-        tree.add_node(node2, 'dummy1')
-
-        context = DummyContext()
-        self.assertEqual(tree.render(context), 'root:dummy1:dummy2')
-
-    def testClose(self):
-        root = DummyRenderNode('root', ['dummy1'])
-        tree = RenderTree(root)
-        tree.close()
 
 
 if __name__ == "__main__":
