@@ -28,8 +28,8 @@ class SourceNotFound(Exception):
 class MetaTileContext(RenderContext):
 
     def __init__(self, metatile_index, mode=None):
-        mode = mode or 'dry-run'
-        assert mode in ('hybrid', 'readonly', 'overwrite', 'dry-run')
+        mode = mode or 'dryrun'
+        assert mode in ('hybrid', 'readonly', 'overwrite', 'dryrun')
         self._metatile_index = metatile_index
         self._mode = mode
 
@@ -288,9 +288,9 @@ class RasterRenderNode(MetaTileRenderNode):
 #===============================================================================
 class ImageMagicRenderNode(MetaTileRenderNode):
 
-    def __init__(self, name, fmt, command, cache=None):
+    def __init__(self, name, format, command, cache=None):
         MetaTileRenderNode.__init__(self, name, cache)
-        self._composer = ImageMagickComposer(fmt, command)
+        self._composer = ImageMagickComposer(format, command)
 
     def __render_metatile__(self, metatile_index, metatile_sources):
         assert len(metatile_sources) >= 1

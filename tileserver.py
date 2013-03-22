@@ -126,8 +126,8 @@ def parse_args(args=None):
                         )
 
     # Convert "mode" argument to the one understands by Mason
-    mode2mode = dict(hybrid='default',
-                     h='default',
+    mode2mode = dict(hybrid='hybrid',
+                     h='hybrid',
                      readonly='readonly',
                      r='readonly',
                      overwrite='overwrite',

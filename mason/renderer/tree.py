@@ -6,6 +6,7 @@ Created on March 14, 2013
 @author: ray
 '''
 
+import collections
 
 #===============================================================================
 # Context
@@ -26,7 +27,7 @@ class RenderNode(object):
 
     def __init__(self, name):
         self._name = name
-        self._children = dict()
+        self._children = collections.OrderedDict()
 
     @property
     def name(self):
@@ -39,7 +40,7 @@ class RenderNode(object):
 
     def render(self, context):
         """ render process """
-        sources = dict()
+        sources = collections.OrderedDict()
         for name, child in self._children.items():
             sources[name] = child.render(context)
 

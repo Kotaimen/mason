@@ -111,7 +111,7 @@ class TestMasonRenderer(unittest.TestCase):
 
     def testDryRunMode(self):
         config = MasonConfig('./input/test_config.cfg.py')
-        renderer = MasonRenderer(config, 'dry-run')
+        renderer = MasonRenderer(config, 'dryrun')
 
         pyramid = renderer.pyramid
         tile_index = pyramid.create_tile_index(5, 2, 2, False)

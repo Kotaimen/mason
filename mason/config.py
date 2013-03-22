@@ -4,8 +4,8 @@ Created on Oct 11, 2012
 
 @author: ray
 '''
-import collections
-from .core import Pyramid, Metadata, metatile_fission, buffer_crop, Tile
+
+from .core import Pyramid, Metadata, metatile_fission, buffer_crop, Tile, Format
 from .renderer import create_render_node, MetaTileContext
 from .tilestorage import create_tilestorage
 
@@ -68,7 +68,7 @@ class MasonRenderer(object):
 
     def __init__(self, mason_config, mode=None):
         self._mason_cfg = mason_config
-        self._mode = mode or 'dry-run'
+        self._mode = mode or 'dryrun' # default is 'dryrun'
 
         root_cfg = mason_config.get_node_cfg('ROOT')
         if not root_cfg:
@@ -77,6 +77,9 @@ class MasonRenderer(object):
         pyramid_cfg = root_cfg.get('pyramid')
         if not pyramid_cfg:
             raise PyramidConfigNotFound
+        else:
+            # Replace format string with real Format object
+            pyramid_cfg['format'] = Format.from_name(pyramid_cfg['format'] )
 
         metadata_cfg = root_cfg.get('metadata')
         if not metadata_cfg:
@@ -87,7 +90,7 @@ class MasonRenderer(object):
             raise RendererConfigNotFound
 
         storage_cfg = root_cfg.get('storage')
-
+        
         self._pyramid = self._create_pyramid(pyramid_cfg)
         self._metadata = self._create_metadata(metadata_cfg)
 

@@ -341,7 +341,7 @@ def test_render(renderer, options):
             break
         logger.info('Rendering %s...', index)
         with Timer('%s rendered in %%(time)s' % index, logger.info, False):
-            metatile = renderer.render(index)
+            metatile = renderer.render_metatile(index)
 
     logger.info('Test complete')
 
