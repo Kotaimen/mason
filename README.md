@@ -5,33 +5,33 @@ Another map tile library reinvented.
 
 Mason is a tile map library implemented in python, which helps designing map themes 
 and renendering tiles.
-Check samples at Mapbox: http://tiles.mapbox.com/kotaimen.
+
+Check my related mapping projects for demos.
 
 Similar wheels:
 *  [TileCache](http://tilecache.org)
 *  [TileStatche](http://tilestache.org)
-
-Version 0.9.2
 
 Features
 --------
 
 Supports:
 * Render, storage, manage map tiles.
-* Mapnik2.1 as map renderer, PostGIS2/GDAL as raster/geometry data source.
+* Mapnik 2.1 as map renderer, PostGIS2/GDAL as raster/geometry data source.
 * ImageMagick as image post processing engine.
 * Simple render tools.
 * Built in tile server
 * Explicit buffering to overcoming postgis/mapnik2 buffer artifiacts 
 
 Renderers:
-* Topographic map via Mapnik2
-* Shaded relief map via PostGIS2, GDAL1.9
+* Topographic map via Mapnik
+* Shaded relief map via PostGIS, GDAL
 * Post processing/composer using ImageMagick
 
 Storage:
 * File system
-* MBtiles (sqlite3)
+* MBtiles
+* Tile Cluster
 
 Suggested Tools
 ---------------

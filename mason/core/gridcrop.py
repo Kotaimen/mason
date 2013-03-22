@@ -12,9 +12,19 @@ import subprocess
 
 from .format import Format
 from .tile import Tile, MetaTile
+
 #===============================================================================
-# Imagemagick version check
+# Check what engine we have...
 #===============================================================================
+
+try:
+    import Image
+    if Image.VERSION != '1.1.7':
+        raise ImportError('Excepted PIL 1.1.7')
+except ImportError:
+    HAS_PIL = False
+else:
+    HAS_PIL = True
 
 
 def check_imagemagick():
@@ -33,10 +43,89 @@ def check_imagemagick():
         # Not sure lowest supported version, ubuntu 12.04 comes with 6.6.9
         raise ImportError('Requires ImageMagick 6.6.9 or higher')
 
+try:
+    check_imagemagick()
+except Exception:
+    HAS_IMAGEMAGICK = False
+    raise
+else:
+    HAS_IMAGEMAGICK = True
 
-# XXX: Check at first usage... 
-check_imagemagick()
+if not (HAS_PIL or HAS_IMAGEMAGICK):
+    raise ImportError('Requires ImageMagick or PIL but got nothing')
 
+#===============================================================================
+# PIL Engine, only handles PNG and JPEG files
+#===============================================================================
+
+
+class _BytesIO(io.BytesIO):
+    # HACK: PIL expects file like object throw "AttributeError" when its
+    #       not really a file.  This works for StringIO but not BytesIO:
+    #
+    #           >>> buf=StringIO.StringIO()
+    #           >>> buf.fileno()
+    #           Traceback (most recent call last):
+    #           File "<stdin>", line 1, in <module>
+    #           AttributeError: StringIO instance has no attribute 'fileno'
+    #
+    #           >>> buf=io.BytesIO()
+    #           >>> buf.fileno()
+    #           Traceback (most recent call last):
+    #           File "<stdin>", line 1, in <module>
+    #           io.UnsupportedOperation: fileno
+    #
+    #      So we restore the good-old behavior here, and hope someone patch
+    #      this in the future... (strangely this only happens when you try
+    #      save jpeg images to BytesIO)
+    def fileno(self):
+        raise AttributeError
+
+
+def buffer_crop_pil(image_data, size, buffer, format):
+    im = Image.open(_BytesIO(image_data))
+    width, height = size, size
+    crop_box = [buffer, buffer, size - buffer, size - buffer]
+    left, top, right, bottom = crop_box
+    assert (left < width and left < right and left > 0)
+    assert (top < height and top < bottom and top > 0)
+    rgn = im.crop(crop_box)
+    buf = _BytesIO()
+    if format == Format.JPG:
+        rgn.save(buf, 'jpeg', quality=90, optimize=True)
+    elif format == Format.PNG:
+        rgn.save(buf, 'png', optimize=True)
+    else:
+        raise 'Unsupported format %r' % format
+    return buf.getvalue()
+
+
+def grid_crop_pil(image_data, stride, size, buffer, format):
+    big_image = Image.open(_BytesIO(image_data))
+    width, height = size, size
+    rows, columns = stride, stride
+    grid_width = grid_height = size // stride
+
+    cropped = dict()
+    for row in range(0, rows):
+        for column in range(0, columns):
+            left = row * grid_width + buffer
+            top = column * grid_height + buffer
+            right = left + grid_width
+            bottom = top + grid_height
+
+            crop_box = (left, top, right, bottom)
+            grid_image = big_image.crop(crop_box)
+            buf = _BytesIO()
+
+            if format == Format.JPG:
+                grid_image.save(buf, 'jpeg', quality=90, optimize=True)
+            elif format == Format.PNG:
+                grid_image.save(buf, 'png', optimize=True)
+            else:
+                raise 'Unsupported format %r' % format
+            cropped[(row, column)] = buf.getvalue()
+    return cropped
 
 #===============================================================================
 # ImageMagick commands
@@ -83,16 +172,12 @@ def convert(input_data, command, input_format, output_format=None):
     return output_data
 
 
-def buffer_crop(image_data, size, buffer, format):
-    if buffer == 0:
-        return image_data
-
+def buffer_crop_imagemagick(image_data, size, buffer, format):
     command = ['-shave', '%dx%d' % (buffer, buffer), ]
-
     return convert(image_data, command, format)
 
 
-def grid_crop(image_data, stride, size, buffer, format):
+def grid_crop_imagemagick(image_data, stride, size, buffer, format):
 
     width = height = size
     left, top, right, bottom = buffer, buffer, width - buffer, height - buffer
@@ -126,13 +211,29 @@ def grid_crop(image_data, stride, size, buffer, format):
 
 
 #===============================================================================
-# Cropper
+# Select a engine
 #===============================================================================
+
+def buffer_crop(image_data, size, buffer, format):
+    if buffer == 0:
+        return image_data
+    if HAS_PIL and format in [Format.JPG, Format.PNG]:
+        return buffer_crop_pil(image_data, size, buffer, format)
+    else:
+        return buffer_crop_imagemagick(image_data, size, buffer, format)
+
+
+def grid_crop(image_data, stride, size, buffer, format):
+    if HAS_PIL and format in [Format.JPG, Format.PNG]:
+        return grid_crop_pil(image_data, stride, size, buffer, format)
+    else:
+        return grid_crop_imagemagick(image_data, stride, size, buffer, format)
+
 
 def metatile_fission(metatile):
 
     format = metatile.format
-    # Only supports clip/crop JPG/PNG, since crop GeoTIFF/TIFF may  
+    # Only supports clip/crop JPG/PNG, since crop GeoTIFF/TIFF may
     # lose color depth and geo reference information
     assert format in [Format.PNG, Format.JPG, Format.TIFF]
     stride = metatile.index.stride

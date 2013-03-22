@@ -10,8 +10,7 @@ import sqlalchemy
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 from .cartographer import Cartographer
-from .gdaltools import GDALRaster, GDALFixMetaData, GDALWarper
-
+from .gdaltools import GDALRaster, GDALFixMetaData
 
 RASTER_DATA_QUERY = '''
 SELECT

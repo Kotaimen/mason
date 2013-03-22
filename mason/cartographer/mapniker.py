@@ -7,7 +7,6 @@ Created on May 2, 2012
 import os
 import io
 import sys
-import threading
 
 from .cartographer import Cartographer
 
@@ -50,7 +49,7 @@ class Mapnik(Cartographer):
         Pathname of the mapnik xml configuration file
 
     projection
-        Map projection specfied in 'EPSG:XXXX', default is EPSG:3857
+        Map projection specified in 'EPSG:XXXX', default is EPSG:3857
 
     scale_factor
         Used to scale font/symbol/thickness, useful when scaling
@@ -99,7 +98,7 @@ class Mapnik(Cartographer):
                  scale_factor=1.0,
                  buffer_size=0,
                  image_type='png',
-                 image_parameters={},
+                 image_parameters=None,
                  force_reload=False,
                  ):
         if image_type not in ['png', 'png256', 'jpg']:
@@ -117,6 +116,8 @@ class Mapnik(Cartographer):
         Cartographer.__init__(self, image_type.upper())
 
         # convert image_type and parameter to mapnik format string
+        if image_parameters is None:
+            image_parameters = dict()
         self._image_type = self._init_image_type(image_type, image_parameters)
         self._proj = None
         self._force_reload = force_reload

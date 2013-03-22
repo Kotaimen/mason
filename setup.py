@@ -18,11 +18,11 @@ packages = ['mason',
 
 data_files = ['static/polymaps.css', 'static/polymaps.js']
 
-scripts = ['tileserver.py', 'tilerenderer.py', 'transtorage.py']
+scripts = ['tileserver.py', 'tilerenderer.py']
 
 setup(
     name='mason',
-    version='0.9.2',
+    version='0.9.3',
     author='Kotaimen, Ray',
     author_email='kotaimen.c@gmail.com, gliese.q@gmail.com',
     description='Another map tile library reinvented',
