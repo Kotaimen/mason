@@ -17,7 +17,7 @@ class DummyContext(RenderContext):
 
 class DummyRenderNode(RenderNode):
 
-    def __render__(self, context, sources):
+    def _render_imp(self, context, sources):
         result = self._name
         if sources:
             result = ':'.join((self._name, '&'.join(sources.values())))

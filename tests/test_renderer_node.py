@@ -49,7 +49,7 @@ class HillShadingRenderNodeTest(unittest.TestCase):
                                             scale=111120,
                                             altitude=45,
                                             azimuth=315)
-        metatile = render_node.__render_metatile__(metatile_index,
+        metatile = render_node._render_metatile(metatile_index,
                                                    dict(test=metatile))
 
         self.assertIsNotNone(metatile.data)
@@ -65,7 +65,7 @@ class HillShadingRenderNodeTest(unittest.TestCase):
                                             scale=lambda z, x, y: 111120,
                                             altitude=lambda z, x, y: 45,
                                             azimuth=lambda z, x, y: 315)
-        metatile = render_node.__render_metatile__(metatile_index,
+        metatile = render_node._render_metatile(metatile_index,
                                                    dict(test=metatile))
         self.assertIsNotNone(metatile.data)
         remove('./output/hailey_hillshading2.tif')
@@ -80,7 +80,7 @@ class ColorReliefRenderNodeTest(unittest.TestCase):
         color_context = './input/hypsometric-map-world.txt'
 
         render_node = ColorReliefRenderNode('dummy', color_context)
-        metatile = render_node.__render_metatile__(metatile_index,
+        metatile = render_node._render_metatile(metatile_index,
                                                    dict(test=metatile))
         self.assertIsNotNone(metatile.data)
         remove('./output/hailey_colorrelief.tif')

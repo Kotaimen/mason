@@ -70,7 +70,7 @@ class MetaTileRenderNode(RenderNode):
         assert isinstance(context, MetaTileContext)
         return RenderNode.render(self, context)
 
-    def __render__(self, context, sources):
+    def _render_imp(self, context, sources):
         metatile_index = context.metatile_index
         metatile_sources = sources
 
@@ -81,7 +81,7 @@ class MetaTileRenderNode(RenderNode):
                 return metatile
 
         # render a metatile
-        metatile = self.__render_metatile__(metatile_index, metatile_sources)
+        metatile = self._render_metatile(metatile_index, metatile_sources)
 
         # cache the new metatile
         if context.mode in ('overwrite', 'hybrid'):
@@ -89,7 +89,7 @@ class MetaTileRenderNode(RenderNode):
 
         return metatile
 
-    def __render_metatile__(self, metatile_index, metatile_sources):
+    def _render_metatile(self, metatile_index, metatile_sources):
         raise NotImplementedError
 
 
@@ -101,7 +101,7 @@ class GDALRenderNode(MetaTileRenderNode):
     def __init__(self, name, cache=None):
         MetaTileRenderNode.__init__(self, name, cache)
 
-    def __render_metatile__(self, metatile_index, metatile_sources):
+    def _render_metatile(self, metatile_index, metatile_sources):
         assert len(metatile_sources) == 1
 
         metatile = metatile_sources.values()[0]
@@ -210,7 +210,7 @@ class StorageRenderNode(MetaTileRenderNode):
         self._storage = attach_tilestorage(**storage_cfg)
         self._default = None
 
-    def __render_metatile__(self, metatile_index, metatile_sources):
+    def _render_metatile(self, metatile_index, metatile_sources):
         assert len(metatile_sources) == 0
         metatile = self._storage.get(metatile_index)
         if metatile is None:
@@ -234,7 +234,7 @@ class MapnikRenderNode(MetaTileRenderNode):
         MetaTileRenderNode.__init__(self, name, cache)
         self._mapniker = Mapnik(**mapnik_cfg)
 
-    def __render_metatile__(self, metatile_index, metatile_sources):
+    def _render_metatile(self, metatile_index, metatile_sources):
         assert len(metatile_sources) == 0
 
         envelope = metatile_index.buffered_envelope.make_tuple()
@@ -263,7 +263,7 @@ class RasterRenderNode(MetaTileRenderNode):
         MetaTileRenderNode.__init__(self, name, cache)
         self._dataset = RasterDataset(**dataset_cfg)
 
-    def __render_metatile__(self, metatile_index, metatile_sources):
+    def _render_metatile(self, metatile_index, metatile_sources):
         assert len(metatile_sources) == 0
 
         envelope = metatile_index.buffered_envelope.make_tuple()
@@ -292,7 +292,7 @@ class ImageMagicRenderNode(MetaTileRenderNode):
         MetaTileRenderNode.__init__(self, name, cache)
         self._composer = ImageMagickComposer(format, command)
 
-    def __render_metatile__(self, metatile_index, metatile_sources):
+    def _render_metatile(self, metatile_index, metatile_sources):
         assert len(metatile_sources) >= 1
 
         images = list((m.data, m.format.extension) for m in metatile_sources.values())

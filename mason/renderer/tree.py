@@ -45,13 +45,13 @@ class RenderNode(object):
             sources[name] = child.render(context)
 
 #        print 'Rendering %s: %s' % (self._name, repr(context))
-        result = self.__render__(context, sources)
+        result = self._render_imp(context, sources)
         return result
 
     def close(self):
         pass
 
-    def __render__(self, context, sources):
+    def _render_imp(self, context, sources):
         raise NotImplementedError
 
     def __repr__(self):
