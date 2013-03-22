@@ -43,6 +43,7 @@ class RenderNode(object):
         for name, child in self._children.items():
             sources[name] = child.render(context)
 
+#        print 'Rendering %s: %s' % (self._name, repr(context))
         result = self.__render__(context, sources)
         return result
 

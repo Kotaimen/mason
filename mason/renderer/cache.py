@@ -5,7 +5,6 @@ mason.renderer.persistent
 Created on Mar 18, 2013
 @author: ray
 '''
-from ..tilestorage import create_tilestorage
 
 
 #===============================================================================
@@ -19,12 +18,14 @@ class RenderCache(object):
     where and how metatiles are cached.
     """
 
-    def __init__(self, cache_cfg=None):
-        cache_cfg = cache_cfg or dict(prototype='null')
-        self._storage = create_tilestorage(**cache_cfg)
+    def __init__(self, cache=None):
+        self._cache = cache
 
     def put(self, metatile):
-        self._storage.put(metatile)
+        self._cache and self._cache.put(metatile)
 
     def get(self, metatile_index):
-        return self._storage.get(metatile_index)
+        return self._cache and self._cache.get(metatile_index)
+
+    def flush(self):
+        self._cache and self._cache.flush_all()

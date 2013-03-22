@@ -118,7 +118,7 @@ class StorageRenderNodeTest(unittest.TestCase):
 
     def testRender(self):
         storage_cfg = dict(prototype='filesystem', root=self._output_dir)
-        render_node = StorageRenderNode('storage', storage_cfg)
+        render_node = StorageRenderNode('storage', storage_cfg=storage_cfg)
 
         metatile = render_node.render(self._context)
         self.assertEqual(metatile.data, b'test')
@@ -135,7 +135,7 @@ class MapnikRenderNodeTest(unittest.TestCase):
 
     def testRender(self):
         mapnik_cfg = dict(theme='./input/world.xml', image_type='png')
-        render_node = MapnikRenderNode('mapnik', mapnik_cfg)
+        render_node = MapnikRenderNode('mapnik', **mapnik_cfg)
         metatile = render_node.render(self._context)
         self.assertIsNotNone(metatile.data)
         remove('./output/test_world.png')
@@ -153,7 +153,7 @@ class RasterRenderNodeTest(unittest.TestCase):
 
     def testRender(self):
         dataset_cfg = dict(dataset_path='./input/hailey.tif')
-        render_node = RasterRenderNode('raster', dataset_cfg)
+        render_node = RasterRenderNode('raster', **dataset_cfg)
         metatile = render_node.render(self._context)
         self.assertIsNotNone(metatile.data)
         remove('./output/test_dataset.tif')

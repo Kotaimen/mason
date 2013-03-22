@@ -16,18 +16,23 @@ from .node import (MetaTileContext,
 
 class RenderNodeFactory(object):
 
-    REGISTRY = dict(hillshading=HillShadingRenderNode,
-                    colorrelief=ColorReliefRenderNode,
-                    storage=StorageRenderNode,
-                    mapnik=MapnikRenderNode,
-                    raster=RasterRenderNode,
-                    imagemagic=ImageMagicRenderNode
-                    )
+    REGISTRY = {
+                'node.hillshading': HillShadingRenderNode,
+                'node.colorrelief': ColorReliefRenderNode,
+                'node.storage': StorageRenderNode,
+                'node.mapnik': MapnikRenderNode,
+                'node.raster': RasterRenderNode,
+                'node.imagemagick': ImageMagicRenderNode
+                }
 
-    def __call__(self, prototype, name, source_names, **params):
+    def __call__(self, prototype, name, cache=None, **params):
         klass = self.REGISTRY.get(prototype)
         if not klass:
             raise RuntimeError('RenderNode %s not found!' % prototype)
 
-        render_node = klass(name, source_names, **params)
+        render_node = klass(name, cache=cache, **params)
         return render_node
+
+
+def create_render_node(prototype, name, cache=None, **params):
+    return RenderNodeFactory()(prototype, name, cache=cache, **params)

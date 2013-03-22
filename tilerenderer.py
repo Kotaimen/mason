@@ -47,7 +47,7 @@ class Statics(ctypes.Structure):
 
 def spawner(queue, statistics, options):
     options = verify_config(options)
-    render_option = dict(mode='readonly', reload=False)
+    render_option = dict(mode='readonly')
     renderer = create_render_tree_from_config(options.config, render_option)
     walker = PyramidWalker(renderer.pyramid,
                            levels=options.levels,
@@ -67,7 +67,7 @@ def spawner(queue, statistics, options):
 def worker(queue, statistics, options):
     options = verify_config(options)
     setup_logger(options.logfile)
-    render_option = dict(mode=options.mode, reload=False)
+    render_option = dict(mode=options.mode)
     renderer = create_render_tree_from_config(options.config, render_option)
 
     while True:
@@ -265,7 +265,7 @@ def verify_config(options):
         options.mode = 'default'
     logger.info('Rendering mode is "%s"', options.mode)
 
-    render_option = dict(mode=options.mode, reload=False)
+    render_option = dict(mode=options.mode)
     renderer = create_render_tree_from_config(options.config, render_option)
 
     if not options.levels:

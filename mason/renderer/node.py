@@ -27,7 +27,8 @@ class SourceNotFound(Exception):
 #===============================================================================
 class MetaTileContext(RenderContext):
 
-    def __init__(self, metatile_index, mode='dry-run'):
+    def __init__(self, metatile_index, mode=None):
+        mode = mode or 'dry-run'
         assert mode in ('hybrid', 'readonly', 'overwrite', 'dry-run')
         self._metatile_index = metatile_index
         self._mode = mode
@@ -46,9 +47,24 @@ class MetaTileContext(RenderContext):
 #===============================================================================
 class MetaTileRenderNode(RenderNode):
 
-    def __init__(self, name, storage_cfg=None):
+    def __init__(self, name, cache=None):
         RenderNode.__init__(self, name)
-        self._cache = RenderCache(storage_cfg)
+        self._cache = RenderCache(cache)
+        self._keep_cache = False
+
+    @property
+    def keep_cache(self):
+        return self._keep_cache
+
+    @keep_cache.setter
+    def keep_cache(self, val):
+        self._keep_cache = val
+
+    def clean_up(self):
+        if not self._keep_cache:
+            for child in self._children.values():
+                child.clean_up()
+            self._cache.flush()
 
     def render(self, context):
         assert isinstance(context, MetaTileContext)
@@ -69,7 +85,7 @@ class MetaTileRenderNode(RenderNode):
 
         # cache the new metatile
         if context.mode in ('overwrite', 'hybrid'):
-            self._cache.set(metatile)
+            self._cache.put(metatile)
 
         return metatile
 
@@ -82,8 +98,8 @@ class MetaTileRenderNode(RenderNode):
 #===============================================================================
 class GDALRenderNode(MetaTileRenderNode):
 
-    def __init__(self, name):
-        MetaTileRenderNode.__init__(self, name)
+    def __init__(self, name, cache=None):
+        MetaTileRenderNode.__init__(self, name, cache)
 
     def __render_metatile__(self, metatile_index, metatile_sources):
         assert len(metatile_sources) == 1
@@ -133,8 +149,9 @@ class HillShadingRenderNode(GDALRenderNode):
                  zfactor=1,
                  scale=1,
                  altitude=45,
-                 azimuth=315):
-        GDALRenderNode.__init__(self, name)
+                 azimuth=315,
+                 cache=None):
+        GDALRenderNode.__init__(self, name, cache)
         self._zfactor = zfactor
         self._scale = scale
         self._altitude = altitude
@@ -166,8 +183,8 @@ class HillShadingRenderNode(GDALRenderNode):
 #===============================================================================
 class ColorReliefRenderNode(GDALRenderNode):
 
-    def __init__(self, name, color_context):
-        GDALRenderNode.__init__(self, name)
+    def __init__(self, name, color_context, cache=None):
+        GDALRenderNode.__init__(self, name, cache)
         self._color_context = color_context
 
     def __process__(self, metatile_index, source, target):
@@ -188,8 +205,8 @@ class ColorReliefRenderNode(GDALRenderNode):
 #===============================================================================
 class StorageRenderNode(MetaTileRenderNode):
 
-    def __init__(self, name, storage_cfg):
-        MetaTileRenderNode.__init__(self, name)
+    def __init__(self, name, storage_cfg, cache=None):
+        MetaTileRenderNode.__init__(self, name, cache)
         self._storage = attach_tilestorage(**storage_cfg)
         self._default = None
 
@@ -213,8 +230,8 @@ class StorageRenderNode(MetaTileRenderNode):
 #===============================================================================
 class MapnikRenderNode(MetaTileRenderNode):
 
-    def __init__(self, name, mapnik_cfg):
-        MetaTileRenderNode.__init__(self, name)
+    def __init__(self, name, cache=None, **mapnik_cfg):
+        MetaTileRenderNode.__init__(self, name, cache)
         self._mapniker = Mapnik(**mapnik_cfg)
 
     def __render_metatile__(self, metatile_index, metatile_sources):
@@ -242,8 +259,8 @@ class MapnikRenderNode(MetaTileRenderNode):
 #===============================================================================
 class RasterRenderNode(MetaTileRenderNode):
 
-    def __init__(self, name, dataset_cfg):
-        MetaTileRenderNode.__init__(self, name)
+    def __init__(self, name, cache=None, **dataset_cfg):
+        MetaTileRenderNode.__init__(self, name, cache)
         self._dataset = RasterDataset(**dataset_cfg)
 
     def __render_metatile__(self, metatile_index, metatile_sources):
@@ -271,16 +288,16 @@ class RasterRenderNode(MetaTileRenderNode):
 #===============================================================================
 class ImageMagicRenderNode(MetaTileRenderNode):
 
-    def __init__(self, name, format, command):
-        MetaTileRenderNode.__init__(self, name)
-        self._composer = ImageMagickComposer(format, command)
+    def __init__(self, name, fmt, command, cache=None):
+        MetaTileRenderNode.__init__(self, name, cache)
+        self._composer = ImageMagickComposer(fmt, command)
 
     def __render_metatile__(self, metatile_index, metatile_sources):
         assert len(metatile_sources) >= 1
 
-        image_list = list((m.data, m.format.extension) for m in metatile_sources)
+        images = list((m.data, m.format.extension) for m in metatile_sources.values())
 
-        data_stream = self._composer.compose(image_list)
+        data_stream = self._composer.compose(images)
         try:
             data_format = Format.from_name(self._composer.output_format)
             mtime = time.time()
