@@ -117,7 +117,7 @@ class GDALRenderNode(MetaTileRenderNode):
             source.write(data)
 
             # process
-            self.__process__(metatile_index, source, target)
+            self._process(metatile_index, source, target)
 
         except Exception as e:
             raise e
@@ -136,7 +136,7 @@ class GDALRenderNode(MetaTileRenderNode):
             source.close()
             target.close()
 
-    def __process__(self, source, target):
+    def _process(self, source, target):
         raise NotImplementedError
 
 
@@ -157,7 +157,7 @@ class HillShadingRenderNode(GDALRenderNode):
         self._altitude = altitude
         self._azimuth = azimuth
 
-    def __process__(self, metatile_index, source, target):
+    def _process(self, metatile_index, source, target):
         z, x, y = metatile_index.coord
         # get parameters
         zfactor = self._zfactor
@@ -187,7 +187,7 @@ class ColorReliefRenderNode(GDALRenderNode):
         GDALRenderNode.__init__(self, name, cache)
         self._color_context = color_context
 
-    def __process__(self, metatile_index, source, target):
+    def _process(self, metatile_index, source, target):
         z, x, y = metatile_index.coord
 
         # get color context parameter
