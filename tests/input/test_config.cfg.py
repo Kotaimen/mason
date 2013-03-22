@@ -37,7 +37,7 @@ composite = dict(\
      prototype='node.imagemagick',
      sources=('source1', 'source3', 'processor1'),
      command='$1',
-     fmt='png',
+     format='png',
 )
 
 

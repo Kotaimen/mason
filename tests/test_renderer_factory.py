@@ -100,7 +100,7 @@ class TestRenderNodeFactory(unittest.TestCase):
                                    root='./output/test_render_node_factory/')
         render_node = create_render_node('node.imagemagick',
                                          'test',
-                                         fmt='PNG',
+                                         format='PNG',
                                          command='',
                                          cache=cache,
                                          )

@@ -68,7 +68,7 @@ class MasonRenderer(object):
 
     def __init__(self, mason_config, mode=None):
         self._mason_cfg = mason_config
-        self._mode = mode or 'dryrun' # default is 'dryrun'
+        self._mode = mode or 'dryrun'  # default is 'dryrun'
 
         root_cfg = mason_config.get_node_cfg('ROOT')
         if not root_cfg:
@@ -79,7 +79,8 @@ class MasonRenderer(object):
             raise PyramidConfigNotFound
         else:
             # Replace format string with real Format object
-            pyramid_cfg['format'] = Format.from_name(pyramid_cfg['format'] )
+            if 'format' in pyramid_cfg:
+                pyramid_cfg['format'] = Format.from_name(pyramid_cfg['format'])
 
         metadata_cfg = root_cfg.get('metadata')
         if not metadata_cfg:
@@ -90,7 +91,7 @@ class MasonRenderer(object):
             raise RendererConfigNotFound
 
         storage_cfg = root_cfg.get('storage')
-        
+
         self._pyramid = self._create_pyramid(pyramid_cfg)
         self._metadata = self._create_metadata(metadata_cfg)
 
