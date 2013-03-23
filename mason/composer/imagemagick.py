@@ -8,7 +8,7 @@ import os
 import re
 import subprocess
 
-from ..utils import create_temp_filename
+from ..utils import TempFile
 from .composer import ImageComposer
 
 try:
@@ -82,29 +82,28 @@ class ImageMagickComposer(ImageComposer):
 
         files_to_delete = dict()
 
-        for cmd_no, tile_no in self._parse_command(command):
+        for cmd_no, ref_name in self._parse_command(command):
             try:
-                image_data, image_ext = image_list[tile_no - 1]
+                image_data, image_ext = image_list[ref_name]
             except KeyError:
-                raise RuntimeError('Invalid tile source "%s"' % tile_no)
+                raise RuntimeError('Invalid tile source "%s"' % ref_name)
 
             # Generate a new tempfile for tiles not used yet
-            if tile_no not in files_to_delete:
+            if ref_name not in files_to_delete:
 
                 # Generate a temp file name using mkstemp
                 suffix = image_ext
-                prefix = 'mgktle$%d-' % tile_no
-                tempname = create_temp_filename(suffix=suffix, prefix=prefix)
+                prefix = 'mgktle$%s-' % ref_name
+                tempfile = TempFile(prefix=prefix, suffix=suffix)
 
                 # Delete the temp file later
-                files_to_delete[tile_no] = tempname
+                files_to_delete[ref_name] = tempfile
 
                 # Write image data to temp file
-                with open(tempname, 'wb') as fp:
-                    fp.write(image_data)
+                tempfile.write(image_data)
 
             # Replace '%n' with real filename
-            command[cmd_no] = tempname
+            command[cmd_no] = tempfile.filename
 
         try:
             # Call imagemagick command
@@ -120,15 +119,14 @@ class ImageMagickComposer(ImageComposer):
             return io.BytesIO(stdout)
         finally:
             # Delete temporary files
-            for filename in files_to_delete.itervalues():
-                if os.path.exists(filename):
-                    os.remove(filename)
+            for tempfile in files_to_delete.itervalues():
+                tempfile.close()
 
     def _parse_command(self, command):
 
         for i in range(len(command)):
             arg = command[i]
-            match = re.match(r'\$(\d+)', arg)
+            match = re.match(r'\{\{(\w+)\}\}', arg)
             if match:
-                tile_no = int(match.group(1))
-                yield (i, tile_no)
+                ref_name = match.group(1)
+                yield (i, ref_name)

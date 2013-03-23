@@ -4,6 +4,10 @@ source1 = dict(\
     prototype='node.mapnik',
     theme='./input/world.xml',
     image_type='png',
+    
+    cache=dict(prototype='metacache',
+                root='./output/test-mason_renderer/hillshading'
+                ),
     )
 
 source3 = dict(\
@@ -11,7 +15,6 @@ source3 = dict(\
     theme='./input/world.xml',
     image_type='png',
     )
-
 
 source2 = dict(\
     prototype='node.raster',
@@ -36,7 +39,7 @@ processor1 = dict(\
 composite = dict(\
      prototype='node.imagemagick',
      sources=('source1', 'source3', 'processor1'),
-     command='$1',
+     command='{{source1}}',
      format='png',
 )
 

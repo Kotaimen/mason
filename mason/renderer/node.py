@@ -295,7 +295,9 @@ class ImageMagicRenderNode(MetaTileRenderNode):
     def _render_metatile(self, metatile_index, metatile_sources):
         assert len(metatile_sources) >= 1
 
-        images = list((m.data, m.format.extension) for m in metatile_sources.values())
+        images = dict()
+        for name, m in metatile_sources.items():
+            images[name] = (m.data, m.format.extension)
 
         data_stream = self._composer.compose(images)
         try:
