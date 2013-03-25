@@ -28,7 +28,7 @@ class RenderNodeFactory(object):
     def __call__(self, prototype, name, cache=None, **params):
         klass = self.REGISTRY.get(prototype)
         if not klass:
-            raise RuntimeError('RenderNode %s not found!' % prototype)
+            raise RuntimeError('Unknown render node "%s" !' % prototype)
 
         render_node = klass(name, cache=cache, **params)
         return render_node

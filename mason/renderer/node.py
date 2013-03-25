@@ -261,10 +261,29 @@ class RasterRenderNode(MetaTileRenderNode):
 
     def __init__(self, name, cache=None, **dataset_cfg):
         MetaTileRenderNode.__init__(self, name, cache)
-        self._dataset = RasterDataset(**dataset_cfg)
+        self._raw_cfg = dataset_cfg
+        self._dataset_cfg = None
+        self._dataset = None
+
+    def _normalize_config(self, metatile_index, dataset_cfg):
+        z, x, y = metatile_index.coord
+
+        ds_path = dataset_cfg['dataset_path']
+        ds_path = callable(ds_path) and ds_path(z, x, y) or ds_path
+        dataset_cfg['dataset_path'] = ds_path
+
+        return dataset_cfg
 
     def _render_metatile(self, metatile_index, metatile_sources):
         assert len(metatile_sources) == 0
+
+        dataset_cfg = self._normalize_config(metatile_index, self._raw_cfg)
+        if self._dataset_cfg != dataset_cfg or not self._dataset:
+            # Create a new RasterDataset if configuration changed
+            if self._dataset:
+                # Close the old one
+                self._dataset.close()
+            self._dataset = RasterDataset(**dataset_cfg)
 
         envelope = metatile_index.buffered_envelope.make_tuple()
         width = height = metatile_index.buffered_tile_size
