@@ -55,4 +55,5 @@ class TempFile(object):
             fp.write(data)
 
     def close(self):
-        os.remove(self._filename)
+        if os.path.exists(self._filename):
+            os.remove(self._filename)
