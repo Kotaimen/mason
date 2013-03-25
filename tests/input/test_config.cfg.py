@@ -4,7 +4,7 @@ source1 = dict(\
     prototype='node.mapnik',
     theme='./input/world.xml',
     image_type='png',
-    
+
     cache=dict(prototype='metacache',
                 root='./output/test-mason_renderer/hillshading'
                 ),
@@ -45,11 +45,10 @@ composite = dict(\
 
 
 ROOT = dict(
-            prototype='root',
             metadata=dict(tag='test-mason_renderer'),
             pyramid=dict(envelope=(-180, -85, 180, 85)),
             renderer='composite',
-            storage=dict(prototype='filesystem', 
+            storage=dict(prototype='filesystem',
                          root='./output/test-mason_renderer'
                         )
        )

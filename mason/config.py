@@ -48,15 +48,16 @@ class MasonConfig(object):
 
         self._node_cfg = dict()
         for name, val in local_vars.items():
-            if not self._is_node_cfg(val):
+            if not self._is_node_cfg(name, val):
                 continue
             self._node_cfg[name] = val
 
     def get_node_cfg(self, name):
         return self._node_cfg.get(name)
 
-    def _is_node_cfg(self, val):
-        return isinstance(val, dict) and 'prototype' in val
+    def _is_node_cfg(self, name, val):
+        return isinstance(val, dict) and \
+            ('prototype' in val or name == MasonRenderer.ROOT_NODE_NAME)
 
 
 #===============================================================================
@@ -70,7 +71,7 @@ class MasonRenderer(object):
         self._mason_cfg = mason_config
         self._mode = mode or 'dryrun'  # default is 'dryrun'
 
-        root_cfg = mason_config.get_node_cfg('ROOT')
+        root_cfg = mason_config.get_node_cfg(self.ROOT_NODE_NAME)
         if not root_cfg:
             raise RootConfigNotFound
 
