@@ -30,7 +30,7 @@ processor1 = dict(\
                 root='./output/test-mason_renderer/hillshading'
                 ),
 
-    zfactor=lambda z, x, y: 20 - z,
+    zfactor=[10, ] * 20,
     scale=111120,
     altitude=45,
     azimuth=315,

@@ -61,10 +61,10 @@ class HillShadingRenderNodeTest(unittest.TestCase):
         metatile = create_metatile(metatile_index)
 
         render_node = HillShadingRenderNode('dummy',
-                                            zfactor=lambda z, x, y: 10,
-                                            scale=lambda z, x, y: 111120,
-                                            altitude=lambda z, x, y: 45,
-                                            azimuth=lambda z, x, y: 315)
+                                            zfactor=[10] * 20,
+                                            scale=111120,
+                                            altitude=45,
+                                            azimuth=315)
         metatile = render_node._render_metatile(metatile_index,
                                                    dict(test=metatile))
         self.assertIsNotNone(metatile.data)

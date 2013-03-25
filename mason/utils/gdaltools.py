@@ -95,17 +95,17 @@ def gdal_hillshading(src, dst, zfactor, scale, altitude, azimuth):
         'gdaldem', 'hillshade',
         src, dst,
         # shading parameters
-        '-z', str(zfactor),
-        '-s', str(scale),
-        '-alt', str(altitude),
-        '-az', str(azimuth),
+        '-z', str(float(zfactor)),
+        '-s', str(int(scale)),
+        '-alt', str(float(altitude)),
+        '-az', str(float(azimuth)),
 
         # compute pixel on edges
         '-compute_edges',
         # quite mode
         '-q',
     ]
-    _subprocess_call(command_list)
+    return _subprocess_call(command_list)
 
 
 def gdal_colorrelief(src, dst, color_context):
@@ -128,4 +128,4 @@ def gdal_colorrelief(src, dst, color_context):
                     # quite mode
                     '-q'
                     ]
-    _subprocess_call(command_list)
+    return _subprocess_call(command_list)

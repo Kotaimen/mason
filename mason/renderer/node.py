@@ -22,6 +22,9 @@ class SourceNotFound(Exception):
     pass
 
 
+class GDALProcessError(Exception):
+    pass
+
 #===============================================================================
 # Metatile Context
 #===============================================================================
@@ -120,7 +123,7 @@ class GDALRenderNode(MetaTileRenderNode):
             self._process(metatile_index, source, target)
 
         except Exception as e:
-            raise e
+            raise GDALProcessError('%s: %s' % (self.name, str(e)))
         else:
             # read data from target file
             data = target.read()
@@ -161,16 +164,20 @@ class HillShadingRenderNode(GDALRenderNode):
         z, x, y = metatile_index.coord
         # get parameters
         zfactor = self._zfactor
-        zfactor = callable(zfactor) and zfactor(z, x, y) or zfactor
+        if isinstance(zfactor, list):
+            zfactor = zfactor[z] if z < len(zfactor) else zfactor[-1]
 
         scale = self._scale
-        scale = callable(scale) and scale(z, x, y) or scale
+        if isinstance(scale, list):
+            scale = scale[z] if z < len(scale) else scale[-1]
 
         altitude = self._altitude
-        altitude = callable(altitude) and altitude(z, x, y) or altitude
+        if isinstance(altitude, list):
+            altitude = altitude[z] if z < len(altitude) else altitude[-1]
 
         azimuth = self._azimuth
-        azimuth = callable(azimuth) and azimuth(z, x, y) or azimuth
+        if isinstance(azimuth, list):
+            azimuth = azimuth[z] if z < len(azimuth) else azimuth[-1]
 
         # call gdal subprocess
         src = source.filename
@@ -192,7 +199,8 @@ class ColorReliefRenderNode(GDALRenderNode):
 
         # get color context parameter
         color_ctx = self._color_context
-        color_ctx = callable(color_ctx) and callable(z, x, y) or color_ctx
+        if isinstance(color_ctx, list):
+            color_ctx = color_ctx[z] if z < len(color_ctx) else color_ctx[-1]
 
         # call gdal subprocess
         src = source.filename
