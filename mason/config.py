@@ -152,8 +152,7 @@ class MasonRenderer(object):
                     not self._storage.has_all(tile_indexes):
                 tiles = metatile_fission(metatile)
                 self._storage.put_multi(tiles)
-
-        self._renderer.clean_up()
+        self._renderer.erase(metatile_index)
         return metatile
 
     def close(self):
@@ -201,6 +200,11 @@ class MasonRenderer(object):
         prototpye = cfg.pop('prototype', None)
         if not prototpye:
             raise InvalidStorageConfig(repr(storage_cfg))
+        
+        format_name = cfg.pop('data_format', None)
+        if format_name:
+            data_format = Format.from_name(format_name)
+            pyramid = pyramid.clone(format=data_format)
 
         return create_tilestorage(prototpye, pyramid, metadata, **cfg)
 
@@ -213,14 +217,10 @@ def create_render_tree_from_config(config_file, option):
 
     option:
         1.mode can be one of following:
-        - default: write to cache after render
+        - hybrid: write to cache after render
         - overwrite: render and overwrite any existing cache
         - readonly: only read from cache
         - dryrun: always render but does not write to cache
-
-        2.reload can be true or false
-        - true: reload configurations, such as mapnik stylesheet.
-        - false: load configurations only at start up.
 
     """
     config = MasonConfig(config_file)

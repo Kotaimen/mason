@@ -27,5 +27,5 @@ class RenderCache(object):
     def get(self, metatile_index):
         return self._cache and self._cache.get(metatile_index)
 
-    def flush(self):
-        self._cache and self._cache.flush_all()
+    def delete(self, metatile_index):
+        self._cache and self._cache.delete(metatile_index)

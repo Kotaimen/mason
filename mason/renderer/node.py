@@ -53,7 +53,7 @@ class MetaTileRenderNode(RenderNode):
     def __init__(self, name, cache=None):
         RenderNode.__init__(self, name)
         self._cache = RenderCache(cache)
-        self._keep_cache = False
+        self._keep_cache = True
 
     @property
     def keep_cache(self):
@@ -63,11 +63,11 @@ class MetaTileRenderNode(RenderNode):
     def keep_cache(self, val):
         self._keep_cache = val
 
-    def clean_up(self):
+    def erase(self, metatile_index):
+        for child in self._children.values():
+            child.erase(metatile_index)
         if not self._keep_cache:
-            for child in self._children.values():
-                child.clean_up()
-            self._cache.flush()
+            self._cache.delete(metatile_index)
 
     def render(self, context):
         assert isinstance(context, MetaTileContext)
