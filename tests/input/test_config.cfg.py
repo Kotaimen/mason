@@ -30,7 +30,7 @@ processor1 = dict(\
                 root='./output/test-mason_renderer/hillshading'
                 ),
 
-    zfactor=[10, ] * 20,
+    zfactor=[10, ] * 10,
     scale=111120,
     altitude=45,
     azimuth=315,
@@ -39,7 +39,8 @@ processor1 = dict(\
 composite = dict(\
      prototype='node.imagemagick',
      sources=('source1', 'source3', 'processor1'),
-     command='{{source1}}',
+     command="""{{%(source)s}}""",
+     command_params=dict(source='source1'),
      format='png',
 )
 

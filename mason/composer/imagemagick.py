@@ -17,6 +17,10 @@ except Exception:
     raise ImportError('Convert is not found. Please Install ImageMagick.')
 
 
+class CommandNotFound(Exception):
+    pass
+
+
 class ImageMagickError(subprocess.CalledProcessError):
 
     def __init__(self, returncode, cmd, output=None):
@@ -62,10 +66,12 @@ class ImageMagickComposer(ImageComposer):
 
     """
 
-    def __init__(self, format, command):
+    def __init__(self, format):
         ImageComposer.__init__(self, format)
-
+        self._command = None
         # Convert command string to list of arguments
+
+    def setup_command(self, command):
         lines = ['convert -quiet -limit thread 1']
         for line in command.splitlines():
             if line.lstrip().startswith('#'):
@@ -78,6 +84,8 @@ class ImageMagickComposer(ImageComposer):
         """ Composes tiles according to the command"""
 
         # Copy a command list since we are going to modify it in place
+        if not self._command:
+            raise CommandNotFound
         command = list(self._command)
 
         files_to_delete = dict()

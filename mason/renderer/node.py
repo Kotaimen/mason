@@ -195,17 +195,10 @@ class ColorReliefRenderNode(GDALRenderNode):
         self._color_context = color_context
 
     def _process(self, metatile_index, source, target):
-        z, x, y = metatile_index.coord
-
-        # get color context parameter
-        color_ctx = self._color_context
-        if isinstance(color_ctx, list):
-            color_ctx = color_ctx[z] if z < len(color_ctx) else color_ctx[-1]
-
         # call gdal subprocess
         src = source.filename
         dst = target.filename
-        gdal_colorrelief(src, dst, color_ctx)
+        gdal_colorrelief(src, dst, self._color_context)
 
 
 #===============================================================================
@@ -213,10 +206,12 @@ class ColorReliefRenderNode(GDALRenderNode):
 #===============================================================================
 class StorageRenderNode(MetaTileRenderNode):
 
-    def __init__(self, name, storage_cfg, cache=None):
+    def __init__(self, name, storage_cfg, default=None, cache=None):
         MetaTileRenderNode.__init__(self, name, cache)
         self._storage = attach_tilestorage(**storage_cfg)
-        self._default = None
+        if default:
+            with open(default, 'rb') as fp:
+                self._default = fp.read()
 
     def _render_metatile(self, metatile_index, metatile_sources):
         assert len(metatile_sources) == 0
@@ -277,7 +272,8 @@ class RasterRenderNode(MetaTileRenderNode):
         z, x, y = metatile_index.coord
 
         ds_path = dataset_cfg['dataset_path']
-        ds_path = callable(ds_path) and ds_path(z, x, y) or ds_path
+        if isinstance(ds_path, list):
+            ds_path = ds_path[z] if z < len(ds_path) else ds_path[-1]
         dataset_cfg['dataset_path'] = ds_path
 
         return dataset_cfg
@@ -315,9 +311,26 @@ class RasterRenderNode(MetaTileRenderNode):
 #===============================================================================
 class ImageMagicRenderNode(MetaTileRenderNode):
 
-    def __init__(self, name, format, command, cache=None):
+    def __init__(self, name, format, command, command_params=None, cache=None):
         MetaTileRenderNode.__init__(self, name, cache)
-        self._composer = ImageMagickComposer(format, command)
+        self._command = command
+        self._command_params = command_params
+
+        self._composer = ImageMagickComposer(format)
+
+    def _init_command(self, metatile_index):
+        if not self._command_params:
+            return self._command
+
+        z, x, y = metatile_index.coord
+        params = dict()
+        for name, param in self._command_params.items():
+            val = param
+            if isinstance(param, list):
+                val = param[z] if z < len(param) else param[-1]
+            params[name] = val
+
+        return self._command % params
 
     def _render_metatile(self, metatile_index, metatile_sources):
         assert len(metatile_sources) >= 1
@@ -326,6 +339,8 @@ class ImageMagicRenderNode(MetaTileRenderNode):
         for name, m in metatile_sources.items():
             images[name] = (m.data, m.format.extension)
 
+        command = self._init_command(metatile_index)
+        self._composer.setup_command(command)
         data_stream = self._composer.compose(images)
         try:
             data_format = Format.from_name(self._composer.output_format)
