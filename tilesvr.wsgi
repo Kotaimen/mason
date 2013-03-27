@@ -9,9 +9,8 @@ from tileserver import build_app
 
 class Options(object):
     layers = ['/path/to/layerconfig', ]
-    mode = 'default'
+    mode = 'hybrid'
     debug = False
-    reload = False
 
 options = Options()
 application = build_app(options)

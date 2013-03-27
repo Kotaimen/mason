@@ -4,137 +4,106 @@ Created on Oct 11, 2012
 
 @author: ray
 '''
-import sys
-import traceback
-import networkx as nx
-from .core import Pyramid, Metadata, Format, metatile_fission
+
+from .core import Pyramid, Metadata, metatile_fission, buffer_crop, Tile, Format
+from .renderer import create_render_node, MetaTileContext
 from .tilestorage import create_tilestorage
-from .renderer import RendererFactory, CachedRenderer
 
 
-class RenderConfigError(Exception):
+#===============================================================================
+# Exceptions
+#===============================================================================
+class RootConfigNotFound(Exception):
     pass
 
 
-#==============================================================================
-# Create cached storage
-#==============================================================================
-def build_cache_storage(cache_config, pyramid, metadata):
-    """ create cache storage from cache configuration """
-
-    if not cache_config:
-        cache_config = dict(prototype='null')
-
-    cache_config = dict(cache_config)
-
-    prototype = cache_config.pop('prototype', None)
-    if not prototype:
-        raise RuntimeError('storage prototype is missing.')
-
-    # inject data format for every storage
-    format_name = cache_config.pop('data_format', None)
-    if format_name:
-        data_format = Format.from_name(format_name)
-        pyramid = pyramid.clone(format=data_format)
-
-    storage = create_tilestorage(\
-                   prototype,
-                   pyramid,
-                   metadata,
-                   **cache_config
-                   )
-
-    return storage
+class PyramidConfigNotFound(Exception):
+    pass
 
 
-#==============================================================================
-# Render Tree
-#==============================================================================
-class RenderTree(object):
+class MetadataConfigNotFound(Exception):
+    pass
 
-    def __init__(self, config, mode='default', reload=False):
 
-        self._mode = mode
-        self._reload = reload
-        self._factory = RendererFactory(mode)
+class RendererConfigNotFound(Exception):
+    pass
 
-        # create renderer configuration tree
-        self._render_nodes = dict()
-        self._pyramid = self._create_pyramid(config)
-        self._metadata = self._create_metadata(config)
-        self._rendertree = self._create_renderer(
-                               config,
-                               self._pyramid,
-                               self._metadata)
-        self._renderer_cache = build_cache_storage(
-                               config.renderer_cache_config,
-                               self._pyramid,
-                               self._metadata)
 
-    def _create_pyramid(self, config):
-        pyramid_config = config.pyramid_config
-        if 'format' in pyramid_config:
-            format_name = pyramid_config['format']
-            pyramid_config['format'] = Format.from_name(format_name)
-        return Pyramid(**pyramid_config)
+class RenderNodeConfigNotFound(Exception):
+    pass
 
-    def _create_metadata(self, config):
-        metadata_config = config.metadata_config
-        return Metadata.make_metadata(**metadata_config)
 
-    def _create_renderer(self, config, pyramid, metadata):
-        render_tree = nx.DiGraph()
-        for node in config.render_nodes():
-            node_name, node_attr = node
-            render_tree.add_node(node_name, **node_attr)
+class InvalidStorageConfig(Exception):
+    pass
 
-        for edge in config.render_edges():
-            start, end = edge
-            render_tree.add_edge(start, end)
 
-        # create renderer
+#===============================================================================
+# Mason Configuration
+#===============================================================================
+class MasonConfig(object):
 
-        for node in nx.dfs_postorder_nodes(render_tree, config.renderer):
-            node_name, node_config = node, render_tree.node[node]
+    def __init__(self, filename):
+        global_vars, local_vars = {}, {}
+        execfile(filename, global_vars, local_vars)
 
-            try:
-                # prototype
-                prototype = node_config['prototype']
+        self._node_cfg = dict()
+        for name, val in local_vars.items():
+            if not self._is_node_cfg(name, val):
+                continue
+            self._node_cfg[name] = val
 
-                # attributes
-                attrdict = node_config['attrdict']
-                # inject reload option for mapnik
-                if prototype == 'datasource.mapnik':
-                    attrdict['force_reload'] = self._reload
+    def get_node_cfg(self, name):
+        return self._node_cfg.get(name)
 
-                # sources
-                source_nodes = list()
-                for node in node_config['sources']:
-                    if node not in self._render_nodes:
-                        raise RuntimeError('unknown source %s' % node)
-                    source_nodes.append(self._render_nodes[node])
+    def _is_node_cfg(self, name, val):
+        return isinstance(val, dict) and \
+            ('prototype' in val or name == MasonRenderer.ROOT_NODE_NAME)
 
-                # cache
-                cache = node_config['cache']
-                storage = build_cache_storage(cache, pyramid, metadata)
 
-                renderer = self._factory(prototype,
-                                         source_nodes,
-                                         storage,
-                                         **attrdict)
+#===============================================================================
+# Mason Renderer
+#===============================================================================
+class MasonRenderer(object):
 
-                self._render_nodes[node_name] = renderer
+    ROOT_NODE_NAME = 'ROOT'
 
-            except Exception:
-                error = traceback.format_exc()
-                raise RuntimeError('config "%s": %s' % (node_name, error))
+    def __init__(self, mason_config, mode=None):
+        self._mason_cfg = mason_config
+        self._mode = mode or 'dryrun'  # default is 'dryrun'
 
-        # Dump render configuration tree as a DOT file
-#        g = nx.to_agraph(render_tree)
-#        g.layout(prog='dot')
-#        g.draw('config.dot')
+        root_cfg = mason_config.get_node_cfg(self.ROOT_NODE_NAME)
+        if not root_cfg:
+            raise RootConfigNotFound
 
-        return self._render_nodes[config.renderer]
+        pyramid_cfg = root_cfg.get('pyramid')
+        if not pyramid_cfg:
+            raise PyramidConfigNotFound
+        else:
+            # Replace format string with real Format object
+            if 'format' in pyramid_cfg:
+                pyramid_cfg['format'] = Format.from_name(pyramid_cfg['format'])
+
+        metadata_cfg = root_cfg.get('metadata')
+        if not metadata_cfg:
+            raise MetadataConfigNotFound
+
+        renderer_cfg = root_cfg.get('renderer')
+        if not renderer_cfg:
+            raise RendererConfigNotFound
+
+        storage_cfg = root_cfg.get('storage')
+
+        self._pyramid = self._create_pyramid(pyramid_cfg)
+        self._metadata = self._create_metadata(metadata_cfg)
+
+        self._renderer = self._create_renderer(
+            renderer_cfg,
+            self._pyramid,
+            self._metadata)
+        self._storage = self._create_storage(
+            storage_cfg,
+            self._pyramid,
+            self._metadata)
 
     @property
     def pyramid(self):
@@ -144,158 +113,100 @@ class RenderTree(object):
     def metadata(self):
         return self._metadata
 
-    def render(self, metatile_index):
-        metatile = self._rendertree.render(metatile_index)
-        if self._renderer_cache and self._mode in ['default', 'overwrite']:
+    def has_tile(self, tile_index):
+        return self._storage.has(tile_index)
+
+    def has_metatile(self, metatile_index):
+        tile_indexes = metatile_index.fission()
+        return self._storage.has_all(tile_indexes)
+
+    def render_tile(self, tile_index):
+        if self._mode in ('hybrid', 'readonly'):
+            tile = self._storage.get(tile_index)
+            if tile or self._mode == 'readonly':
+                return tile
+
+        z, x, y = tile_index.coord
+        metatile_index = self._pyramid.create_metatile_index(z, x, y, 1)
+        metatile = self.render_metatile(metatile_index)
+
+        data = buffer_crop(metatile.data,
+                           metatile.index.buffered_tile_size,
+                           metatile.index.buffer,
+                           metatile.format)
+        tile = Tile.from_tile_index(tile_index, data, metatile.format,
+                                    metatile.mtime)
+
+        if self._mode in ('hybrid', 'overwrite'):
+            self._storage.put(tile)
+
+        return tile
+
+    def render_metatile(self, metatile_index):
+        context = MetaTileContext(metatile_index, self._mode)
+        metatile = self._renderer.render(context)
+
+        if self._mode in ('hybrid', 'overwrite'):
             tile_indexes = metatile_index.fission()
             if self._mode == 'overwrite' or \
-                    not self._renderer_cache.has_all(tile_indexes):
+                    not self._storage.has_all(tile_indexes):
                 tiles = metatile_fission(metatile)
-                self._renderer_cache.put_multi(tiles)
-
-        for __name, renderer in self._render_nodes.items():
-            if hasattr(renderer, 'keep_cache') and not renderer.keep_cache:
-                renderer.delete(metatile_index)
-
+                self._storage.put_multi(tiles)
+        self._renderer.erase(metatile_index)
         return metatile
 
-    # Shortcuts for bypassing renderer tree -----------------------------------
-    def get_single_tile(self, z, x, y):
-        if self._mode not in ['default', 'readonly']:
-            return None
-        if not self._renderer_cache:
-            return None
-
-        tile_index = self._renderer_cache.pyramid.create_tile_index(z, x, y)
-        return self._renderer_cache.get(tile_index)
-
-    def has_metatile(self, z, x, y, stride):
-        if self._mode in ['overwrite']:
-            return False
-        metatile_index = self._renderer_cache.pyramid.create_metatile_index(z, x, y, stride)
-        tile_indexes = list()
-        for i in range(metatile_index.x, metatile_index.x + stride):
-            for j in range(metatile_index.y, metatile_index.y + stride):
-                tile_indexes.append(self._renderer_cache.pyramid.create_tile_index(z, i, j, range_check=False))
-        return self._renderer_cache.has_all(tile_indexes)
-
     def close(self):
-        self._rendertree.close()
+        self._renderer.close()
 
+    def _create_pyramid(self, pyramid_cfg):
+        return Pyramid(**pyramid_cfg)
 
-#==============================================================================
-# Render Configuration Parser
-#==============================================================================
-class RenderConfigParser(object):
+    def _create_metadata(self, metadata_cfg):
+        return Metadata.make_metadata(**metadata_cfg)
 
-    ROOT_NAME = 'ROOT'
+    def _create_renderer(self, renderer_name, pyramid, metadata):
+        renderer_cfg = self._mason_cfg.get_node_cfg(renderer_name)
+        if not renderer_cfg:
+            raise RenderNodeConfigNotFound(renderer_name)
 
-    def __init__(self):
-        self._pyramid_config = dict()
-        self._metadata_config = dict()
-        self._cache_config = dict()
-        self._rendertree = None
+        cfg = dict(renderer_cfg)
+        child_names = cfg.pop('sources', list())
+        if isinstance(child_names, str):
+            child_names = [child_names, ]
 
-        self._nodes = dict()
-        self._edges = list()
+        prototype = cfg.pop('prototype')
+        cache_cfg = cfg.pop('cache', None)
+        keep_cache = cfg.pop('keep_cache', True)
 
-    def read(self, filename):
-        global_vars, local_vars = {}, {}
-        execfile(filename, global_vars, local_vars)
+        cache = self._create_storage(cache_cfg, pyramid, metadata)
 
-        config = dict(local_vars)
+        render_node = create_render_node(prototype,
+                                         renderer_name,
+                                         cache=cache,
+                                         **cfg)
+        render_node.keep_cache = keep_cache
 
-        self._parse_root(config)
-        self._parse_nodes_and_edges(config)
+        for name in child_names:
+            child_node = self._create_renderer(name, pyramid, metadata)
+            render_node.add_child(child_node)
 
-    def _parse_root(self, config):
-        # parse root configuration
-        root_config = config.get(self.ROOT_NAME, None)
-        if not root_config:
-            raise RenderConfigError('missing "root" config')
+        return render_node
 
-        # pyramid configuration
-        pyramid = root_config.get('pyramid', None)
-        if not pyramid:
-            raise RenderConfigError('missing "pyramid" config in root')
+    def _create_storage(self, storage_cfg, pyramid, metadata):
+        if not storage_cfg:
+            storage_cfg = dict(prototype='null')
 
-        # metadata configuration
-        metadata = root_config.get('metadata', None)
-        if 'metadata' not in root_config:
-            raise RenderConfigError('missing "metadata" config in root')
+        cfg = dict(storage_cfg)
+        prototpye = cfg.pop('prototype', None)
+        if not prototpye:
+            raise InvalidStorageConfig(repr(storage_cfg))
+        
+        format_name = cfg.pop('data_format', None)
+        if format_name:
+            data_format = Format.from_name(format_name)
+            pyramid = pyramid.clone(format=data_format)
 
-        # renderer configuration
-        renderer = root_config.get('renderer', None)
-        if 'renderer' not in root_config:
-            raise RenderConfigError('missing "renderer" node in root')
-
-        # cache configuration
-        cache = root_config.get('cache', None)
-
-        self._pyramid_config = pyramid
-        self._metadata_config = metadata
-        self._rendertree = renderer
-        self._cache_config = cache
-
-    def _parse_nodes_and_edges(self, config):
-        # parse configurations of render nodes
-        self._nodes = dict()
-        for name, val in config.items():
-            # a valid render node configuration should
-            # be a dictionary with prototype
-            if not isinstance(val, dict) or 'prototype' not in val:
-                continue
-
-            node_config = dict(val)
-
-            # node prototype
-            prototype = node_config.pop('prototype', None)
-
-            # node sources
-            sources = node_config.pop('sources', tuple())
-            if isinstance(sources, str):
-                sources = (sources,)
-            sources = tuple(sources)
-
-            # node cache
-            cache = node_config.pop('cache', None)
-
-            self._nodes[name] = dict(prototype=prototype,
-                                     sources=sources,
-                                     cache=cache,
-                                     attrdict=node_config)
-
-        # parse configurations of edges
-        self._edges = list()
-        for name, config in self._nodes.items():
-            start = name
-            for end in config['sources']:
-                if end not in self._nodes:
-                    raise RenderConfigError(
-                            'Unkonwn reference: %s->%s' % (start, end))
-                self._edges.append((start, end))
-
-    @property
-    def pyramid_config(self):
-        return self._pyramid_config
-
-    @property
-    def metadata_config(self):
-        return self._metadata_config
-
-    @property
-    def renderer_cache_config(self):
-        return self._cache_config
-
-    @property
-    def renderer(self):
-        return self._rendertree
-
-    def render_nodes(self):
-        return self._nodes.items()
-
-    def render_edges(self):
-        return self._edges
+        return create_tilestorage(prototpye, pyramid, metadata, **cfg)
 
 
 #==============================================================================
@@ -306,16 +217,11 @@ def create_render_tree_from_config(config_file, option):
 
     option:
         1.mode can be one of following:
-        - default: write to cache after render
+        - hybrid: write to cache after render
         - overwrite: render and overwrite any existing cache
         - readonly: only read from cache
         - dryrun: always render but does not write to cache
 
-        2.reload can be true or false
-        - true: reload configurations, such as mapnik stylesheet.
-        - false: load configurations only at start up.
-
     """
-    config = RenderConfigParser()
-    config.read(config_file)
-    return RenderTree(config, **option)
+    config = MasonConfig(config_file)
+    return MasonRenderer(config, **option)

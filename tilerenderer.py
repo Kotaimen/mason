@@ -55,8 +55,7 @@ def envelope_spawner(queue, statistics, options):
                            envelope=options.envelope)
     count = 0
     for index in walker.walk():
-        if not options.overwrite and renderer.has_metatile(index.z, index.x,
-                                                           index.y, index.stride):
+        if not options.overwrite and renderer.has_metatile(index):
             logger.info('Skipping %r...', index)
             continue
         count += 1
@@ -72,8 +71,7 @@ def tilelist_spawner(queue, statistics, options):
                                    envelope=options.envelope)
     count = 0
     for index in walker.walk():
-        if not options.overwrite and renderer.has_metatile(index.z, index.x,
-                                                           index.y, index.stride):
+        if not options.overwrite and renderer.has_metatile(index):
             logger.info('Skipping %r...', index)
             continue
         count += 1
@@ -101,7 +99,7 @@ def render_worker(queue, statistics, options):
         logger.info('Rendering #%d: %r...' % (count, index))
         with Timer('... #%d finished in %%(time)s' % count, logger.info, False):
             try:
-                metatile = renderer.render(index)
+                metatile = renderer.render_metatile(index)
                 if metatile:
                     statistics.rendered += 1
                 else:
@@ -281,9 +279,9 @@ def verify_config(options):
     if options.overwrite:
         options.mode = 'overwrite'
     else:
-        options.mode = 'default'
+        options.mode = 'hybrid'
 
-    render_option = dict(mode=options.mode, reload=False)
+    render_option = dict(mode=options.mode)
     renderer = create_render_tree_from_config(options.config, render_option)
 
     if not options.levels:
@@ -341,7 +339,7 @@ def test_render(renderer, options):
             break
         logger.info('Rendering %s...', index)
         with Timer('%s rendered in %%(time)s' % index, logger.info, False):
-            metatile = renderer.render(index)
+            metatile = renderer.render_metatile(index)
 
     logger.info('Test complete')
 

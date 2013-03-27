@@ -126,8 +126,8 @@ def parse_args(args=None):
                         )
 
     # Convert "mode" argument to the one understands by Mason
-    mode2mode = dict(hybrid='default',
-                     h='default',
+    mode2mode = dict(hybrid='hybrid',
+                     h='hybrid',
                      readonly='readonly',
                      r='readonly',
                      overwrite='overwrite',
@@ -177,8 +177,7 @@ class MasonApp(object):
             # Add storages
             for layer_config in self._options.layers:
                 print 'Adding layer from "%s"' % layer_config
-                layer_option = dict(mode=self._options.mode,
-                                    reload=self._options.reload)
+                layer_option = dict(mode=self._options.mode)
                 add_storage_or_renderer(mason, layer_config, layer_option)
             self._mason = mason
         return self._mason

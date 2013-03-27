@@ -7,7 +7,6 @@ import time
 import logging
 import Queue
 import traceback
-from copy import deepcopy
 from multiprocessing import Process, JoinableQueue, cpu_count
 
 logging.basicConfig(level=logging.DEBUG)
@@ -112,13 +111,12 @@ class Mothership(object):
 
     """ Monitor of producer and consumers """
 
-    def __init__(self, producer, consumer, num=cpu_count()):
+    def __init__(self, producer, consumers):
         self._queue = JoinableQueue()
 
         self._producer_proxy = ProducerProxy(self._queue, producer)
-        self._consumer_pool = list(ConsumerProxy(self._queue,
-                                                 deepcopy(consumer)) \
-                                   for _i in range(num))
+        self._consumer_pool = list(ConsumerProxy(self._queue, consumer) \
+                                   for consumer in consumers)
 
     def start(self):
         """ Start working """
@@ -155,7 +153,7 @@ class TestTask(object):
 class TestMaster(Producer):
 
     def items(self):
-        for i in range(10000):
+        for i in range(100):
             yield TestTask(i)
 
 
@@ -172,9 +170,9 @@ class TestSlaver(Consumer):
 def main():
 
     master = TestMaster()
-    slaver = TestSlaver('test')
+    slavers = [TestSlaver('test1'), TestSlaver('test2'), TestSlaver('test3')]
 
-    with Mothership(master, slaver, 3) as m:
+    with Mothership(master, slavers) as m:
         m.start()
 
 if __name__ == "__main__":
