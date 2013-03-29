@@ -66,7 +66,7 @@ class S3TileStorage(TileStorage):
     def get(self, tile_index):
         s3key = boto.s3.key.Key(self._bucket)
         s3key.key = self._make_key(tile_index)
-        print 'get', s3key.key
+#        print 'get', s3key.key
         if not s3key.exists():
             # Check key existence first otherwise get_content will retry several
             # times, which slows thing down, note this is not atomic
@@ -86,7 +86,7 @@ class S3TileStorage(TileStorage):
     def put(self, tile):
         s3key = boto.s3.key.Key(self._bucket)
         s3key.key = self._make_key(tile.index)
-        print 'put', s3key.key, human_size(len(tile.data))
+#        print 'put', s3key.key, human_size(len(tile.data))
         s3key.set_contents_from_string(tile.data)
 
     def has(self, tile_index):
