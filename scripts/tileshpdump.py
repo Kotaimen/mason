@@ -5,13 +5,14 @@
 
 import csv
 import os
+import sys
 import re
 import geojson
 from mason.core import Pyramid
 
 def main1():
-    input = 'themes/RenderAreas/ch_urban_areas/12.csv'
-    output = 'themes/RenderAreas/ch_urban_areas/12.geojson'
+    input = sys.argv[1]
+    output = sys.argv[2]
     pyramid = Pyramid(levels=range(0, 22))
     features = list()
     with open(input, 'rb') as fp:
@@ -51,14 +52,14 @@ def main2():
 
             if not match:
                 continue
-               
+
             count += 1
             if count % 100 == 0:
                 print count, filename
 
             z, x, y, stride = tuple(map(int, (match.groups())))
 
-            tile_index = pyramid.create_metatile_index(z, x, y, 16, )
+            tile_index = pyramid.create_metatile_index(z, x, y, 16,)
             envelope = tile_index.envelope
             coordinates = [[
                 envelope.leftbottom.make_tuple(),
