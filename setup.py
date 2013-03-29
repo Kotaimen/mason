@@ -22,7 +22,7 @@ scripts = ['tileserver.py', 'tilerenderer.py']
 
 setup(
     name='mason',
-    version='0.9.3',
+    version='0.9.4',
     author='Kotaimen, Ray',
     author_email='kotaimen.c@gmail.com, gliese.q@gmail.com',
     description='Another map tile library reinvented',

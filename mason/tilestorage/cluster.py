@@ -91,7 +91,7 @@ class TileCluster(object):
         return tiles
 
 
-class ClusterTileStorage(FileSystemTileStorage):
+class FileClusterTileStorage(FileSystemTileStorage):
 
     """ Store adjacent tiles in a cluster """
 
@@ -135,10 +135,10 @@ class ClusterTileStorage(FileSystemTileStorage):
 
     @staticmethod
     def from_config(root):
-        config_file = os.path.join(root, ClusterTileStorage.CONFIG_FILENAME)
+        config_file = os.path.join(root, FileClusterTileStorage.CONFIG_FILENAME)
         with open(config_file, 'r') as fp:
             summary = json.load(fp)
-            return ClusterTileStorage.from_summary(summary, root)
+            return FileClusterTileStorage.from_summary(summary, root)
 
     @staticmethod
     def from_summary(summary, root):
@@ -146,8 +146,8 @@ class ClusterTileStorage(FileSystemTileStorage):
         summary['root'] = root
         summary['pyramid'] = Pyramid.from_summary(summary['pyramid'])
         summary['metadata'] = Metadata.from_dict(summary['metadata'])
-        assert summary.pop('magic') == ClusterTileStorage.CONFIG_VERSION
-        return ClusterTileStorage(**summary)
+        assert summary.pop('magic') == FileClusterTileStorage.CONFIG_VERSION
+        return FileClusterTileStorage(**summary)
 
     # Aux ---------------------------------------------------------------------
 
@@ -216,14 +216,6 @@ class ClusterTileStorage(FileSystemTileStorage):
             if len(tiles) != self._stride * self._stride:
                 raise TileStorageError('Must put a fissioned MetaTile into cluster storage, '
                                        'set render stride equal to cluster stride.')
-
-                # XXX: is this too expensive?
-#                for tile in tiles[1:]:
-#                    idx = self._pyramid.create_metatile_index(tile.index.z,
-#                                                              tile.index.x,
-#                                                              tile.index.y,
-#                                                              self._stride)
-#                    assert metatile.index == idx
 
         FileSystemTileStorage.put(self, metatile)
 

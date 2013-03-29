@@ -5,7 +5,7 @@ Created on May 14, 2012
 '''
 
 import collections
-from .core import buffer_crop, Format
+from .core import Format
 
 #===============================================================================
 # Layers
@@ -55,28 +55,12 @@ class RendererLayer(object):
         return self._metadata
 
     def get_tile(self, z, x, y):
-        tile = self._rendertree.get_single_tile(z, x, y)
-        if tile is not None:
-            return tile
-        # Render a 1x1 MetaTile
-        metatile_index = self._rendertree.pyramid.create_metatile_index(z, x, y, 1)
-        metatile = self._rendertree.render(metatile_index)
-        if not metatile:
-            return None
-
-        # Crop buffer
-        data = buffer_crop(metatile.data,
-                           metatile.index.buffered_tile_size,
-                           metatile.index.buffer,
-                           metatile.format)
-        # Return a tile object
-        tile = self._rendertree.pyramid.create_tile(z, x, y, data,
-                                                  metatile.mtime)
-        return tile
+        tile_index = self._rendertree.pyramid.create_tile_index(z, x, y)
+        return self._rendertree.render_tile(tile_index)
 
     def render_metatile(self, z, x, y, stride):
         metatile_index = self._rendertree.pyramid.create_metatile_index(z, x, y, stride)
-        self._rendertree.render(metatile_index)
+        self._rendertree.render_metatile(metatile_index)
 
     def close(self):
         self._rendertree.close()

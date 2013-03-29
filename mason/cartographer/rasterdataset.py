@@ -8,9 +8,8 @@ import io
 import subprocess
 from osgeo import gdal, gdalconst, osr
 
+from ..utils import SpatialReference, TempFile
 from .cartographer import Cartographer
-from .gdaltools import SpatialReference
-from .gdalraster import GDALTempFileRaster
 
 
 class RasterDataset(Cartographer):
@@ -130,7 +129,8 @@ class RasterDataset(Cartographer):
 #         print '>'*10, zoom_ratio,  resample_method
 
         try:
-            target_raster = GDALTempFileRaster(data_format='gtiff')
+#            target_raster = GDALTempFileRaster(data_format='gtiff')
+            target_raster = TempFile()
 
             command = ['gdalwarp',
                        '-ts', str(target_width), str(target_height),
@@ -163,8 +163,8 @@ class RasterDataset(Cartographer):
             popen = subprocess.Popen(command)
             popen.communicate()
 
-            target_raster.load()
-            return io.BytesIO(target_raster.data)
+            data = target_raster.read()
+            return io.BytesIO(data)
 
         finally:
             target_raster.close()

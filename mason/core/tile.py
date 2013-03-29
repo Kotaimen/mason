@@ -96,12 +96,7 @@ class Tile(object):
         self._data = data
         self._format = fmt
         self._mtime = mtime
-        # Calculate sha256 of binary data as hashing
-        if self._data:
-            self._hash = hashlib.sha256(self._data).hexdigest()
-        else:
-            # Empty data, use empty hex hashing string instead
-            self._hash = ''
+        self._hash = None
 
     @property
     def index(self):
@@ -113,6 +108,12 @@ class Tile(object):
 
     @property
     def data_hash(self):
+        if self._hash is None:
+            if self._data:
+                self._hash = hashlib.sha256(self._data).hexdigest()
+            else:
+                # Empty data, use empty hex hashing string instead
+                self._hash = ''
         return self._hash
 
     @property
@@ -152,7 +153,7 @@ class MetaTileIndex(TileIndex):
 
         self._stride = stride
 
-        # A list of TileIndexes in the MetaTile 
+        # A list of TileIndexes in the MetaTile
         self._indexes = list()
         for i in range(x, x + stride):
             for j in range(y, y + stride):

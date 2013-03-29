@@ -8,13 +8,17 @@ import os
 import re
 import subprocess
 
-from ..utils import create_temp_filename
+from ..utils import TempFile
 from .composer import ImageComposer
 
 try:
     output = subprocess.check_output(['convert', '-version'])
 except Exception:
     raise ImportError('Convert is not found. Please Install ImageMagick.')
+
+
+class CommandNotFound(Exception):
+    pass
 
 
 class ImageMagickError(subprocess.CalledProcessError):
@@ -62,10 +66,12 @@ class ImageMagickComposer(ImageComposer):
 
     """
 
-    def __init__(self, format, command):
+    def __init__(self, format):
         ImageComposer.__init__(self, format)
-
+        self._command = None
         # Convert command string to list of arguments
+
+    def setup_command(self, command):
         lines = ['convert -quiet -limit thread 1']
         for line in command.splitlines():
             if line.lstrip().startswith('#'):
@@ -78,33 +84,34 @@ class ImageMagickComposer(ImageComposer):
         """ Composes tiles according to the command"""
 
         # Copy a command list since we are going to modify it in place
+        if not self._command:
+            raise CommandNotFound
         command = list(self._command)
 
         files_to_delete = dict()
 
-        for cmd_no, tile_no in self._parse_command(command):
+        for cmd_no, ref_name in self._parse_command(command):
             try:
-                image_data, image_ext = image_list[tile_no - 1]
+                image_data, image_ext = image_list[ref_name]
             except KeyError:
-                raise RuntimeError('Invalid tile source "%s"' % tile_no)
+                raise RuntimeError('Invalid tile source "%s"' % ref_name)
 
             # Generate a new tempfile for tiles not used yet
-            if tile_no not in files_to_delete:
+            if ref_name not in files_to_delete:
 
                 # Generate a temp file name using mkstemp
                 suffix = image_ext
-                prefix = 'mgktle$%d-' % tile_no
-                tempname = create_temp_filename(suffix=suffix, prefix=prefix)
+                prefix = 'mgktle$%s-' % ref_name
+                tempfile = TempFile(prefix=prefix, suffix=suffix)
 
                 # Delete the temp file later
-                files_to_delete[tile_no] = tempname
+                files_to_delete[ref_name] = tempfile
 
                 # Write image data to temp file
-                with open(tempname, 'wb') as fp:
-                    fp.write(image_data)
+                tempfile.write(image_data)
 
             # Replace '%n' with real filename
-            command[cmd_no] = tempname
+            command[cmd_no] = tempfile.filename
 
         try:
             # Call imagemagick command
@@ -120,15 +127,14 @@ class ImageMagickComposer(ImageComposer):
             return io.BytesIO(stdout)
         finally:
             # Delete temporary files
-            for filename in files_to_delete.itervalues():
-                if os.path.exists(filename):
-                    os.remove(filename)
+            for tempfile in files_to_delete.itervalues():
+                tempfile.close()
 
     def _parse_command(self, command):
 
         for i in range(len(command)):
             arg = command[i]
-            match = re.match(r'\$(\d+)', arg)
+            match = re.match(r'\{\{(\w+)\}\}', arg)
             if match:
-                tile_no = int(match.group(1))
-                yield (i, tile_no)
+                ref_name = match.group(1)
+                yield (i, ref_name)

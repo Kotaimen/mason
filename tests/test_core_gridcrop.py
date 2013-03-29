@@ -91,7 +91,7 @@ class TestGridCropBuffered(unittest.TestCase):
         with open('./input/test_core_gridcrop_grid.png', 'r') as fp:
             data = fp.read()
 
-        datas = grid_crop(data, 2, 512, 256, Format.PNG)
+        datas = grid_crop(data, 2, 1024, 256, Format.PNG)
         self.assertEqual(len(datas), 4)
 
         for (x, y), d in datas.iteritems():
@@ -103,7 +103,7 @@ class TestGridCropBuffered(unittest.TestCase):
         with open('./input/test_core_gridcrop_grid.jpg', 'r') as fp:
             data = fp.read()
 
-        datas = grid_crop(data, 2, 512, 256, Format.JPG)
+        datas = grid_crop(data, 2, 1024, 256, Format.JPG)
         self.assertEqual(len(datas), 4)
 
         for (x, y), d in datas.iteritems():

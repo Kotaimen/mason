@@ -1,63 +1,55 @@
 
 
 source1 = dict(\
-    prototype='datasource.mapnik',
-    cache=None,
-
+    prototype='node.mapnik',
     theme='./input/world.xml',
     image_type='png',
+
+    cache=dict(prototype='metacache',
+                root='./output/test-mason_renderer/hillshading'
+                ),
     )
 
 source3 = dict(\
-    prototype='datasource.mapnik',
-    cache=None,
-
+    prototype='node.mapnik',
     theme='./input/world.xml',
     image_type='png',
     )
 
-
 source2 = dict(\
-    prototype='datasource.postgis',
+    prototype='node.raster',
     cache=None,
-
-    server='172.26.183.198',
-    table='srtm30',
+    dataset_path='./input/hailey.tif'
     )
 
 processor1 = dict(\
-    prototype='processor.hillshading',
+    prototype='node.hillshading',
     sources='source2',
-    cache=None,
+    keep_cache=True,
+    cache=dict(prototype='metacache',
+                root='./output/test-mason_renderer/hillshading'
+                ),
 
-    zfactor=2,
+    zfactor=[10, ] * 10,
     scale=111120,
     altitude=45,
     azimuth=315,
     )
 
-processor2 = dict(\
-    prototype='processor.hillshading',
-    sources='source2',
-    cache=None,
-
-    zfactor=2,
-    scale=111120,
-    altitude=55,
-    azimuth=135,
-)
-
 composite = dict(\
-     prototype='composite.imagemagick',
-     sources=('source1', 'source3'),
-     command='',
+     prototype='node.imagemagick',
+     sources=('source1', 'source3', 'processor1'),
+     command="""{{%(source)s}}""",
+     command_params=dict(source='source1'),
      format='png',
 )
 
 
 ROOT = dict(
-            prototype='root',
-            metadata=dict(tag='test'),
-            pyramid=dict(envelope=(-180, -90, 180, 90)),
+            metadata=dict(tag='test-mason_renderer'),
+            pyramid=dict(envelope=(-180, -85, 180, 85)),
             renderer='composite',
-            )
+            storage=dict(prototype='filesystem',
+                         root='./output/test-mason_renderer'
+                        )
+       )

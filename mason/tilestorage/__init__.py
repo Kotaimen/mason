@@ -16,12 +16,19 @@ from .tilestorage import TileStorage, NullTileStorage
 
 from .filesystem import FileSystemTileStorage
 from .metatilecache import MetaTileCache
-from .cluster import ClusterTileStorage
+from .cluster import FileClusterTileStorage
 
 try:
     from .memcached import MemcachedTileStorage
 except ImportError:
     MemcachedTileStorage = None
+
+try:
+    from .s3 import S3TileStorage, S3ClusterTileStorage
+except ImportError:
+    S3TileStorage = None
+    S3ClusterTileStorage = None
+
 
 from .mbtiles import MBTilesTileStorage, MBTilesTileStorageWithBackgroundWriter
 
@@ -61,8 +68,10 @@ class TileStorageFactory(object):
                           memcache=MemcachedTileStorage,
                           mbtiles=MBTilesTileStorage,
                           mbtilesbw=MBTilesTileStorageWithBackgroundWriter,
-                          cluster=ClusterTileStorage,
+                          s3=S3TileStorage,
                           cascade=CascadeTileStorageWrapper,
+                          cluster=FileClusterTileStorage,
+                          s3cluster=S3ClusterTileStorage,
                           )
 
     def __call__(self, prototype, pyramid=None, metadata=None, **params):
@@ -87,7 +96,7 @@ def create_tilestorage(prototype, pyramid=None, metadata=None, **args):
 
 MAGIC = {FileSystemTileStorage.CONFIG_VERSION.split('-', 1)[0]: FileSystemTileStorage,
          MetaTileCache.CONFIG_VERSION.split('-', 1)[0]: MetaTileCache,
-         ClusterTileStorage.CONFIG_VERSION.split('-', 1)[0]: ClusterTileStorage,
+         FileClusterTileStorage.CONFIG_VERSION.split('-', 1)[0]: FileClusterTileStorage,
          }
 
 

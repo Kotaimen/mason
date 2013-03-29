@@ -201,7 +201,7 @@ Note this script only supports uncompressed FileSystemTileCache.
     return options
 
 
-import prodconsq
+import mason.utils.workq as workq
 
 
 class TestTask(object):
@@ -210,7 +210,7 @@ class TestTask(object):
         self.args = args
 
 
-class Producer(prodconsq.Producer):
+class Producer(workq.Producer):
 
     def __init__(self, tasks):
         self.tasks = tasks
@@ -220,7 +220,7 @@ class Producer(prodconsq.Producer):
             yield task
 
 
-class Consumer(prodconsq.Consumer):
+class Consumer(workq.Consumer):
 
     def consume(self, task):
         process_task(*task)
@@ -243,9 +243,9 @@ def main():
 
     if options.workers > 1:
         producer = Producer(tasks)
-        consumer = Consumer()
+        consumers = list(Consumer() for _i in options.workers)
 
-        with prodconsq.Mothership(producer, consumer, options.workers) as m:
+        with workq.Mothership(producer, consumers) as m:
             m.start()
 
 if __name__ == '__main__':
