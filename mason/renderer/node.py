@@ -348,3 +348,30 @@ class ImageMagicRenderNode(MetaTileRenderNode):
         finally:
             data_stream.close()
         return metatile
+
+
+
+class MandelbrotRenderNode(MetaTileRenderNode):
+
+    def __init__(self, name, cache=None, **config):
+        MetaTileRenderNode.__init__(self, name, cache)
+        self._renderer = CartographerFactory('mandelbrot', **config)
+
+    def _render_metatile(self, metatile_index, metatile_sources):
+        assert len(metatile_sources) == 0
+
+        envelope = metatile_index.buffered_envelope.make_tuple()
+        width = height = metatile_index.buffered_tile_size
+        size = (width, height)
+        data_stream = self._renderer.render(envelope, size)
+        try:
+            data_format = Format.from_name(self._renderer.output_format)
+            mtime = time.time()
+            metatile = MetaTile.from_tile_index(metatile_index,
+                                                data_stream.getvalue(),
+                                                data_format,
+                                                mtime)
+        finally:
+            data_stream.close()
+
+        return metatile

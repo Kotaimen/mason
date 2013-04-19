@@ -18,6 +18,8 @@ try:
 except ImportError:
     RasterDataset = None
 
+from .mandelbrot import Mandelbrot
+
 
 #==============================================================================
 # Cartographer Factory
@@ -26,7 +28,8 @@ class _CartographerFactory(object):
 
     CLASS_REGISTRY = dict(mapnik=Mapnik,
                           postgis=PostGIS,
-                          dataset=RasterDataset,)
+                          dataset=RasterDataset,
+                          mandelbrot=Mandelbrot)
 
     def __call__(self, prototype, **params):
         creator = self.CLASS_REGISTRY.get(prototype, None)
