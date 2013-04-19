@@ -6,7 +6,7 @@ Created on Mar 17, 2013
 @author: ray
 '''
 import time
-from ..cartographer import Mapnik, RasterDataset
+from ..cartographer import CartographerFactory
 from ..composer import ImageMagickComposer
 from ..tilestorage import attach_tilestorage
 from ..core import MetaTile, Format
@@ -235,7 +235,7 @@ class MapnikRenderNode(MetaTileRenderNode):
 
     def __init__(self, name, cache=None, **mapnik_cfg):
         MetaTileRenderNode.__init__(self, name, cache)
-        self._mapniker = Mapnik(**mapnik_cfg)
+        self._mapniker = CartographerFactory('mapnik', **mapnik_cfg)
 
     def _render_metatile(self, metatile_index, metatile_sources):
         assert len(metatile_sources) == 0
@@ -282,7 +282,7 @@ class RasterRenderNode(MetaTileRenderNode):
         assert len(metatile_sources) == 0
 
         dataset_cfg = self._init_config(metatile_index, self._raw_cfg)
-        self._dataset = RasterDataset(**dataset_cfg)
+        self._dataset = CartographerFactory('dataset', **dataset_cfg)
 
         envelope = metatile_index.buffered_envelope.make_tuple()
         width = height = metatile_index.buffered_tile_size

@@ -26,13 +26,12 @@ class _CartographerFactory(object):
 
     CLASS_REGISTRY = dict(mapnik=Mapnik,
                           postgis=PostGIS,
-                          dataset=RasterDataset
-                          )
+                          dataset=RasterDataset,)
 
     def __call__(self, prototype, **params):
         creator = self.CLASS_REGISTRY.get(prototype, None)
         if creator is None:
-            raise Exception('Unknown cartographer "%s"' % prototype)
+            raise Exception('Cartographer "%s" is not available, missing support libraries?' % prototype)
 
         return creator(**params)
 

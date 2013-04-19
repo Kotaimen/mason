@@ -47,7 +47,6 @@ try:
     check_imagemagick()
 except Exception:
     HAS_IMAGEMAGICK = False
-    raise
 else:
     HAS_IMAGEMAGICK = True
 
