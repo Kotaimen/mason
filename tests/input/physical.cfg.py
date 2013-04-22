@@ -1,46 +1,21 @@
-source1 = dict(\
-    prototype='datasource.postgis',
-    cache=dict(prototype='metacache',
-               root='/tmp/physical/dem',
-               compress=False,
-               data_format='gtiff',
-               ),
-    server='postgresql://postgres:123456@172.26.183.198:5432/srtm30_new',
-    table='srtm30_new',
-    )
+
 
 hillshading = dict(\
-    prototype='processing.hillshading',
-    cache=dict(prototype='metacache',
-               root='/tmp/physical/hillshading',
-               compress=False,
-               data_format='gtiff'
-               ),
-    sources=('source1',),
-    zfactor=1,
+    prototype='node.homebrewhillshade',
+    dataset_path='/mnt/geodata/DEM-Tools-patch/source/ned100m',
+#    dataset_path='/mnt/geodata/DEM-Tools-patch/source/ned10m/',
+    zfactor=10,
     scale=1,
     altitude=45,
     azimuth=315,
     )
 
-to_png = dict(\
-    prototype='processing.rastertopng',
-    cache=dict(prototype='metacache',
-               root='/tmp/physical/hillshading_png',
-               compress=False,
-               data_format='png'
-               ),
-    sources=('hillshading',),
-    )
-
 
 ROOT = dict(\
     metadata=dict(tag='world'),
-    pyramid=dict(levels=range(7, 9),
+    pyramid=dict(levels=range(0, 15),
                  format='png',
-                 buffer=32),
-    cache=dict(prototype='filesystem',
-               root='/tmp/physical/world',
-               compress=False),
-    renderer='to_png',
+                 buffer=0,
+                 zoom=9),
+    renderer='hillshading',
     )

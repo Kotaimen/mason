@@ -6,7 +6,7 @@ Created on Mar 17, 2013
 @author: ray
 '''
 import time
-from ..cartographer import Mapnik, RasterDataset
+from ..cartographer import Mapnik, RasterDataset, ShadeRelief
 from ..composer import ImageMagickComposer
 from ..tilestorage import attach_tilestorage
 from ..core import MetaTile, Format
@@ -183,6 +183,42 @@ class HillShadingRenderNode(GDALRenderNode):
         src = source.filename
         dst = target.filename
         gdal_hillshading(src, dst, zfactor, scale, altitude, azimuth)
+
+
+class HomeBrewHillShade(GDALRenderNode):
+
+    def __init__(self, name,
+                 dataset_path,
+                 zfactor=1,
+                 scale=1,
+                 altitude=45,
+                 azimuth=315,
+                 cache=None):
+        GDALRenderNode.__init__(self, name, cache)
+        self._rasterdataset = ShadeRelief(dataset_path,
+                                          zfactor=zfactor,
+                                          scale=scale,
+                                          azimuth=azimuth,
+                                          altitude=altitude)
+
+    def _render_metatile(self, metatile_index, metatile_sources):
+        assert len(metatile_sources) == 0
+
+        envelope = metatile_index.buffered_envelope.make_tuple()
+        width = height = metatile_index.buffered_tile_size
+        size = (width, height)
+        data_stream = self._rasterdataset.render(envelope, size)
+        try:
+            data_format = Format.from_name(self._rasterdataset.output_format)
+            mtime = time.time()
+            metatile = MetaTile.from_tile_index(metatile_index,
+                                                data_stream.getvalue(),
+                                                data_format,
+                                                mtime)
+        finally:
+            data_stream.close()
+
+        return metatile
 
 
 #===============================================================================
