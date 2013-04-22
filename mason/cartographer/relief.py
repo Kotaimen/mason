@@ -31,7 +31,7 @@ def find_data(dirpath, minx, miny, maxx, maxy):
         for j in range(bottom, top + 1):
             sign_we = 'e' if i >= 0 else 'w'
             sign_ns = 'n' if j >= 0 else 's'
-            filename = '%s%02d%s%03d.tif' % (sign_ns, abs(j), sign_we, abs(i))
+            filename = '%s%02d%s%03d.flt' % (sign_ns, abs(j), sign_we, abs(i))
             fullpath = os.path.join(dirpath, filename)
             if os.path.exists(fullpath):
                 yield fullpath
@@ -120,17 +120,54 @@ class GeoRaster(object):
         source = gdal.Open(filename, gdalconst.GA_ReadOnly)
         if not source:
             raise Exception('Source file %s not found' % filename)
-
         source_proj = source.GetProjection()
+
         target = self._raster
         target_proj = target.GetProjection()
 
-        resample = gdalconst.GRA_Bilinear
+        # figure out resample method
+        source_geotransform = source.GetGeoTransform()
+        source_resx = source_geotransform[1]
+        source_resy = source_geotransform[5]
+
+        source_minx = source_geotransform[0]
+        source_maxy = source_geotransform[3]
+        source_miny = source_maxy + source_resy * source.RasterYSize
+        source_maxx = source_minx + source_resx * source.RasterXSize
+
+        fr_srs = osr.SpatialReference()
+        fr_srs.ImportFromWkt(source_proj)
+        to_srs = osr.SpatialReference()
+        to_srs.ImportFromWkt(target_proj)
+        transformer = osr.CoordinateTransformation(fr_srs, to_srs)
+        source_minx, source_miny, __foo = transformer.TransformPoint(source_minx, source_miny)
+        source_maxx, source_maxy, __foo = transformer.TransformPoint(source_maxx, source_maxy)
+
+        target_geotransform = target.GetGeoTransform()
+        target_resx = target_geotransform[1]
+        target_resy = target_geotransform[5]
+
+        # resy < 0
+        org_width = source.RasterXSize
+        org_height = source.RasterYSize
+        proj_width = (source_maxx - source_minx) / target_resx
+        proj_height = (source_miny - source_maxy) / target_resy
+
+        zoom_ratio = min(proj_width / org_width, proj_height / org_height)
+        resample = None
+        if zoom_ratio < 0.5:
+            resample = gdalconst.GRA_Cubic
+        elif zoom_ratio > 1.2:
+            resample = gdalconst.GRA_CubicSpline
+        else:
+            resample = gdalconst.GRA_Bilinear
+
         ret = gdal.ReprojectImage(source,
                                   target,
                                   source_proj,
                                   target_proj,
                                   resample)
+        # close source data
         source = None
         return gdalconst.CE_Failure != ret
 
@@ -226,7 +263,7 @@ class ShadeRelief(Cartographer):
                  scale=111120,
                  azimuth=315,
                  altitude=45):
-        Cartographer.__init__(self, 'GTIFF')
+        Cartographer.__init__(self, 'PNG')
 
         fr_srs = osr.SpatialReference()
         fr_srs.ImportFromEPSG(4326)
