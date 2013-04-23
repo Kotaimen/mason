@@ -195,14 +195,42 @@ class HomeBrewHillShade(GDALRenderNode):
                  azimuth=315,
                  cache=None):
         GDALRenderNode.__init__(self, name, cache)
+        self._dataset_path = dataset_path
+        self._zfactor = zfactor
+        self._scale = scale
+        self._altitude = altitude
+        self._azimuth = azimuth
+
+    def _render_metatile(self, metatile_index, metatile_sources):
+        assert len(metatile_sources) == 0
+
+        z, x, y = metatile_index.coord
+
+        zfactor = self._zfactor
+        if isinstance(zfactor, list):
+            zfactor = zfactor[z] if z < len(zfactor) else zfactor[-1]
+
+        scale = self._scale
+        if isinstance(scale, list):
+            scale = scale[z] if z < len(scale) else scale[-1]
+
+        altitude = self._altitude
+        if isinstance(altitude, list):
+            altitude = altitude[z] if z < len(altitude) else altitude[-1]
+
+        azimuth = self._azimuth
+        if isinstance(azimuth, list):
+            azimuth = azimuth[z] if z < len(azimuth) else azimuth[-1]
+
+        dataset_path = self._dataset_path
+        if isinstance(dataset_path, list):
+            dataset_path = dataset_path[z] if z < len(dataset_path) else dataset_path[-1]
+
         self._rasterdataset = ShadeRelief(dataset_path,
                                           zfactor=zfactor,
                                           scale=scale,
                                           azimuth=azimuth,
                                           altitude=altitude)
-
-    def _render_metatile(self, metatile_index, metatile_sources):
-        assert len(metatile_sources) == 0
 
         envelope = metatile_index.buffered_envelope.make_tuple()
         width = height = metatile_index.buffered_tile_size

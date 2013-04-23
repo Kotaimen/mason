@@ -20,7 +20,6 @@ from ..core.gridcrop import _BytesIO
 from .cartographer import Cartographer
 
 
-
 def find_data(dirpath, minx, miny, maxx, maxy):
     assert (minx < maxx) and (miny < maxy)
 
@@ -31,7 +30,23 @@ def find_data(dirpath, minx, miny, maxx, maxy):
         for j in range(bottom, top + 1):
             sign_we = 'e' if i >= 0 else 'w'
             sign_ns = 'n' if j >= 0 else 's'
+
             filename = '%s%02d%s%03d.flt' % (sign_ns, abs(j), sign_we, abs(i))
+            fullpath = os.path.join(dirpath, filename)
+            if os.path.exists(fullpath):
+                yield fullpath
+            filename = '%s%02d%s%03d.tif' % (sign_ns, abs(j), sign_we, abs(i))
+            fullpath = os.path.join(dirpath, filename)
+            if os.path.exists(fullpath):
+                yield fullpath
+
+            sign_we = 'E' if i >= 0 else 'W'
+            sign_ns = 'N' if j >= 0 else 'S'
+            filename = '%s%02d%s%03d.tif' % (sign_ns, abs(j), sign_we, abs(i))
+            fullpath = os.path.join(dirpath, filename)
+            if os.path.exists(fullpath):
+                yield fullpath
+            filename = '%s%02d%s%03d.hgt' % (sign_ns, abs(j), sign_we, abs(i))
             fullpath = os.path.join(dirpath, filename)
             if os.path.exists(fullpath):
                 yield fullpath
@@ -166,7 +181,8 @@ class GeoRaster(object):
                                   target,
                                   source_proj,
                                   target_proj,
-                                  resample)
+                                  resample,
+                                  )
         # close source data
         source = None
         return gdalconst.CE_Failure != ret
@@ -185,6 +201,11 @@ class GeoRaster(object):
 
         self.write(data, 0, 0)
         return True
+
+    def fillnodata(self):
+        band = self._raster.GetRasterBand(1)
+        ret = gdal.FillNodata(band, None, 500, 0)
+        return gdalconst.CE_Failure != ret
 
     def aspect_and_slope(self, zfactor, scale):
 
@@ -212,7 +233,7 @@ class GeoRaster(object):
         hillshade = 1 * ((math.cos(zenith) * numpy.cos(slope)) +
            (math.sin(zenith) * numpy.sin(slope) * numpy.cos(azimuth - aspect)))
 
-        hillshade[hillshade < 0] = 1 / 254
+        hillshade[hillshade < 0] = 1 / 255
         return hillshade
 
     def summary(self):
@@ -272,6 +293,8 @@ class ShadeRelief(Cartographer):
 
         self._transformer = osr.CoordinateTransformation(fr_srs, to_srs)
         self._dataset_path = dataset_path
+        if not isinstance(dataset_path, list):
+            self._dataset_path = list((dataset_path,))
 
         self._zfactor = zfactor
         self._scale = scale
@@ -293,18 +316,25 @@ class ShadeRelief(Cartographer):
 
         raster = GeoRaster('EPSG:3857', geotransform, size)
 
-#        print 'mosaic....'
-        for filename in find_data(self._dataset_path, minx, miny, maxx, maxy):
-#            print filename
-            raster.mosaic(filename)
+        for dirpath in self._dataset_path:
+            print 'mosaic....'
+            for filename in find_data(dirpath, minx, miny, maxx, maxy):
+                print filename
+                raster.mosaic(filename)
+#            raster.fillnodata()
+        raster.fillnodata()
 
         aspect, slope = raster.aspect_and_slope(self._zfactor, self._scale)
-        hillshade = raster.hillshade(aspect, slope, self._aziumth, self._altitude)
+        diffuse = raster.hillshade(aspect, slope, self._aziumth, 30)
+        detail = raster.hillshade(aspect, slope, self._aziumth, 65)
+        specular = raster.hillshade(aspect, slope, self._aziumth, 85)
+
+        hillshade = diffuse * 0.3 + numpy.power(detail, 0.6) * 0.4 \
+            + numpy.power(specular, 5) * 0.3
 
         hillshade = (255 * hillshade).astype(numpy.ubyte)
-
         image = scipy.misc.toimage(hillshade)
         buf = _BytesIO()
         image.save(buf, 'png', optimize=True)
-
+        raster.close()
         return buf
