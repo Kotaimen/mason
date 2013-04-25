@@ -78,7 +78,7 @@ class GeoRaster(object):
         self._bands = bands
 
         self._tempfile = TempFile()
-        driver = gdal.GetDriverByName('GTiff')
+        driver = gdal.GetDriverByName('GTIFF')
 
         ds = driver.Create(self._tempfile.filename,
                            self._width,
@@ -124,14 +124,27 @@ class GeoRaster(object):
 
     def read(self, band=1, offx=0, offy=0, winx=None, winy=None):
         data = self._raster.GetRasterBand(1).ReadAsArray()
-        nodata = self._raster.GetRasterBand(1).GetNoDataValue()
-        data = numpy.ma.masked_values(data, nodata)
+#        nodata = self._raster.GetRasterBand(1).GetNoDataValue()
+#        data = numpy.ma.masked_values(data, nodata)
         return data
 
     def write(self, data, offx=0, offy=0):
         self._raster.GetRasterBand(1).WriteArray(data, offx, offy)
 
-    def mosaic(self, filename):
+    def mosaic(self, filenames):
+        if not filenames:
+            return False
+        import subprocess
+
+        vrt = TempFile()
+        command = ['gdalbuildvrt', '-resolution', 'highest']
+        command.append(vrt.filename)
+        command.extend(filenames)
+
+        print ' '.join(command)
+        subprocess.check_call(command)
+
+        filename = vrt.filename
         source = gdal.Open(filename, gdalconst.GA_ReadOnly)
         if not source:
             raise Exception('Source file %s not found' % filename)
@@ -182,7 +195,9 @@ class GeoRaster(object):
                                   source_proj,
                                   target_proj,
                                   resample,
+                                  1024,
                                   )
+
         # close source data
         source = None
         return gdalconst.CE_Failure != ret
@@ -191,13 +206,21 @@ class GeoRaster(object):
         assert proportion <= 1.0 and proportion >= 0
         assert georaster.projection == georaster.projection
 
-        data = self.read()
-        blend_data = georaster.read()
+        data1 = self.read()
+        data2 = georaster.read()
 
-        assert data.shape == blend_data.shape
+        assert data1.shape == data2.shape
 
+#        mask1 = data1.mask
+#        mask2 = data2.mask
+#        mask = numpy.logical_and(mask1, mask2)
+
+#        data = data1.data
+        data1[numpy.equal(data1, -32768)] = data2[numpy.equal(data1, -32768)]
+        data2[numpy.equal(data2, -32768)] = data1[numpy.equal(data2, -32768)]
         # alpha composite
-        data = data * (1 - proportion) + blend_data * proportion
+        data = data1 * (1 - proportion) + data2 * proportion
+#        data = numpy.ma.masked_array(data, mask=mask)
 
         self.write(data, 0, 0)
         return True
@@ -222,6 +245,7 @@ class GeoRaster(object):
                 mode='nearest')
 
         slope = numpy.arctan(zfactor * numpy.hypot(dx, dy))
+
         aspect = numpy.arctan2(dy, -dx)
 
         return aspect, slope
@@ -233,7 +257,7 @@ class GeoRaster(object):
         hillshade = 1 * ((math.cos(zenith) * numpy.cos(slope)) +
            (math.sin(zenith) * numpy.sin(slope) * numpy.cos(azimuth - aspect)))
 
-        hillshade[hillshade < 0] = 1 / 255
+        hillshade[hillshade < 0] = 1 / 254
         return hillshade
 
     def summary(self):
@@ -302,7 +326,7 @@ class ShadeRelief(Cartographer):
         self._altitude = altitude
 
     def render(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
-
+        print envelope
         minx, miny, maxx, maxy = envelope
         t_minx, t_miny, __foo = self._transformer.TransformPoint(minx, miny)
         t_maxx, t_maxy, __foo = self._transformer.TransformPoint(maxx, maxy)
@@ -313,15 +337,11 @@ class ShadeRelief(Cartographer):
 
         # minx, resx, skewx, maxy, skewy, resy
         geotransform = t_minx, resx, 0, t_maxy, 0, -resy
-
         raster = GeoRaster('EPSG:3857', geotransform, size)
 
+        print 'mosaic....'
         for dirpath in self._dataset_path:
-            print 'mosaic....'
-            for filename in find_data(dirpath, minx, miny, maxx, maxy):
-                print filename
-                raster.mosaic(filename)
-#            raster.fillnodata()
+            raster.mosaic(find_data(dirpath, minx, miny, maxx, maxy))
         raster.fillnodata()
 
         aspect, slope = raster.aspect_and_slope(self._zfactor, self._scale)
