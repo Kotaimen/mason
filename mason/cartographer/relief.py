@@ -77,10 +77,8 @@ class GeoRaster(object):
 
         self._bands = bands
 
-        self._tempfile = TempFile()
-        driver = gdal.GetDriverByName('GTiff')
-
-        ds = driver.Create(self._tempfile.filename,
+        driver = gdal.GetDriverByName('MEM')
+        ds = driver.Create('',
                            self._width,
                            self._height,
                            self._bands,
@@ -246,7 +244,6 @@ class GeoRaster(object):
         print '*' * 80
 
     def close(self):
-        self._tempfile.close()
         self._raster = None
 
     @staticmethod
