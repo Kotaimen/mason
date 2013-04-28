@@ -69,10 +69,10 @@ class GeoRaster(object):
         self._height = size[1]
 
         minx, resx, skewx, maxy, skewy, resy = geotransform
-        maxx = minx + resx * self._width
-        miny = maxy + resy * self._height
         self._resx = resx
-        self._resy = resy
+        self._resy = -resy
+        maxx = minx + self._resx * self._width
+        miny = maxy - self._resy * self._height
         self._envelope = (minx, miny, maxx, maxy)
 
         self._bands = bands
@@ -141,11 +141,11 @@ class GeoRaster(object):
         # figure out resample method
         source_geotransform = source.GetGeoTransform()
         source_resx = source_geotransform[1]
-        source_resy = source_geotransform[5]
+        source_resy = -source_geotransform[5]
 
         source_minx = source_geotransform[0]
         source_maxy = source_geotransform[3]
-        source_miny = source_maxy + source_resy * source.RasterYSize
+        source_miny = source_maxy - source_resy * source.RasterYSize
         source_maxx = source_minx + source_resx * source.RasterXSize
 
         fr_srs = osr.SpatialReference()
@@ -158,13 +158,13 @@ class GeoRaster(object):
 
         target_geotransform = target.GetGeoTransform()
         target_resx = target_geotransform[1]
-        target_resy = target_geotransform[5]
+        target_resy = -target_geotransform[5]
 
         # resy < 0
         org_width = source.RasterXSize
         org_height = source.RasterYSize
         proj_width = (source_maxx - source_minx) / target_resx
-        proj_height = (source_miny - source_maxy) / target_resy
+        proj_height = (source_maxy - source_miny) / target_resy
 
         zoom_ratio = min(proj_width / org_width, proj_height / org_height)
         resample = None
@@ -220,13 +220,13 @@ class GeoRaster(object):
                 mode='nearest')
 
         slope = numpy.arctan(zfactor * numpy.hypot(dx, dy))
-        aspect = numpy.arctan2(dy, -dx)
+        aspect = math.pi / 2 - numpy.arctan2(dy, -dx)
 
         return aspect, slope
 
     def hillshade(self, aspect, slope, azimuth, altitude):
         zenith = math.radians(90. - altitude % 360.)
-        azimuth = math.radians((360. - azimuth - 180.) % 360.)
+        azimuth = math.radians(azimuth)
 
         hillshade = 1 * ((math.cos(zenith) * numpy.cos(slope)) +
            (math.sin(zenith) * numpy.sin(slope) * numpy.cos(azimuth - aspect)))
@@ -236,7 +236,6 @@ class GeoRaster(object):
 
     def summary(self):
         print '*' * 80
-        print 'filename: %s' % self._tempfile.filename
         print 'size: %dx%dx%d' % (self.width, self.height, self.bands)
         print 'resolution: %f x %f' % (self.resx, self.resy)
         print 'envelope: (%f, %f, %f, %f)' % self.envelope
