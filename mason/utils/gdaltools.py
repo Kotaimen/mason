@@ -14,8 +14,10 @@ try:
                               stdout=subprocess.PIPE).communicate()[0]
 except OSError:
     raise ImportError("Can't find gdalwarp, please install GDAL")
-gdal_version = float(re.search(r'^GDAL (\d\.\d)\.\d', stdout).group(1))
-if gdal_version < 1.8:
+match = re.search(r'^GDAL (\d+)\.(\d+)\.\d', stdout)
+# gdal version goes from 1.9 -> 1.10, treat as 1.09 -> 1.10
+gdal_version = float(match.group(1)) + float(match.group(2)) * 0.01
+if gdal_version < 1.08:
     raise ImportError('Requires gdal 1.8 or later')
 
 
