@@ -1,13 +1,11 @@
 
 
-dem90m_wr = '/mnt/geodata/SRTM_30_org/world_org'
-dem90m_us = '/mnt/geodata/DEM-Tools-patch/source/ned100m/'
-dem10m_us = '/mnt/geodata/DEM-Tools-patch/source/ned10m/'
+dem90m_wr = '/mnt/geodata/SRTM_30_org/world_3857'
+dem10m_us = '/mnt/geodata/DEM-Tools-patch/source/ned10m_3857/'
 
 
 hillshading = dict(\
     prototype='node.homebrewhillshade',
-#    dataset_path='/mnt/geodata/DEM-Tools-patch/source/ned100m',
     dataset_path=[
                   dem90m_wr,
                   dem90m_wr,
@@ -19,7 +17,10 @@ hillshading = dict(\
                   [dem90m_wr, ],
                   [dem90m_wr, ],
                   [dem90m_wr, ],
-                  [dem10m_us],
+                  [
+                   dem90m_wr,
+                   dem10m_us
+                   ],
                   ],
     zfactor=1,
     scale=1,

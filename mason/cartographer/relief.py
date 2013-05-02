@@ -18,7 +18,7 @@ from osgeo import gdal, gdalconst, osr
 from ..utils import TempFile
 from ..core.gridcrop import _BytesIO
 from .cartographer import Cartographer
-
+from .vrtraster import create_vrt_datasource
 
 def find_data(dirpath, minx, miny, maxx, maxy):
     assert (minx < maxx) and (miny < maxy)
@@ -69,18 +69,17 @@ class GeoRaster(object):
         self._height = size[1]
 
         minx, resx, skewx, maxy, skewy, resy = geotransform
-        maxx = minx + resx * self._width
-        miny = maxy + resy * self._height
         self._resx = resx
-        self._resy = resy
+        self._resy = -resy
+        maxx = minx + self._resx * self._width
+        miny = maxy - self._resy * self._height
         self._envelope = (minx, miny, maxx, maxy)
 
         self._bands = bands
 
-        self._tempfile = TempFile()
-        driver = gdal.GetDriverByName('GTIFF')
+        driver = gdal.GetDriverByName('MEM')
 
-        ds = driver.Create(self._tempfile.filename,
+        ds = driver.Create('',
                            self._width,
                            self._height,
                            self._bands,
@@ -134,20 +133,10 @@ class GeoRaster(object):
     def mosaic(self, filenames):
         if not filenames:
             return False
-        import subprocess
 
-        vrt = TempFile()
-        command = ['gdalbuildvrt', '-resolution', 'highest']
-        command.append(vrt.filename)
-        command.extend(filenames)
-
-        print ' '.join(command)
-        subprocess.check_call(command)
-
-        filename = vrt.filename
-        source = gdal.Open(filename, gdalconst.GA_ReadOnly)
+        source = create_vrt_datasource(filenames)
         if not source:
-            raise Exception('Source file %s not found' % filename)
+            raise Exception('Source file %s not found' % filenames)
         source_proj = source.GetProjection()
 
         target = self._raster
@@ -156,11 +145,11 @@ class GeoRaster(object):
         # figure out resample method
         source_geotransform = source.GetGeoTransform()
         source_resx = source_geotransform[1]
-        source_resy = source_geotransform[5]
+        source_resy = -source_geotransform[5]
 
         source_minx = source_geotransform[0]
         source_maxy = source_geotransform[3]
-        source_miny = source_maxy + source_resy * source.RasterYSize
+        source_miny = source_maxy - source_resy * source.RasterYSize
         source_maxx = source_minx + source_resx * source.RasterXSize
 
         fr_srs = osr.SpatialReference()
@@ -173,13 +162,13 @@ class GeoRaster(object):
 
         target_geotransform = target.GetGeoTransform()
         target_resx = target_geotransform[1]
-        target_resy = target_geotransform[5]
+        target_resy = -target_geotransform[5]
 
         # resy < 0
         org_width = source.RasterXSize
         org_height = source.RasterYSize
         proj_width = (source_maxx - source_minx) / target_resx
-        proj_height = (source_miny - source_maxy) / target_resy
+        proj_height = (source_maxy - source_miny) / target_resy
 
         zoom_ratio = min(proj_width / org_width, proj_height / org_height)
         resample = None
@@ -211,17 +200,10 @@ class GeoRaster(object):
 
         assert data1.shape == data2.shape
 
-#        mask1 = data1.mask
-#        mask2 = data2.mask
-#        mask = numpy.logical_and(mask1, mask2)
-
-#        data = data1.data
         data1[numpy.equal(data1, -32768)] = data2[numpy.equal(data1, -32768)]
         data2[numpy.equal(data2, -32768)] = data1[numpy.equal(data2, -32768)]
         # alpha composite
         data = data1 * (1 - proportion) + data2 * proportion
-#        data = numpy.ma.masked_array(data, mask=mask)
-
         self.write(data, 0, 0)
         return True
 
@@ -246,13 +228,13 @@ class GeoRaster(object):
 
         slope = numpy.arctan(zfactor * numpy.hypot(dx, dy))
 
-        aspect = numpy.arctan2(dy, -dx)
+        aspect = math.pi / 2 - numpy.arctan2(dy, -dx)
 
         return aspect, slope
 
     def hillshade(self, aspect, slope, azimuth, altitude):
         zenith = math.radians(90. - altitude % 360.)
-        azimuth = math.radians((360. - azimuth - 180.) % 360.)
+        azimuth = math.radians(azimuth)
 
         hillshade = 1 * ((math.cos(zenith) * numpy.cos(slope)) +
            (math.sin(zenith) * numpy.sin(slope) * numpy.cos(azimuth - aspect)))
@@ -262,7 +244,6 @@ class GeoRaster(object):
 
     def summary(self):
         print '*' * 80
-        print 'filename: %s' % self._tempfile.filename
         print 'size: %dx%dx%d' % (self.width, self.height, self.bands)
         print 'resolution: %f x %f' % (self.resx, self.resy)
         print 'envelope: (%f, %f, %f, %f)' % self.envelope
@@ -270,7 +251,6 @@ class GeoRaster(object):
         print '*' * 80
 
     def close(self):
-        self._tempfile.close()
         self._raster = None
 
     @staticmethod
@@ -326,7 +306,6 @@ class ShadeRelief(Cartographer):
         self._altitude = altitude
 
     def render(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
-        print envelope
         minx, miny, maxx, maxy = envelope
         t_minx, t_miny, __foo = self._transformer.TransformPoint(minx, miny)
         t_maxx, t_maxy, __foo = self._transformer.TransformPoint(maxx, maxy)
@@ -341,7 +320,8 @@ class ShadeRelief(Cartographer):
 
         print 'mosaic....'
         for dirpath in self._dataset_path:
-            raster.mosaic(find_data(dirpath, minx, miny, maxx, maxy))
+            files = find_data(dirpath, minx, miny, maxx, maxy)
+            raster.mosaic(files)
         raster.fillnodata()
 
         aspect, slope = raster.aspect_and_slope(self._zfactor, self._scale)
