@@ -9,14 +9,18 @@ import io
 import re
 import os
 import math
+
+from PIL import Image
 import numpy
 import scipy
-from scipy import ndimage
+import skimage.exposure
 
+from scipy import ndimage
 from osgeo import gdal, gdalconst, osr
 
-from ..utils import TempFile
+from ..utils import TempFile, Timer
 from ..core.gridcrop import _BytesIO
+from ..composer import ImageMagickComposer
 from .cartographer import Cartographer
 
 
@@ -77,8 +81,10 @@ class GeoRaster(object):
 
         self._bands = bands
 
-        driver = gdal.GetDriverByName('MEM')
-        ds = driver.Create('',
+        self._tempfile = TempFile()
+        driver = gdal.GetDriverByName('GTiff')
+
+        ds = driver.Create(self._tempfile.filename,
                            self._width,
                            self._height,
                            self._bands,
@@ -225,9 +231,8 @@ class GeoRaster(object):
         return aspect, slope
 
     def hillshade(self, aspect, slope, azimuth, altitude):
-        zenith = math.radians(90. - altitude % 360.)
+        zenith = math.radians(90. - altitude % 360.)        
         azimuth = math.radians(azimuth)
-
         hillshade = 1 * ((math.cos(zenith) * numpy.cos(slope)) +
            (math.sin(zenith) * numpy.sin(slope) * numpy.cos(azimuth - aspect)))
 
@@ -243,6 +248,7 @@ class GeoRaster(object):
         print '*' * 80
 
     def close(self):
+        self._tempfile.close()
         self._raster = None
 
     @staticmethod
@@ -280,7 +286,7 @@ class ShadeRelief(Cartographer):
                  scale=111120,
                  azimuth=315,
                  altitude=45):
-        Cartographer.__init__(self, 'PNG')
+        Cartographer.__init__(self, 'jpg')
 
         fr_srs = osr.SpatialReference()
         fr_srs.ImportFromEPSG(4326)
@@ -296,6 +302,27 @@ class ShadeRelief(Cartographer):
         self._scale = scale
         self._aziumth = azimuth
         self._altitude = altitude
+        
+        self._composer = ImageMagickComposer('jpg')
+        
+        self._composer.setup_command('''
+        
+          ( {{diffuse}} -fill grey50 -colorize 100% )
+          ( {{diffuse}} ) -compose blend -define compose:args=30% -composite
+          ( {{detail}} -fill #0055ff -tint 60 -gamma 0.75  ) -compose blend -define compose:args=40% -composite
+          ( {{specular}} -gamma 2 -fill #ffcba6 -tint 120 ) -compose blend -define compose:args=30% -composite
+          -quality 100
+        ''')
+    
+    
+    def array2img(self, array):
+        buf = _BytesIO()
+        # XXX: loses detail when convert to byte image... can we use float TIFF instead?
+        array =  (254 * array).astype(numpy.ubyte)
+        image = scipy.misc.toimage(array)
+        image.save(buf, 'jpeg', quality=100, optimized=True)
+        data = buf.getvalue()
+        return data
 
     def render(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
 
@@ -313,24 +340,30 @@ class ShadeRelief(Cartographer):
         raster = GeoRaster('EPSG:3857', geotransform, size)
 
         for dirpath in self._dataset_path:
-            print 'mosaic....'
+#            print 'mosaic....'
             for filename in find_data(dirpath, minx, miny, maxx, maxy):
-                print filename
+#                print filename
                 raster.mosaic(filename)
 #            raster.fillnodata()
         raster.fillnodata()
 
         aspect, slope = raster.aspect_and_slope(self._zfactor, self._scale)
-        diffuse = raster.hillshade(aspect, slope, self._aziumth, 30)
-        detail = raster.hillshade(aspect, slope, self._aziumth, 65)
+        diffuse = raster.hillshade(aspect, slope, self._aziumth, 35)
         specular = raster.hillshade(aspect, slope, self._aziumth, 85)
-
-        hillshade = diffuse * 0.3 + numpy.power(detail, 0.6) * 0.4 \
-            + numpy.power(specular, 5) * 0.3
-
-        hillshade = (255 * hillshade).astype(numpy.ubyte)
-        image = scipy.misc.toimage(hillshade)
-        buf = _BytesIO()
-        image.save(buf, 'png', optimize=True)
+        
+        aspect, slope = raster.aspect_and_slope(self._zfactor / 2.0, self._scale)        
+        detail = raster.hillshade(aspect, slope, self._aziumth, 65) 
+        
+        
         raster.close()
-        return buf
+
+        images = {
+            'diffuse' : (self.array2img(diffuse), '.jpg'),
+            'detail' : (self.array2img(detail), '.jpg'),
+            'specular' : (self.array2img(specular), '.jpg'),
+        }
+            
+        hillshading = self._composer.compose(images)
+        
+        
+        return hillshading
