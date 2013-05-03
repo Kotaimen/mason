@@ -90,10 +90,10 @@ class ShadeRelief(Cartographer):
           ( {{diffuse}} -fill grey50 -colorize 100% )
           ( {{diffuse}} ) -compose blend -define compose:args=30% -composite
           ( {{detail}} 
-#          -fill #0055ff -tint 60 
+          -fill #0055ff -tint 60 
           -gamma 0.75  ) -compose blend -define compose:args=40% -composite
           ( {{specular}} -gamma 2 
-#          -fill #ffcba6 -tint 120 
+          -fill #ffcba6 -tint 120 
           ) -compose blend -define compose:args=30% -composite
           -quality 100
         ''')
@@ -122,24 +122,17 @@ class ShadeRelief(Cartographer):
 
         georeference = GeoReference(self._project, geotransform, size)
 
-        canvas = None
+        raster = MemoryRaster(georeference)
         for dirpath in self._dataset_path:
-#            print 'mosaic....'
-            raster = MemoryRaster(georeference)
+
             if os.path.isfile(dirpath):
                 filenames = [dirpath]
             else:
                 filenames = list(find_data(dirpath, minx, miny, maxx, maxy))
             raster.mosaic(filenames)
-            elevation = raster.read()
-            raster.close()
 
-            if canvas is None:
-                canvas = elevation
-            else:
-                canvas = alpha_blend(canvas, elevation, 0.85)
-
-        elevation = canvas
+        elevation = raster.read()
+        raster.close()
 
         zfactor = self._zfactor
         scale = self._scale
