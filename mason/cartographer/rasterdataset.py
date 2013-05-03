@@ -8,7 +8,7 @@ import io
 import subprocess
 from osgeo import gdal, gdalconst, osr
 
-from ..utils import SpatialReference, TempFile
+from ..utils import SpatialTransformer, TempFile
 from .cartographer import Cartographer
 
 
@@ -86,7 +86,7 @@ class RasterDataset(Cartographer):
         minx, miny, maxx, maxy = envelope
 
         # Calculate envelope coordinates in target projection
-        srs = SpatialReference(4326, self._target_epsg)
+        srs = SpatialTransformer(4326, self._target_epsg)
         dst_minx, dst_miny, __foo = srs.forward(minx, miny)
         dst_maxx, dst_maxy, __foo = srs.forward(maxx, maxy)
 
@@ -107,7 +107,7 @@ class RasterDataset(Cartographer):
         if resample_method is None:
 
             # Calculate envelope coordinates in dataset projection
-            srs = SpatialReference(4326, self._dataset_epsg)
+            srs = SpatialTransformer(4326, self._dataset_epsg)
             org_minx, org_miny, __foo = srs.forward(minx, miny)
             org_maxx, org_maxy, __foo = srs.forward(maxx, maxy)
 
