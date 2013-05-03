@@ -4,17 +4,18 @@ dem90m_wr = '/mnt/geodata/SRTM_30_org/world_org'
 dem90m_us = '/mnt/geodata/DEM-Tools-patch/source/ned100m/'
 dem10m_us = '/mnt/geodata/DEM-Tools-patch/source/ned10m/'
 mount_st_helens = '/mnt/geodata/hires-dem/st-helens/st-helens.tif'
-
+world = '/mnt/geodata/srtm30_new/world_tiled.tif'
 
 hillshading = dict(\
     prototype='node.homebrewhillshade',
     dataset_path=[
-                  dem90m_wr,
-                  dem90m_wr,
-                  dem90m_wr,
-                  dem90m_wr,
-                  dem90m_wr,
-                  dem90m_wr,
+                  world,
+                  world,
+                  world,
+                  world,
+                  world,
+                  world,
+                  world,
                   dem90m_wr,
                   dem90m_wr,
                   dem90m_wr,

@@ -327,6 +327,16 @@ class ShadeRelief(Cartographer):
         t_minx, t_miny, __foo = self._transformer.TransformPoint(minx, miny)
         t_maxx, t_maxy, __foo = self._transformer.TransformPoint(maxx, maxy)
 
+        # HACK: fix coordinates error around +/-180, otherwise, GDAL will project
+        #       -181 to 19926188.852, which causes render artifacts
+        mark180, __foo, __foo = self._transformer.TransformPoint(180, 0)
+        if minx < -180:
+            assert minx > -360
+            t_minx = -mark180 - (mark180 - t_minx)
+        if maxx > 180:
+            assert maxx < 360
+            t_maxx = mark180 + (mark180 + t_maxx)
+
         width, height = size
         resx = (t_maxx - t_minx) / (width)
         resy = (t_maxy - t_miny) / (height)
