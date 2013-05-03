@@ -13,42 +13,6 @@ from xml.etree import ElementTree
 from scipy import ndimage, misc
 from osgeo import gdal, gdalconst, osr
 
-from ..core.gridcrop import _BytesIO
-from ..composer import ImageMagickComposer
-from .cartographer import Cartographer
-
-
-def find_data(dirpath, minx, miny, maxx, maxy):
-    assert (minx < maxx) and (miny < maxy)
-
-    left, right = int(math.floor(minx)), int(math.ceil(maxx))
-    bottom, top = int(math.floor(miny)), int(math.ceil(maxy))
-
-    for i in range(left, right + 1):
-        for j in range(bottom, top + 1):
-            sign_we = 'e' if i >= 0 else 'w'
-            sign_ns = 'n' if j >= 0 else 's'
-
-            filename = '%s%02d%s%03d.flt' % (sign_ns, abs(j), sign_we, abs(i))
-            fullpath = os.path.join(dirpath, filename)
-            if os.path.exists(fullpath):
-                yield fullpath
-            filename = '%s%02d%s%03d.tif' % (sign_ns, abs(j), sign_we, abs(i))
-            fullpath = os.path.join(dirpath, filename)
-            if os.path.exists(fullpath):
-                yield fullpath
-
-            sign_we = 'E' if i >= 0 else 'W'
-            sign_ns = 'N' if j >= 0 else 'S'
-            filename = '%s%02d%s%03d.tif' % (sign_ns, abs(j), sign_we, abs(i))
-            fullpath = os.path.join(dirpath, filename)
-            if os.path.exists(fullpath):
-                yield fullpath
-            filename = '%s%02d%s%03d.hgt' % (sign_ns, abs(j), sign_we, abs(i))
-            fullpath = os.path.join(dirpath, filename)
-            if os.path.exists(fullpath):
-                yield fullpath
-
 
 class GeoReference(object):
 
@@ -124,10 +88,6 @@ def hillshade(aspect, slope, azimuth, altitude):
     return hillshade
 
 
-def array2img(array):
-    pass
-
-
 def _intersection(src_envelop, dst_envelope):
     ''' return box of overlap area relative to dst_envelope '''
     s_minx, s_miny, s_maxx, s_maxy = src_envelop
@@ -179,6 +139,7 @@ class FileRaster(Raster):
 
     def __init__(self, filename):
 
+        # shared file handler
         raster = gdal.OpenShared(filename, gdalconst.GA_ReadOnly)
         if not raster:
             raise Exception('Source file %s not found' % filename)
@@ -242,8 +203,6 @@ class MemoryRaster(Raster):
         vrt = VirtualRaster.from_filenames(filenames)
         if not vrt:
             return None
-
-
 
     def fillnodata(self):
         band = self._raster.GetRasterBand(1)
@@ -438,100 +397,3 @@ class VirtualRaster(Raster):
             vrt.mosaic(filename)
 
         return vrt
-
-
-class ShadeRelief(Cartographer):
-
-    def __init__(self, dataset_path,
-                 zfactor=1,
-                 scale=111120,
-                 azimuth=315,
-                 altitude=45):
-        Cartographer.__init__(self, 'jpg')
-
-        fr_srs = osr.SpatialReference()
-        fr_srs.ImportFromEPSG(4326)
-        to_srs = osr.SpatialReference()
-        to_srs.ImportFromEPSG(3857)
-
-        self._transformer = osr.CoordinateTransformation(fr_srs, to_srs)
-        self._dataset_path = dataset_path
-        if not isinstance(dataset_path, list):
-            self._dataset_path = list((dataset_path,))
-
-        self._zfactor = zfactor
-        self._scale = scale
-        self._aziumth = azimuth
-        self._altitude = altitude
-
-        self._composer = ImageMagickComposer('jpg')
-
-        self._composer.setup_command('''
-          ( {{diffuse}} -fill grey50 -colorize 100% )
-          ( {{diffuse}} ) -compose blend -define compose:args=30% -composite
-          ( {{detail}} -fill #0055ff -tint 60 -gamma 0.75  ) -compose blend -define compose:args=40% -composite
-          ( {{specular}} -gamma 2 -fill #ffcba6 -tint 120 ) -compose blend -define compose:args=30% -composite
-          -quality 100
-        ''')
-
-    def array2img(self, array):
-        buf = _BytesIO()
-        # XXX: loses detail when convert to byte image... can we use float TIFF instead?
-        array = (254 * array).astype(numpy.ubyte)
-        image = misc.toimage(array)
-        image.save(buf, 'jpeg', quality=100, optimized=True)
-        data = buf.getvalue()
-        return data
-
-    def render(self, envelope=(-180, -90, 180, 90), size=(256, 256)):
-
-        minx, miny, maxx, maxy = envelope
-        t_minx, t_miny, __foo = self._transformer.TransformPoint(minx, miny)
-        t_maxx, t_maxy, __foo = self._transformer.TransformPoint(maxx, maxy)
-
-        width, height = size
-        resx = (t_maxx - t_minx) / (width)
-        resy = (t_maxy - t_miny) / (height)
-
-        # minx, resx, skewx, maxy, skewy, resy
-        geotransform = t_minx, resx, 0, t_maxy, 0, -resy
-
-        dst_srs = osr.SpatialReference()
-        dst_srs.ImportFromEPSG(3857)
-        proj = dst_srs.ExportToWkt()
-
-        georeference = GeoReference(proj, geotransform, size)
-        raster = MemoryRaster(georeference)
-
-        elevation = raster.read()
-        for dirpath in self._dataset_path:
-            if os.path.isfile(dirpath):
-                filenames = [dirpath]
-            else:
-                filenames = find_data(dirpath, minx, miny, maxx, maxy)
-
-            raster.mosaic(filenames)
-
-            if not elevation:
-                elevation = raster.read()
-            else:
-                elevation = alpha_blend(elevation, raster.read(), 0.8)
-
-        aspect, slope = aspect_and_slope(elevation, self._zfactor, self._scale)
-        diffuse = hillshade(aspect, slope, self._aziumth, 35)
-        specular = hillshade(aspect, slope, self._aziumth, 85)
-
-        aspect, slope = aspect_and_slope(elevation, self._zfactor / 2.0, self._scale)
-        detail = hillshade(aspect, slope, self._aziumth, 65)
-
-        raster.close()
-
-        images = {
-            'diffuse': (array2img(diffuse), '.jpg'),
-            'detail': (array2img(detail), '.jpg'),
-            'specular': (array2img(specular), '.jpg'),
-        }
-
-        hillshading = self._composer.compose(images)
-
-        return hillshading
