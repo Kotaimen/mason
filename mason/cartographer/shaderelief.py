@@ -16,7 +16,7 @@ from ..core.gridcrop import _BytesIO
 from ..composer import ImageMagickComposer
 from .cartographer import Cartographer
 from .raster import MemoryRaster, GeoReference
-from .raster import array2img, hillshade, aspect_and_slope, alpha_blend
+from .raster import hillshade, aspect_and_slope, alpha_blend
 
 
 def find_data(dirpath, minx, miny, maxx, maxy):
@@ -89,8 +89,12 @@ class ShadeRelief(Cartographer):
         self._composer.setup_command('''
           ( {{diffuse}} -fill grey50 -colorize 100% )
           ( {{diffuse}} ) -compose blend -define compose:args=30% -composite
-          ( {{detail}} -fill #0055ff -tint 60 -gamma 0.75  ) -compose blend -define compose:args=40% -composite
-          ( {{specular}} -gamma 2 -fill #ffcba6 -tint 120 ) -compose blend -define compose:args=30% -composite
+          ( {{detail}} 
+#          -fill #0055ff -tint 60 
+          -gamma 0.75  ) -compose blend -define compose:args=40% -composite
+          ( {{specular}} -gamma 2 
+#          -fill #ffcba6 -tint 120 
+          ) -compose blend -define compose:args=30% -composite
           -quality 100
         ''')
 
@@ -118,17 +122,24 @@ class ShadeRelief(Cartographer):
 
         georeference = GeoReference(self._project, geotransform, size)
 
-        raster = MemoryRaster(georeference)
-        canvas = raster.read()
+        canvas = None
         for dirpath in self._dataset_path:
 #            print 'mosaic....'
+            raster = MemoryRaster(georeference)
             if os.path.isfile(dirpath):
                 filenames = [dirpath]
             else:
                 filenames = list(find_data(dirpath, minx, miny, maxx, maxy))
             raster.mosaic(filenames)
             elevation = raster.read()
-            canvas = alpha_blend(canvas, elevation, 0.85)
+            raster.close()
+
+            if canvas is None:
+                canvas = elevation
+            else:
+                canvas = alpha_blend(canvas, elevation, 0.85)
+
+        elevation = canvas
 
         zfactor = self._zfactor
         scale = self._scale
@@ -136,7 +147,8 @@ class ShadeRelief(Cartographer):
         diffuse = hillshade(aspect, slope, self._aziumth, 35)
         specular = hillshade(aspect, slope, self._aziumth, 85)
 
-        aspect, slope = aspect_and_slope(elevation / 2.0, resx, resy, zfactor, scale)
+        zfactor = zfactor / 2.0
+        aspect, slope = aspect_and_slope(elevation, resx, resy, zfactor, scale)
         detail = hillshade(aspect, slope, self._aziumth, 65)
 
         raster.close()

@@ -200,139 +200,31 @@ class MemoryRaster(Raster):
 
     def mosaic(self, filenames):
 
-        vrt = VirtualRaster.from_filenames(filenames)
-        if not vrt:
-            return None
+        source = create_vrt_from_filenames(filenames)
 
-    def fillnodata(self):
-        band = self._raster.GetRasterBand(1)
-        gdal.FillNodata(band, None, 500, 0)
+        source_proj = source.GetProjection()
+        source_geotransform = source.GetGeoTransform()
+        source_size = source.RasterXSize, source.RasterYSize
 
-    def close(self):
-        self._raster = None
-
-
-class VirtualRaster(Raster):
-
-    def __init__(self, georeference):
-        self._georeference = georeference
-
-        width, height = georeference.size
-        driver = gdal.GetDriverByName('VRT')
-        vrt = driver.Create('', width, height, 1, gdalconst.GDT_Float64)
-        vrt.SetGeoTransform(georeference.geotransform)
-        vrt.SetProjection(georeference.project)
-
-        band = vrt.GetRasterBand(1)
-        band.SetNoDataValue(-32768)
-
-        self._raster = vrt
-
-    def mosaic(self, filename):
-
-        source = FileRaster(filename)
-        src_ref = source.georeference
+        src_ref = GeoReference(source_proj, source_geotransform, source_size)
         dst_ref = self._georeference
 
-        if src_ref.project != dst_ref.project:
-            raise RuntimeError('projection of source files is inconsistent.')
-
-        overlap = _intersection(src_ref.envelope, dst_ref.envelope)
-        if not overlap:
-            return None
-
-        # create vrt xml element
-        complex_source = ElementTree.Element('ComplexSource')
-        source_file = ElementTree.Element('SourceFilename', relativeToVRT='1')
-        source_file.text = filename
-        source_band = ElementTree.Element('SourceBand')
-        source_band.text = '1'
-        band = source.GetRasterBand(1)
-        blocksize = band.GetBlockSize()
-        source_prop = ElementTree.Element('SourceProperties',
-            RasterXSize=str(source.RasterXSize),
-            RasterYSize=str(source.RasterYSize),
-            DataType=gdal.GetDataTypeName(band.DataType),
-            BlockXSize=str(blocksize[0]),
-            BlockYSize=str(blocksize[1]),
-            )
-
-        source_nodata = ElementTree.Element('NODATA')
-        source_nodata.text = str(band.GetNoDataValue())
-
-        left, bottom, right, top = overlap
-        src_minx, src_miny, src_maxx, src_maxy = src_ref.envelope
-        dst_minx, dst_miny, dst_maxx, dst_maxy = dst_ref.envelope
-
-        s_offx = (left - src_minx) / src_ref.resx + 0.5
-        s_offy = (src_maxy - top) / src_ref.resy + 0.5
-        s_sizex = (right - left) / src_ref.resx + 0.5
-        s_sizey = (top - bottom) / src_ref.resy + 0.5
-
-        t_offx = (left - dst_minx) / dst_ref.resx + 0.5
-        t_offy = (dst_maxy - top) / dst_ref.resy + 0.5
-        t_sizex = (right - left) / dst_ref.resx + 0.5
-        t_sizey = (top - bottom) / dst_ref.resy + 0.5
-
-        src_rect = ElementTree.Element('SrcRect',
-            xOff=str(int(s_offx)),
-            yOff=str(int(s_offy)),
-            xSize=str(int(s_sizex)),
-            ySize=str(int(s_sizey)),
-            )
-        dst_rect = ElementTree.Element('DstRect',
-            xOff=str(int(t_offx)),
-            yOff=str(int(t_offy)),
-            xSize=str(int(t_sizex)),
-            ySize=str(int(t_sizey)),
-            )
-
-        complex_source.append(source_file)
-        complex_source.append(source_band)
-        complex_source.append(source_prop)
-        complex_source.append(src_rect)
-        complex_source.append(dst_rect)
-
-        tree = ElementTree.ElementTree(complex_source)
-        buff = io.BytesIO()
-        tree.write(buff)
-        xml = str(buff.getvalue())
-
-        band = self._raster.GetRasterBand(1)
-        metadata = band.GetMetadata()
-        metadata['source_%d' % len(metadata)] = xml
-        band.SetMetadata(metadata, 'vrt_sources')
-
-        source.close()
-
-    def reproject(self, projection, geotransform, size):
-
-        width, height = size
-        dst_ref = GeoReference(projection, geotransform, size)
-
-        driver = gdal.GetDriverByName('MEM')
-        ds = driver.Create('', width, height, 1, gdal.GDT_Float32)
-        ds.SetGeoTransform(geotransform)
-        ds.SetProjection(projection)
-        ds.GetRasterBand(1).SetNoDataValue(-32768)
-        ds.GetRasterBand(1).SetColorInterpretation(gdalconst.GCI_Undefined)
-
         # figure out resample method
-        vrt_ref = self._georeference
-        vrt_minx, vrt_miny, vrt_maxx, vrt_maxy = vrt_ref.envelope
+        src_minx, src_miny, src_maxx, src_maxy = src_ref.envelope
 
-        dst_srs = osr.SpatialReference()
-        dst_srs.ImportFromWkt(dst_ref.project)
-        vrt_srs = osr.SpatialReference()
-        vrt_srs.ImportFromWkt(vrt_ref.project)
-        transformer = osr.CoordinateTransformation(vrt_srs, dst_srs)
-        dst_minx, dst_miny, _z = transformer.TransformPoint(vrt_minx, vrt_miny)
-        dst_maxx, dst_maxy, _z = transformer.TransformPoint(vrt_maxx, vrt_maxy)
+        fr_srs = osr.SpatialReference()
+        fr_srs.ImportFromWkt(src_ref.project)
+        to_srs = osr.SpatialReference()
+        to_srs.ImportFromWkt(dst_ref.project)
+        transformer = osr.CoordinateTransformation(fr_srs, to_srs)
+        src_minx, src_miny, _z = transformer.TransformPoint(src_minx, src_miny)
+        src_maxx, src_maxy, _z = transformer.TransformPoint(src_maxx, src_maxy)
 
         # resy < 0
-        org_width, org_height = vrt_ref.size
-        proj_width = (dst_maxx - dst_minx) / dst_ref.resx
-        proj_height = (dst_maxy - dst_miny) / dst_ref.resy
+        org_width = source.RasterXSize
+        org_height = source.RasterYSize
+        proj_width = (src_maxx - src_minx) / dst_ref.resx
+        proj_height = (src_maxy - src_miny) / dst_ref.resy
 
         zoom_ratio = min(proj_width / org_width, proj_height / org_height)
         resample = None
@@ -343,57 +235,156 @@ class VirtualRaster(Raster):
         else:
             resample = gdalconst.GRA_Bilinear
 
-        gdal.ReprojectImage(self._raster,
-                            ds,
-                            vrt_ref.project,
-                            dst_ref.project,
-                            resample,
-                            )
-
-        data = ds.ReadAsArray()
-        ds = None
-        return data
+        ret = gdal.ReprojectImage(source,
+                                  self._raster,
+                                  source_proj,
+                                  dst_ref.project,
+                                  resample,
+                                  )
+        # close source data
+        source = None
+        return gdalconst.CE_Failure != ret
 
     def close(self):
         self._raster = None
 
-    @staticmethod
-    def from_filenames(filenames):
-        if not filenames:
-            raise RuntimeError('Empty file list')
 
-        sample = FileRaster(filenames[0])
-        sample_ref = sample.georeference()
+def create_vrt_from_filenames(filenames):
 
-        proj = sample_ref.project
-        minx, miny, maxx, maxy = sample_ref.envelope
-        resx, resy = sample_ref.resx, sample_ref.resy
+    if not filenames:
+        raise RuntimeError('Empty file list')
 
-        for filename in filenames[1:]:
-            source = FileRaster(filename)
-            src_ref = source.georeference
+    sample = FileRaster(filenames[0])
+    sample_ref = sample.georeference
 
-            src_proj = src_ref.project
-            src_minx, src_miny, src_maxx, src_maxy = src_ref.envelope
-            src_resx, src_resy = src_ref.resx, src_ref.resy
+    proj = sample_ref.project
+    minx, miny, maxx, maxy = sample_ref.envelope
+    resx, resy = sample_ref.resx, sample_ref.resy
 
-            if src_proj != proj:
-                raise RuntimeError('projection is inconsistent.')
+    sample.close()
 
-            minx = min(minx, src_minx)
-            miny = min(miny, src_miny)
-            maxx = max(maxx, src_maxx)
-            maxy = max(maxy, src_maxy)
+    for filename in filenames[1:]:
+        source = FileRaster(filename)
+        src_ref = source.georeference
 
-            resx = min(resx, src_resx)
-            resy = min(resy, src_resy)
+        src_proj = src_ref.project
+        src_minx, src_miny, src_maxx, src_maxy = src_ref.envelope
+        src_resx, src_resy = src_ref.resx, src_ref.resy
 
-        size = int((maxx - minx) / resx + 0.5), int((maxy - miny) / resy + 0.5)
-        geotransform = minx, resx, 0, maxy, 0, -resy
+        if src_proj != proj:
+            raise RuntimeError('projection is inconsistent.')
 
-        ref = GeoReference(proj, geotransform, size)
-        vrt = VirtualRaster(ref)
-        for filename in filenames:
-            vrt.mosaic(filename)
+        minx = min(minx, src_minx)
+        miny = min(miny, src_miny)
+        maxx = max(maxx, src_maxx)
+        maxy = max(maxy, src_maxy)
 
-        return vrt
+        resx = min(resx, src_resx)
+        resy = min(resy, src_resy)
+
+        source.close()
+
+    width = int((maxx - minx) / resx + 0.5)
+    height = int((maxy - miny) / resy + 0.5)
+    geotransform = minx, resx, 0, maxy, 0, -resy
+
+    driver = gdal.GetDriverByName('VRT')
+    vrt = driver.Create('', width, height, 1, gdalconst.GDT_Float64)
+    vrt.SetGeoTransform(geotransform)
+    vrt.SetProjection(proj)
+
+    band = vrt.GetRasterBand(1)
+    band.SetNoDataValue(-32768)
+
+    metadata = band.GetMetadata()
+    for filename in filenames:
+        xml = create_vrt_source(vrt, filename)
+        metadata['source_%d' % len(metadata)] = xml
+    band.SetMetadata(metadata, 'vrt_sources')
+
+    return vrt
+
+
+def create_vrt_source(vrt, filename):
+
+    source = gdal.OpenShared(filename, gdalconst.GA_ReadOnly)
+    if not source:
+        raise Exception('Source file %s not found' % filename)
+
+    projection = source.GetProjection()
+    geotransform = source.GetGeoTransform()
+    size = (source.RasterXSize, source.RasterYSize)
+
+    src_ref = GeoReference(projection, geotransform, size)
+
+    dst_geotransform = vrt.GetGeoTransform()
+    dst_project = vrt.GetProjection()
+    dst_size = vrt.RasterXSize, vrt.RasterYSize
+
+    dst_ref = GeoReference(dst_project, dst_geotransform, dst_size)
+    if src_ref.project != dst_ref.project:
+        raise RuntimeError('projection of source files is inconsistent.')
+
+    overlap = _intersection(src_ref.envelope, dst_ref.envelope)
+    if not overlap:
+        return None
+
+    # create vrt xml element
+    complex_source = ElementTree.Element('ComplexSource')
+    source_file = ElementTree.Element('SourceFilename', relativeToVRT='1')
+    source_file.text = filename
+    source_band = ElementTree.Element('SourceBand')
+    source_band.text = '1'
+    band = source.GetRasterBand(1)
+    blocksize = band.GetBlockSize()
+    source_prop = ElementTree.Element('SourceProperties',
+        RasterXSize=str(source.RasterXSize),
+        RasterYSize=str(source.RasterYSize),
+        DataType=gdal.GetDataTypeName(band.DataType),
+        BlockXSize=str(blocksize[0]),
+        BlockYSize=str(blocksize[1]),
+        )
+
+    source_nodata = ElementTree.Element('NODATA')
+    source_nodata.text = str(band.GetNoDataValue())
+
+    left, bottom, right, top = overlap
+    src_minx, src_miny, src_maxx, src_maxy = src_ref.envelope
+    dst_minx, dst_miny, dst_maxx, dst_maxy = dst_ref.envelope
+
+    s_offx = (left - src_minx) / src_ref.resx + 0.5
+    s_offy = (src_maxy - top) / src_ref.resy + 0.5
+    s_sizex = (right - left) / src_ref.resx + 0.5
+    s_sizey = (top - bottom) / src_ref.resy + 0.5
+
+    t_offx = (left - dst_minx) / dst_ref.resx + 0.5
+    t_offy = (dst_maxy - top) / dst_ref.resy + 0.5
+    t_sizex = (right - left) / dst_ref.resx + 0.5
+    t_sizey = (top - bottom) / dst_ref.resy + 0.5
+
+    src_rect = ElementTree.Element('SrcRect',
+        xOff=str(int(s_offx)),
+        yOff=str(int(s_offy)),
+        xSize=str(int(s_sizex)),
+        ySize=str(int(s_sizey)),
+        )
+    dst_rect = ElementTree.Element('DstRect',
+        xOff=str(int(t_offx)),
+        yOff=str(int(t_offy)),
+        xSize=str(int(t_sizex)),
+        ySize=str(int(t_sizey)),
+        )
+
+    complex_source.append(source_file)
+    complex_source.append(source_band)
+    complex_source.append(source_prop)
+    complex_source.append(src_rect)
+    complex_source.append(dst_rect)
+
+    tree = ElementTree.ElementTree(complex_source)
+    buff = io.BytesIO()
+    tree.write(buff)
+    xml = str(buff.getvalue())
+
+    source = None
+    return xml

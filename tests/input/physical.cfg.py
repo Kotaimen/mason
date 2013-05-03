@@ -1,46 +1,47 @@
-source1 = dict(\
-    prototype='datasource.postgis',
-    cache=dict(prototype='metacache',
-               root='/tmp/physical/dem',
-               compress=False,
-               data_format='gtiff',
-               ),
-    server='postgresql://postgres:123456@172.26.183.198:5432/srtm30_new',
-    table='srtm30_new',
-    )
+world = '/mnt/geodata/srtm30_new/world_tiled.tif'
+dem90m_wr = '/mnt/geodata/SRTM_30_org/world_org/'
+dem10m_us = '/mnt/geodata/DEM-Tools-patch/source/ned10m/'
+st_helens = '/mnt/geodata/hires-dem/st-helens/st-helens_small.tif'
+
 
 hillshading = dict(\
-    prototype='processing.hillshading',
-    cache=dict(prototype='metacache',
-               root='/tmp/physical/hillshading',
-               compress=False,
-               data_format='gtiff'
-               ),
-    sources=('source1',),
-    zfactor=1,
+    prototype='node.homebrewhillshade',
+    dataset_path=[
+                  world,  # 0
+                  world,
+                  world,
+                  world,
+                  world,
+                  world,  # 5
+                  world,
+                  [dem90m_wr, ],
+                  [dem90m_wr, ],
+                  [dem90m_wr, ],
+                  [dem90m_wr, dem10m_us],  # 10
+                  [dem90m_wr, dem10m_us],
+                  [dem90m_wr, dem10m_us],
+                  [dem90m_wr, dem10m_us, st_helens],
+                  ],
+    zfactor=10,
     scale=1,
-    altitude=45,
     azimuth=315,
     )
 
-to_png = dict(\
-    prototype='processing.rastertopng',
-    cache=dict(prototype='metacache',
-               root='/tmp/physical/hillshading_png',
-               compress=False,
-               data_format='png'
-               ),
-    sources=('hillshading',),
+postprocessing = dict(\
+    prototype='node.imagemagick',
+    sources=['hillshading'],
+    format='png',
+    command='''
+    {{hillshading}}
+    -brightness-contrast -5%%x-5%% -gamma 0.9
+    '''
     )
-
 
 ROOT = dict(\
     metadata=dict(tag='world'),
-    pyramid=dict(levels=range(7, 9),
+    pyramid=dict(levels=range(0, 19),
                  format='png',
-                 buffer=32),
-    cache=dict(prototype='filesystem',
-               root='/tmp/physical/world',
-               compress=False),
-    renderer='to_png',
+                 buffer=32,
+                 zoom=9),
+    renderer='postprocessing',
     )
