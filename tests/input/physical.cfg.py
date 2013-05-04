@@ -1,7 +1,7 @@
 world = '/mnt/geodata/srtm30_new/world_tiled.tif'
 dem90m_wr = '/mnt/geodata/SRTM_30_org/world_org/'
 dem10m_us = '/mnt/geodata/DEM-Tools-patch/source/ned10m/'
-st_helens = '/mnt/geodata/hires-dem/st-helens/st-helens_small.tif'
+st_helens = '/mnt/geodata/hires-dem/st-helens/st-helens_3857.tif'
 
 
 hillshading = dict(\
@@ -14,13 +14,18 @@ hillshading = dict(\
                   world,
                   world,  # 5
                   world,
-                  [dem90m_wr, ],
-                  [dem90m_wr, ],
-                  [dem90m_wr, ],
-                  [dem90m_wr, dem10m_us],  # 10
-                  [dem90m_wr, dem10m_us],
-                  [dem90m_wr, dem10m_us],
-                  [dem90m_wr, dem10m_us, st_helens],
+                  [world, dem90m_wr, ],
+                  [world, dem90m_wr, ],
+                  [world, dem90m_wr, ],
+                  [world, dem90m_wr, ],  # 10
+                  [world, dem90m_wr, dem10m_us],
+                  [world, dem90m_wr, dem10m_us],
+                  [
+                   world,
+                   dem90m_wr,
+                   dem10m_us,
+                   st_helens
+                   ],
                   ],
     zfactor=10,
     scale=1,

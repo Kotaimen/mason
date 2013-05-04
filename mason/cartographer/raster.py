@@ -201,6 +201,8 @@ class MemoryRaster(Raster):
     def mosaic(self, filenames):
 
         source = create_vrt_from_filenames(filenames)
+        if not source:
+            return False
 
         source_proj = source.GetProjection()
         source_geotransform = source.GetGeoTransform()
@@ -252,7 +254,7 @@ class MemoryRaster(Raster):
 def create_vrt_from_filenames(filenames):
 
     if not filenames:
-        raise RuntimeError('Empty file list')
+        return None
 
     sample = FileRaster(filenames[0])
     sample_ref = sample.georeference
@@ -299,6 +301,8 @@ def create_vrt_from_filenames(filenames):
     metadata = band.GetMetadata()
     for filename in filenames:
         xml = create_vrt_source(vrt, filename)
+        if not xml:
+            continue
         metadata['source_%d' % len(metadata)] = xml
     band.SetMetadata(metadata, 'vrt_sources')
 
@@ -352,27 +356,27 @@ def create_vrt_source(vrt, filename):
     src_minx, src_miny, src_maxx, src_maxy = src_ref.envelope
     dst_minx, dst_miny, dst_maxx, dst_maxy = dst_ref.envelope
 
-    s_offx = (left - src_minx) / src_ref.resx + 0.5
-    s_offy = (src_maxy - top) / src_ref.resy + 0.5
-    s_sizex = (right - left) / src_ref.resx + 0.5
-    s_sizey = (top - bottom) / src_ref.resy + 0.5
+    s_offx = int((left - src_minx) / src_ref.resx + 0.5)
+    s_offy = int((src_maxy - top) / src_ref.resy + 0.5)
+    s_sizex = int((right - left) / src_ref.resx + 0.5)
+    s_sizey = int((top - bottom) / src_ref.resy + 0.5)
 
-    t_offx = (left - dst_minx) / dst_ref.resx + 0.5
-    t_offy = (dst_maxy - top) / dst_ref.resy + 0.5
-    t_sizex = (right - left) / dst_ref.resx + 0.5
-    t_sizey = (top - bottom) / dst_ref.resy + 0.5
+    t_offx = int((left - dst_minx) / dst_ref.resx + 0.5)
+    t_offy = int((dst_maxy - top) / dst_ref.resy + 0.5)
+    t_sizex = int((right - left) / dst_ref.resx + 0.5)
+    t_sizey = int((top - bottom) / dst_ref.resy + 0.5)
 
     src_rect = ElementTree.Element('SrcRect',
-        xOff=str(int(s_offx)),
-        yOff=str(int(s_offy)),
-        xSize=str(int(s_sizex)),
-        ySize=str(int(s_sizey)),
+        xOff=str(s_offx),
+        yOff=str(s_offy),
+        xSize=str(s_sizex),
+        ySize=str(s_sizey),
         )
     dst_rect = ElementTree.Element('DstRect',
-        xOff=str(int(t_offx)),
-        yOff=str(int(t_offy)),
-        xSize=str(int(t_sizex)),
-        ySize=str(int(t_sizey)),
+        xOff=str(t_offx),
+        yOff=str(t_offy),
+        xSize=str(t_sizex),
+        ySize=str(t_sizey),
         )
 
     complex_source.append(source_file)
