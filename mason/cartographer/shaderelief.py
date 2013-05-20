@@ -9,6 +9,7 @@ import os
 import math
 import Image
 import numpy
+from scipy import ndimage
 from osgeo import osr
 
 from ..utils import SpatialTransformer
@@ -122,20 +123,43 @@ class ShadeRelief(Cartographer):
 
         georeference = GeoReference(self._project, geotransform, size)
 
-        raster = MemoryRaster(georeference)
-        for dirpath in self._dataset_path:
+        try:
+            raster = MemoryRaster(georeference)
+            elevation = raster.read()
+            for dirpath in self._dataset_path:
 
-            if os.path.isfile(dirpath):
-                filenames = [dirpath]
-            else:
-                filenames = list(find_data(dirpath, minx, miny, maxx, maxy))
-            raster.mosaic(filenames)
+                if os.path.isfile(dirpath):
+                    filenames = [dirpath]
+                else:
+                    filenames = list(find_data(dirpath, minx, miny, maxx, maxy))
+                if not filenames:
+                    continue
 
-        elevation = raster.read()
-        raster.close()
+                try:
+                    temp_raster = MemoryRaster(georeference)
+                    temp_raster.mosaic(filenames)
+
+                    temp_elevation = temp_raster.read()
+                    valid_mask = numpy.not_equal(temp_elevation,
+                                                 MemoryRaster.NODATA_VALUE)
+
+                    nodata_mask = numpy.zeros_like(elevation)
+                    nodata_mask[numpy.equal(elevation, MemoryRaster.NODATA_VALUE)] = 1
+                    nodata_mask = ndimage.binary_dilation(nodata_mask, iterations=16)
+
+                    fillmask = numpy.logical_and(nodata_mask, valid_mask)
+                    elevation[fillmask] = temp_elevation[fillmask]
+                finally:
+                    temp_raster.close()
+
+                if numpy.all(numpy.not_equal(elevation, MemoryRaster.NODATA_VALUE)):
+                    break
+        finally:
+            raster.close()
 
         zfactor = self._zfactor
         scale = self._scale
+
         aspect, slope = aspect_and_slope(elevation, resx, resy, zfactor, scale)
         diffuse = hillshade(aspect, slope, self._aziumth, 35)
         specular = hillshade(aspect, slope, self._aziumth, 85)

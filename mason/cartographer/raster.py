@@ -222,17 +222,17 @@ class MemoryRaster(Raster):
         src_minx, src_miny, _z = transformer.TransformPoint(src_minx, src_miny)
         src_maxx, src_maxy, _z = transformer.TransformPoint(src_maxx, src_maxy)
 
-        # resy < 0
         org_width = source.RasterXSize
         org_height = source.RasterYSize
-        proj_width = (src_maxx - src_minx) / dst_ref.resx
-        proj_height = (src_maxy - src_miny) / dst_ref.resy
+        proj_width = math.ceil((src_maxx - src_minx) / dst_ref.resx)
+        proj_height = math.ceil((src_maxy - src_miny) / dst_ref.resy)
 
-        zoom_ratio = min(proj_width / org_width, proj_height / org_height)
+        width_ratio = proj_width / org_width
+        height_ratio = proj_height / org_height
         resample = None
-        if zoom_ratio < 0.5:
+        if width_ratio < 0.5 and height_ratio < 0.5:
             resample = gdalconst.GRA_Cubic
-        elif zoom_ratio > 1.2:
+        elif width_ratio > 1.2 and height_ratio > 1.2:
             resample = gdalconst.GRA_CubicSpline
         else:
             resample = gdalconst.GRA_Bilinear
@@ -246,6 +246,10 @@ class MemoryRaster(Raster):
         # close source data
         source = None
         return gdalconst.CE_Failure != ret
+
+    def fillnodata(self):
+        band = self._raster.GetRasterBand(1)
+        gdal.FillNodata(band, None, 500, 0)
 
     def close(self):
         self._raster = None
