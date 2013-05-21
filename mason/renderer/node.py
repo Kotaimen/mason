@@ -71,17 +71,20 @@ class MetaTileRenderNode(RenderNode):
 
     def render(self, context):
         assert isinstance(context, MetaTileContext)
+        metatile_index = context.metatile_index
+
+        # get metatile from cache
+        if context.mode in ('hybrid', 'readonly'):
+            metatile = self._cache.get(metatile_index)
+#             print 'layer=%s, index=%s, cached=%s' % (self._name, metatile_index, bool(metatile))
+            if metatile or context.mode == 'readonly':
+                return metatile
+
         return RenderNode.render(self, context)
 
     def _render_imp(self, context, sources):
         metatile_index = context.metatile_index
         metatile_sources = sources
-
-        # get metatile from cache
-        if context.mode in ('hybrid', 'readonly'):
-            metatile = self._cache.get(metatile_index)
-            if metatile or context.mode == 'readonly':
-                return metatile
 
         # render a metatile
         metatile = self._render_metatile(metatile_index, metatile_sources)
