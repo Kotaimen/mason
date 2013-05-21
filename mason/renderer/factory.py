@@ -6,6 +6,7 @@ Created on Sep 10, 2012
 @author: ray
 '''
 from .node import (MetaTileContext,
+                   MetaTileRenderNode,
                    HillShadingRenderNode,
                    ColorReliefRenderNode,
                    StorageRenderNode,
@@ -17,6 +18,7 @@ from .node import (MetaTileContext,
 class RenderNodeFactory(object):
 
     REGISTRY = {
+                'node.null': MetaTileRenderNode,
                 'node.hillshading': HillShadingRenderNode,
                 'node.colorrelief': ColorReliefRenderNode,
                 'node.storage': StorageRenderNode,
