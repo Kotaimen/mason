@@ -22,6 +22,7 @@ import multiprocessing
 from flask import Flask, abort, jsonify, current_app
 from flask import _app_ctx_stack as stack
 from werkzeug.serving import run_simple
+from multiprocessing import Process
 
 from mason import Mason, __version__ as VERSION , __author__ as AUTHOR
 from mason.tilestorage import attach_tilestorage
@@ -162,12 +163,30 @@ INDEX_TEMPLATE = u'''<!DOCTYPE html>
 </html>'''
 
 
+def check_mason_config(layer_configs, mode):
+    print 'Checking Mason Config'
+    mason = Mason()
+    # Add storages
+    for layer_config in layer_configs:
+        print 'Adding layer from "%s"' % layer_config
+        layer_option = dict(mode=mode)
+        add_storage_or_renderer(mason, layer_config, layer_option)
+
+
 class MasonApp(object):
 
     def __init__(self, app, options):
         self._app = app
         self._options = options
         self._mason = None
+
+        p = Process(target=check_mason_config,
+                    args=(options.layers, options.mode))
+        p.start()
+        p.join()
+        if p.exitcode:
+            raise RuntimeError('Mason Configure Error!')
+
 
     @property
     def mason(self):
