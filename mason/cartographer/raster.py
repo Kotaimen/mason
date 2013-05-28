@@ -242,6 +242,7 @@ class MemoryRaster(Raster):
                                   source_proj,
                                   dst_ref.project,
                                   resample,
+                                  1024,
                                   )
         # close source data
         source = None
