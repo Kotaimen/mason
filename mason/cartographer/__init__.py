@@ -18,6 +18,11 @@ try:
 except ImportError:
     RasterDataset = None
 
+try:
+    from .shaderelief import ShadeRelief
+except ImportError:
+    raise
+    ShadeRelief = None
 
 #==============================================================================
 # Cartographer Factory
@@ -26,6 +31,7 @@ class _CartographerFactory(object):
 
     CLASS_REGISTRY = dict(mapnik=Mapnik,
                           postgis=PostGIS,
+                          shaderelief=ShadeRelief,
                           dataset=RasterDataset,)
 
     def __call__(self, prototype, **params):

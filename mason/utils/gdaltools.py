@@ -24,7 +24,7 @@ if gdal_version < 1.08:
 #==============================================================================
 # Spatial Reference Converter
 #==============================================================================
-class SpatialReference(object):
+class SpatialTransformer(object):
 
     """ A spatial reference system converter
 

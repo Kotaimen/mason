@@ -12,7 +12,8 @@ from .node import (MetaTileContext,
                    StorageRenderNode,
                    MapnikRenderNode,
                    RasterRenderNode,
-                   ImageMagicRenderNode)
+                   ImageMagicRenderNode,
+                   HomeBrewHillShade)
 
 
 class RenderNodeFactory(object):
@@ -24,7 +25,8 @@ class RenderNodeFactory(object):
                 'node.storage': StorageRenderNode,
                 'node.mapnik': MapnikRenderNode,
                 'node.raster': RasterRenderNode,
-                'node.imagemagick': ImageMagicRenderNode
+                'node.imagemagick': ImageMagicRenderNode,
+                'node.homebrewhillshade': HomeBrewHillShade,
                 }
 
     def __call__(self, prototype, name, cache=None, **params):

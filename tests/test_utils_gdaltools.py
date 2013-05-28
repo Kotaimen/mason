@@ -10,7 +10,7 @@ Created on Aug 31, 2012
 import unittest
 
 from mason.core import Format
-from mason.utils import SpatialReference, gdal_hillshading, gdal_colorrelief
+from mason.utils import SpatialTransformer, gdal_hillshading, gdal_colorrelief
 
 
 class TestSpatialReference(unittest.TestCase):
@@ -23,7 +23,7 @@ class TestSpatialReference(unittest.TestCase):
 
     def test_forward(self):
         place = 12
-        c = SpatialReference(4326, 3857, place=place)
+        c = SpatialTransformer(4326, 3857, place=place)
 
         x1, y1, z1 = (0.0, 0.0, 0.0)
         x2, y2, z2 = c.forward(x1, y1, z1)
@@ -49,7 +49,7 @@ class TestSpatialReference(unittest.TestCase):
 
     def test_reverse(self):
         place = 12
-        c = SpatialReference(4326, 3857, place=place)
+        c = SpatialTransformer(4326, 3857, place=place)
 
         x1, y1, z1 = (0.0, -7.081154551613622e-10, 0.0)
         x2, y2, z2 = c.reverse(x1, y1, z1)
