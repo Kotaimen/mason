@@ -111,7 +111,7 @@ class ImageMagickComposer(ImageComposer):
                 tempfile.write(image_data)
 
             # Replace '%n' with real filename
-            command[cmd_no] = tempfile.filename
+            command[cmd_no] = files_to_delete[ref_name].filename
 
         try:
             # Call imagemagick command
