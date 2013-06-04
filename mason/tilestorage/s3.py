@@ -77,7 +77,7 @@ class S3TileStorage(TileStorage):
             modified_tuple = rfc822.parsedate_tz(s3key.last_modified)
             mtime = int(rfc822.mktime_tz(modified_tuple))
         else:
-            mtime = 0
+            mtime = None
 
         return Tile.from_tile_index(tile_index, data,
                                     fmt=self.pyramid.format,

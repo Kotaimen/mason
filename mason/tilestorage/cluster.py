@@ -74,7 +74,7 @@ class TileCluster(object):
         return zipbuf.getvalue()
 
     @staticmethod
-    def fission(pyramid, buf):
+    def fission(pyramid, buf, mtime=None):
         stream = BytesIO(buf)
         zip_file = zipfile.ZipFile(file=stream, mode='r')
         index = json.loads(zip_file.read(TileCluster.INDEX))
@@ -85,7 +85,7 @@ class TileCluster(object):
         tiles = list()
         for k, v in index['tiles'].iteritems():
             z, x, y = tuple(map(int, k.split('-')))
-            tile = pyramid.create_tile(z, x, y, datas[v])
+            tile = pyramid.create_tile(z, x, y, datas[v], mtime)
             tiles.append(tile)
 
         return tiles
@@ -179,12 +179,13 @@ class FileClusterTileStorage(FileSystemTileStorage):
         if metatile is None:
             return None
 
-        tiles = TileCluster.fission(self._pyramid, metatile.data)
+        tiles = TileCluster.fission(self._pyramid, metatile.data, metatile.mtime)
 
         # Write back tiles to tile1 cache and return requested tile
         self._cache.put_multi(tiles)
 
-        # Return requested tile
+        # Return requested tile,
+        # linear search, but only happens once per metatile
         for tile in tiles:
             if tile.index == tile_index:
                 return tile
@@ -214,7 +215,7 @@ class FileClusterTileStorage(FileSystemTileStorage):
         # Assume tiles comes from a single MetaTile
         if  2 ** tiles[0].index.z >= self._stride:
             if len(tiles) != self._stride * self._stride:
-                raise TileStorageError('Must put a fissioned MetaTile into cluster storage, '
+                raise TileStorageError('Must put a complete MetaTile into cluster storage, '
                                        'set render stride equal to cluster stride.')
 
         FileSystemTileStorage.put(self, metatile)
@@ -223,7 +224,7 @@ class FileClusterTileStorage(FileSystemTileStorage):
         return self._cache.has(tile_index)
 
     def has_all(self, tile_indexes):
-        # NOTE: This is a "has_any" check
+        # NOTE: This is actually a "has_any" check to save call time
         metatile_index = self._pyramid.create_metatile_index(tile_indexes[0].z,
                                                              tile_indexes[0].x,
                                                              tile_indexes[0].y,
