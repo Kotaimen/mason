@@ -7,7 +7,7 @@ Created on May 3, 2013
 '''
 import os
 import math
-import Image
+from PIL import Image
 import numpy
 from scipy import ndimage
 from osgeo import osr
@@ -87,14 +87,17 @@ class ShadeRelief(Cartographer):
 
         self._composer = ImageMagickComposer('jpg')
 
+        # XXX: Need move color tinting and compose parameter into config parameters
+        # XXX: It seems imagemagick tint command produces different result under
+        #       6.7 and 6.8
         self._composer.setup_command('''
           ( {{diffuse}} -fill grey50 -colorize 100% )
           ( {{diffuse}} ) -compose blend -define compose:args=30% -composite
-          ( {{detail}} 
-          -fill #0055ff -tint 60 
+          ( {{detail}}
+          -fill #0055ff -tint 60
           -gamma 0.75  ) -compose blend -define compose:args=40% -composite
-          ( {{specular}} -gamma 2 
-          -fill #ffcba6 -tint 120 
+          ( {{specular}} -gamma 2
+          -fill #ffcba6 -tint 120
           ) -compose blend -define compose:args=30% -composite
           -quality 100
         ''')
