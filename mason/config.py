@@ -63,6 +63,23 @@ class MasonConfig(object):
 #===============================================================================
 # Mason Renderer
 #===============================================================================
+def create_tile_storage(pyramid, metadata, storage_config):
+    if not storage_config:
+        storage_config = dict(prototype='null')
+
+    config = dict(storage_config)
+    prototpye = config.pop('prototype', None)
+    if not prototpye:
+        raise RuntimeError('invalid storage prototype %s' % prototpye)
+
+    format_name = config.pop('data_format', None)
+    if format_name:
+        data_format = Format.from_name(format_name)
+        pyramid = pyramid.clone(format=data_format)
+
+    return create_tilestorage(prototpye, pyramid, metadata, **config)
+
+
 class MasonRenderer(object):
 
     ROOT_NODE_NAME = 'ROOT'
@@ -100,10 +117,10 @@ class MasonRenderer(object):
             renderer_cfg,
             self._pyramid,
             self._metadata)
-        self._storage = self._create_storage(
-            storage_cfg,
+        self._storage = create_tile_storage(
             self._pyramid,
-            self._metadata)
+            self._metadata,
+            storage_cfg)
 
     @property
     def pyramid(self):
@@ -152,7 +169,7 @@ class MasonRenderer(object):
                     not self._storage.has_all(tile_indexes):
                 tiles = metatile_fission(metatile)
                 self._storage.put_multi(tiles)
-        self._renderer.erase(metatile_index)
+        self._renderer.erase(context)
         return metatile
 
     def close(self):
@@ -164,49 +181,22 @@ class MasonRenderer(object):
     def _create_metadata(self, metadata_cfg):
         return Metadata.make_metadata(**metadata_cfg)
 
-    def _create_renderer(self, renderer_name, pyramid, metadata):
-        renderer_cfg = self._mason_cfg.get_node_cfg(renderer_name)
+    def _create_renderer(self, name, pyramid, metadata):
+        renderer_cfg = self._mason_cfg.get_node_cfg(name)
         if not renderer_cfg:
-            raise RenderNodeConfigNotFound(renderer_name)
+            raise RenderNodeConfigNotFound(name)
 
-        cfg = dict(renderer_cfg)
-        child_names = cfg.pop('sources', list())
+        config = dict(renderer_cfg)
+        child_names = config.pop('sources', list())
         if isinstance(child_names, str):
             child_names = [child_names, ]
 
-        prototype = cfg.pop('prototype')
-        cache_cfg = cfg.pop('cache', None)
-        keep_cache = cfg.pop('keep_cache', True)
-
-        cache = self._create_storage(cache_cfg, pyramid, metadata)
-
-        render_node = create_render_node(prototype,
-                                         renderer_name,
-                                         cache=cache,
-                                         **cfg)
-        render_node.keep_cache = keep_cache
-
+        render_node = create_render_node(name, metadata, pyramid, **config)
         for name in child_names:
             child_node = self._create_renderer(name, pyramid, metadata)
             render_node.add_child(child_node)
 
         return render_node
-
-    def _create_storage(self, storage_cfg, pyramid, metadata):
-        if not storage_cfg:
-            storage_cfg = dict(prototype='null')
-
-        cfg = dict(storage_cfg)
-        prototpye = cfg.pop('prototype', None)
-        if not prototpye:
-            raise InvalidStorageConfig(repr(storage_cfg))
-        
-        format_name = cfg.pop('data_format', None)
-        if format_name:
-            data_format = Format.from_name(format_name)
-            pyramid = pyramid.clone(format=data_format)
-
-        return create_tilestorage(prototpye, pyramid, metadata, **cfg)
 
 
 #==============================================================================

@@ -13,10 +13,11 @@ from test_core_tilestorage import *
 from test_core_walker import *
 from test_cartographer_mapniker import *
 from test_renderer_node import *
-from test_renderer_tree import *
+from test_renderer_config import *
 from test_renderer_factory import *
 from test_config import *
 from test_utils_gdaltools import *
+
 
 
 

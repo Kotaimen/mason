@@ -1,164 +1,176 @@
 '''
-Created on Mar 17, 2013
+Created on Jun 4, 2013
 
 @author: ray
 '''
-import os
 import unittest
-import shutil
-from mason.core import Pyramid, Metadata, Tile
-from mason.tilestorage import create_tilestorage
-from mason.renderer.node import *
+from mason import renderer
 
 
-def create_metatile_index(z, x, y, sride):
-    pyramid = Pyramid(levels=list(range(0, z + 1)))
-    metatile_index = pyramid.create_metatile_index(z, x, y, sride)
-    return metatile_index
+class MockRenderContext(renderer.RenderContext):
+
+    @property
+    def content(self):
+        return 100;
 
 
-def create_metatile(metatile_index):
-    with open('./input/hailey.tif', 'rb') as fp:
-            data = fp.read()
-    return MetaTile.from_tile_index(metatile_index, data)
+class MockRenderNode(renderer.RenderNode):
+
+    def render(self, context):
+        summary = 0
+        for child in self.children:
+            summary += 2 * child.render(context)
+        return summary + context.content
 
 
-def write(filename, data):
-    with open(filename, 'wb') as fp:
-        fp.write(data)
-
-
-def read(filename):
-    with open(filename, 'rb') as fp:
-        return fp.read()
-
-
-def remove(filename):
-    if os.path.exists(filename):
-        os.remove(filename)
-
-
-class HillShadingRenderNodeTest(unittest.TestCase):
-
-    def testRender(self):
-        metatile_index = create_metatile_index(15, 5926, 11962, 2)
-        metatile = create_metatile(metatile_index)
-
-        render_node = HillShadingRenderNode('dummy',
-                                            zfactor=1,
-                                            scale=111120,
-                                            altitude=45,
-                                            azimuth=315)
-        metatile = render_node._render_metatile(metatile_index,
-                                                   dict(test=metatile))
-
-        self.assertIsNotNone(metatile.data)
-        remove('./output/hailey_hillshading1.tif')
-        write('./output/hailey_hillshading1.tif', metatile.data)
-
-    def testLambda(self):
-        metatile_index = create_metatile_index(15, 5926, 11962, 2)
-        metatile = create_metatile(metatile_index)
-
-        render_node = HillShadingRenderNode('dummy',
-                                            zfactor=[10] * 20,
-                                            scale=111120,
-                                            altitude=45,
-                                            azimuth=315)
-        metatile = render_node._render_metatile(metatile_index,
-                                                   dict(test=metatile))
-        self.assertIsNotNone(metatile.data)
-        remove('./output/hailey_hillshading2.tif')
-        write('./output/hailey_hillshading2.tif', metatile.data)
-
-
-class ColorReliefRenderNodeTest(unittest.TestCase):
-
-    def testRender(self):
-        metatile_index = create_metatile_index(15, 5926, 11962, 2)
-        metatile = create_metatile(metatile_index)
-        color_context = './input/hypsometric-map-world.txt'
-
-        render_node = ColorReliefRenderNode('dummy', color_context)
-        metatile = render_node._render_metatile(metatile_index,
-                                                   dict(test=metatile))
-        self.assertIsNotNone(metatile.data)
-        remove('./output/hailey_colorrelief.tif')
-        write('./output/hailey_colorrelief.tif', metatile.data)
-
-
-class StorageRenderNodeTest(unittest.TestCase):
+class TestRenderNode(unittest.TestCase):
 
     def setUp(self):
-        pyramid = Pyramid(levels=range(21), format=Format.DATA)
-        metadata = Metadata.make_metadata(
-                            tag='StorageRender',
-                            version='1.0.0')
-        self._output_dir = os.path.join('output',
-                                       'StorageRender')
-
-        if os.path.exists(self._output_dir):
-            shutil.rmtree(self._output_dir, ignore_errors=True)
-
-        self._storage = create_tilestorage('filesystem',
-                               pyramid,
-                               metadata,
-                               root=self._output_dir,
-                               compress=False,
-                               simple=False,)
-
-        metatile_index = create_metatile_index(15, 5928, 11962, 2)
-        metatile = MetaTile.from_tile_index(metatile_index, b'test')
-        self._storage.put(metatile)
-
-        self._context = MetaTileContext(metatile_index)
+        self._node = MockRenderNode('test')
 
     def tearDown(self):
-        self._storage.close()
+        self._node.close()
+
+    def testName(self):
+        self.assertEqual(self._node.name, 'test')
+
+    def testAddChild(self):
+        child1 = MockRenderNode('child1')
+        child2 = MockRenderNode('child2')
+        self._node.add_child(child1)
+        self._node.add_child(child2)
+
+        self.assertListEqual(self._node.children, [child1, child2])
 
     def testRender(self):
-        storage_cfg = dict(prototype='filesystem', root=self._output_dir)
-        render_node = StorageRenderNode('storage', storage_cfg=storage_cfg)
+        context = MockRenderContext()
+        self.assertEqual(self._node.render(context), 100)
 
-        metatile = render_node.render(self._context)
-        self.assertEqual(metatile.data, b'test')
+        child1 = MockRenderNode('child1')
+        child2 = MockRenderNode('child2')
+        self._node.add_child(child1)
+        self._node.add_child(child2)
+        self.assertEqual(self._node.render(context), 500)
+
+        child3 = MockRenderNode('child3')
+        child2.add_child(child3)
+        self.assertEqual(self._node.render(context), 900)
+
+    def testRepr(self):
+        self.assertEqual(repr(self._node), "MockRenderNode('test')")
 
 
-class MapnikRenderNodeTest(unittest.TestCase):
+class TestNullRenderNode(unittest.TestCase):
 
     def setUp(self):
-        metatile_index = create_metatile_index(3, 2, 2, 2)
-        self._context = MetaTileContext(metatile_index)
+        self._node = renderer.NullRenderNode('null')
 
     def tearDown(self):
-        pass
+        self._node.close()
 
     def testRender(self):
-        mapnik_cfg = dict(theme='./input/world.xml', image_type='png')
-        render_node = MapnikRenderNode('mapnik', **mapnik_cfg)
-        metatile = render_node.render(self._context)
-        self.assertIsNotNone(metatile.data)
-        remove('./output/test_world.png')
-        write('./output/test_world.png', metatile.data)
+        context = MockRenderContext()
+        self.assertIsNone(self._node.render(context))
 
 
-class RasterRenderNodeTest(unittest.TestCase):
+class MockMetaTileIndex(object):
+
+    def __init__(self, z, x, y):
+        self._coord = (z, x, y)
+
+    @property
+    def coord(self):
+        return self._coord
+
+
+class MockMetaTile(object):
+
+    def __init__(self, index, data):
+        self._index = index
+        self._data = data
+
+    @property
+    def index(self):
+        return self._index
+
+    @property
+    def data(self):
+        return self._data
+
+
+class MockCache(object):
+
+    def __init__(self):
+        self._cache = dict()
+
+    def put(self, metatile):
+        self._cache[metatile.index] = metatile
+
+    def get(self, metatile_index):
+        return self._cache.get(metatile_index, None)
+
+
+class MockMetaTileRenderNode(renderer.MetaTileRenderNode):
+
+    def _render_impl(self, context, source_nodes):
+        summary = 0
+        for node in source_nodes:
+            summary += 2 * node.render(context)
+
+        metatile_index = context.metatile_index
+        data = summary + 100
+        metatile = MockMetaTile(metatile_index, data)
+        return metatile
+
+
+class TestMetaTileRenderNode(unittest.TestCase):
 
     def setUp(self):
-        metatile_index = create_metatile_index(15, 5928, 11962, 2)
-        self._context = MetaTileContext(metatile_index)
+        cache = MockCache()
+        keep_cache = False
+        config = renderer.MetaTileRenderConfig('test', cache, keep_cache)
+        self._node = MockMetaTileRenderNode(config)
+        self._cache = cache
 
     def tearDown(self):
-        pass
+        self._node.close()
 
-    def testRender(self):
-        dataset_cfg = dict(dataset_path='./input/hailey.tif')
-        render_node = RasterRenderNode('raster', **dataset_cfg)
-        metatile = render_node.render(self._context)
-        self.assertIsNotNone(metatile.data)
-        remove('./output/test_dataset.tif')
-        write('./output/test_dataset.tif', metatile.data)
+    def testReadOnlyRender(self):
+        mode = renderer.MODE_READONLY
+        metatile_index = MockMetaTileIndex(2, 2, 3)
+        context = renderer.MetaTileContext(metatile_index, mode)
+        metatile = self._node.render(context)
+        self.assertIsNone(metatile)
+        self.assertIsNone(self._cache.get(metatile_index))
 
+        metatile = MockMetaTile(metatile_index, data=100)
+        self._cache.put(metatile)
+        metatile = self._node.render(context)
+        self.assertEqual(metatile.data, 100)
+
+    def testDryRunRender(self):
+        mode = renderer.MODE_DRYRUN
+        metatile_index = MockMetaTileIndex(2, 2, 3)
+        context = renderer.MetaTileContext(metatile_index, mode)
+        metatile = self._node.render(context)
+        self.assertEqual(metatile.data, 100)
+        self.assertIsNone(self._cache.get(metatile_index))
+
+    def testHybridRender(self):
+        mode = renderer.MODE_HYBRID
+        metatile_index = MockMetaTileIndex(2, 2, 3)
+        context = renderer.MetaTileContext(metatile_index, mode)
+        metatile = self._node.render(context)
+        self.assertEqual(metatile.data, 100)
+        self.assertEqual(self._cache.get(metatile_index), metatile)
+
+    def testOverwriteRender(self):
+        mode = renderer.MODE_OVERWRITE
+        metatile_index = MockMetaTileIndex(2, 2, 3)
+        context = renderer.MetaTileContext(metatile_index, mode)
+        metatile = self._node.render(context)
+        self.assertEqual(metatile.data, 100)
+        self.assertEqual(self._cache.get(metatile_index), metatile)
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
