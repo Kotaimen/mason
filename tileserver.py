@@ -107,6 +107,13 @@ def parse_args(args=None):
                         to core number (%(default)s).  Note this option is ignored under
                         debug mode because process model don't support debugging.''',)
 
+    parser.add_argument('-a', '--age',
+                        dest='age',
+                        default=0,
+                        type=int,
+                        help='''Tile expiration age in seconds, which is set in
+                        http response header ,default is 0''',)
+
     parser.add_argument('-m', '--mode',
                         dest='mode',
                         default='hybrid',
@@ -258,8 +265,16 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
             abort(405)
         except TileOutOfRange:
             abort(405)
-        headers = {'Content-Type': mimetype,
-                   'Last-Modified': date_time_string(mtime)}
+
+        age = options.age  # 3600 * 24 * 3
+        headers = {
+                   'Content-Type': mimetype,
+                   'Last-Modified': date_time_string(mtime),
+                    }
+        if age > 0:
+            headers['Cache-Control'] = 'max-age=%d, public' % age
+            headers['Expires'] = date_time_string(mtime + age)
+
         return tile_data, 200, headers
 
     @app.route('/tile/*')

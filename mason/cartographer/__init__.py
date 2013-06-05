@@ -21,7 +21,6 @@ except ImportError:
 try:
     from .shaderelief import ShadeRelief
 except ImportError:
-    raise
     ShadeRelief = None
 
 #==============================================================================

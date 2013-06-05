@@ -11,7 +11,7 @@ MONTH_NAME = [None,
               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 
-def date_time_string(self, timestamp=None):
+def date_time_string(timestamp=None):
     """ Convert a filesystem timestamp to http response time, taken
     from BaseHTTPRequestHandler.date_time_string() """
 

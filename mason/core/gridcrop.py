@@ -18,7 +18,7 @@ from .tile import Tile, MetaTile
 #===============================================================================
 
 try:
-    import Image
+    from PIL import Image
     if Image.VERSION != '1.1.7':
         raise ImportError('Excepted PIL 1.1.7')
 except ImportError:

@@ -153,7 +153,7 @@ class FileSystemTileStorage(TileStorage):
             with open(pathname, 'rb') as fp:
                 data = fp.read()
 
-        mtime = os.stat(pathname).st_mtime,
+        mtime = os.stat(pathname).st_mtime
 
         # Create tile object and return it
         return Tile.from_tile_index(tile_index, data,
