@@ -82,7 +82,7 @@ class MetaTileContext(object):
 #===============================================================================
 class MetaTileRenderConfig(object):
 
-    def __init__(self, name, cache=None, keep_cache=False, **kwargs):
+    def __init__(self, name, cache=None, keep_cache=True, **kwargs):
         self._name = name
         self._cache = cache
         self._keep_cache = keep_cache
