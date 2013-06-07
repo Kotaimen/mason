@@ -143,7 +143,7 @@ class S3ClusterTileStorage(S3TileStorage):
                                            metatile_index.z,
                                            metatile_index.x,
                                            metatile_index.y,
-                                           self._stride)
+                                           metatile_index.stride)
 
     def get(self, tile_index):
         # Try tie1 cache first
