@@ -20,8 +20,8 @@ class ParamNotFound(Exception):
 
 class HillShadingNodeConfig(MetaTileRenderConfig):
 
-    def __init__(self, name, cache=None, keep_cache=False, **kwargs):
-        MetaTileRenderConfig.__init__(self, name, cache, keep_cache)
+    def __init__(self, name, **kwargs):
+        MetaTileRenderConfig.__init__(self, name, **kwargs)
 
         parameters = dict(kwargs)
         self._zfactor = parameters.pop('zfactor', 1)
@@ -59,8 +59,8 @@ class HillShadingNodeConfig(MetaTileRenderConfig):
 
 class HomeBrewHillShadingNodeConfig(HillShadingNodeConfig):
 
-    def __init__(self, name, cache=None, keep_cache=False, **kwargs):
-        HillShadingNodeConfig.__init__(self, name, cache, keep_cache, **kwargs)
+    def __init__(self, name, **kwargs):
+        HillShadingNodeConfig.__init__(self, name, **kwargs)
 
         parameters = dict(kwargs)
         self._dataset_path = parameters.pop('dataset_path', None)
@@ -81,8 +81,8 @@ class HomeBrewHillShadingNodeConfig(HillShadingNodeConfig):
 
 class ColorReliefNodeConfig(MetaTileRenderConfig):
 
-    def __init__(self, name, cache=None, keep_cache=False, **kwargs):
-        MetaTileRenderConfig.__init__(self, name, cache, keep_cache)
+    def __init__(self, name, **kwargs):
+        MetaTileRenderConfig.__init__(self, name, **kwargs)
 
         parameters = dict(kwargs)
         self._color_context = parameters.get('color_context', None)
@@ -96,8 +96,8 @@ class ColorReliefNodeConfig(MetaTileRenderConfig):
 
 class StorageNodeConfig(MetaTileRenderConfig):
 
-    def __init__(self, name, cache=None, keep_cache=False, **kwargs):
-        MetaTileRenderConfig.__init__(self, name, cache, keep_cache)
+    def __init__(self, name, **kwargs):
+        MetaTileRenderConfig.__init__(self, name, **kwargs)
 
         parameters = dict(kwargs)
         self._default = parameters.pop('default', None)
@@ -115,8 +115,8 @@ class StorageNodeConfig(MetaTileRenderConfig):
 
 class MapnikNodeConfig(MetaTileRenderConfig):
 
-    def __init__(self, name, cache=None, keep_cache=False, **kwargs):
-        MetaTileRenderConfig.__init__(self, name, cache, keep_cache)
+    def __init__(self, name, **kwargs):
+        MetaTileRenderConfig.__init__(self, name, **kwargs)
 
         parameters = dict(kwargs)
         self._theme = parameters.pop('theme', None)
@@ -145,8 +145,8 @@ class MapnikNodeConfig(MetaTileRenderConfig):
 
 class RasterNodeConfig(MetaTileRenderConfig):
 
-    def __init__(self, name, cache=None, keep_cache=False, **kwargs):
-        MetaTileRenderConfig.__init__(self, name, cache, keep_cache)
+    def __init__(self, name, **kwargs):
+        MetaTileRenderConfig.__init__(self, name, **kwargs)
 
         parameters = dict(kwargs)
         self._dataset_path = parameters.pop('dataset_path', None)
@@ -178,8 +178,8 @@ class RasterNodeConfig(MetaTileRenderConfig):
 
 class ImageMagicComposerNodeConfig(MetaTileRenderConfig):
 
-    def __init__(self, name, cache=None, keep_cache=False, **kwargs):
-        MetaTileRenderConfig.__init__(self, name, cache, keep_cache)
+    def __init__(self, name, **kwargs):
+        MetaTileRenderConfig.__init__(self, name, **kwargs)
 
         parameters = dict(kwargs)
         self._format = parameters.pop('format', None)
