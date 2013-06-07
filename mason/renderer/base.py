@@ -138,8 +138,12 @@ class MetaTileRenderNode(RenderNode):
         return metatile
 
     def erase(self, context):
-        metatile_index = context.metatile_index
-        self._cache.delete(metatile_index)
+        for child in self._children:
+            child.erase(context)
+
+        if not self._keep_cache:
+            metatile_index = context.metatile_index
+            self._cache.delete(metatile_index)
 
     def close(self):
         pass
