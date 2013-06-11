@@ -127,9 +127,7 @@ class Mason(object):
 
         return tile.data, layer.metadata['format']['mimetype'], tile.mtime
 
-    def craft_tile_from_lonlat(self, tag, lon, lat):
-
-        z = 14
+    def craft_tile_from_lonlat(self, tag, lon, lat, z):
         coord = Coordinate(lon, lat)
 
         try:

@@ -282,12 +282,13 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
         try:
             lon = request.args.get('lon')
             lat = request.args.get('lat')
-            lon, lat = float(lon), float(lat)
+            z = request.args.get('z', 14)
+            z, lon, lat = int(z), float(lon), float(lat)
         except TypeError:
             abort(400)
 
         try:
-            tile_data, mimetype, mtime = mason_context.mason.craft_tile_from_lonlat(tag, lon, lat)
+            tile_data, mimetype, mtime = mason_context.mason.craft_tile_from_lonlat(tag, lon, lat, z)
         except TileNotFound:
             abort(404)
         except InvalidLayer:
