@@ -23,10 +23,15 @@ class StorageLayer(object):
         metadata.update(self._storage.pyramid.summarize())
         metadata.update(self._storage.metadata.make_dict())
         self._metadata = metadata
+        self._pyramid = self._storage.pyramid
 
     @property
     def metadata(self):
         return self._metadata
+
+    @property
+    def pyramid(self):
+        return self._pyramid
 
     def get_tile(self, z, x, y):
         tile_index = self._storage.pyramid.create_tile_index(z, x, y)
