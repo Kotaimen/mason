@@ -6,6 +6,7 @@ Created on May 14, 2012
 
 import collections
 from .core import Format
+from .core import Coordinate
 
 #===============================================================================
 # Layers
@@ -49,10 +50,15 @@ class RendererLayer(object):
         metadata.update(self._rendertree.pyramid.summarize())
         metadata.update(self._rendertree.metadata.make_dict())
         self._metadata = metadata
+        self._pyramid = rendertree.pyramid
 
     @property
     def metadata(self):
         return self._metadata
+
+    @property
+    def pyramid(self):
+        return self._pyramid
 
     def get_tile(self, z, x, y):
         tile_index = self._rendertree.pyramid.create_tile_index(z, x, y)
@@ -114,6 +120,25 @@ class Mason(object):
             layer = self._layers[tag]
         except KeyError:
             raise InvalidLayer(tag)
+
+        tile = layer.get_tile(z, x, y)
+        if tile is None:
+            raise TileNotFound('%s/%d/%d/%d' % (tag, z, x, y))
+
+        return tile.data, layer.metadata['format']['mimetype'], tile.mtime
+
+    def craft_tile_from_lonlat(self, tag, lon, lat):
+
+        z = 14
+        coord = Coordinate(lon, lat)
+
+        try:
+            layer = self._layers[tag]
+        except KeyError:
+            raise InvalidLayer(tag)
+
+        projector = layer.pyramid.projector
+        x, y = projector.coord2tile(coord, z)
 
         tile = layer.get_tile(z, x, y)
         if tile is None:

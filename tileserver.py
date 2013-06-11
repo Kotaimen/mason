@@ -19,7 +19,7 @@ import urllib
 
 import multiprocessing
 
-from flask import Flask, abort, jsonify, current_app
+from flask import Flask, abort, jsonify, current_app, request
 from flask import _app_ctx_stack as stack
 from werkzeug.serving import run_simple
 from multiprocessing import Process
@@ -259,6 +259,35 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
     def tile(tag, z, x, y, ext):
         try:
             tile_data, mimetype, mtime = mason_context.mason.craft_tile(tag, z, x, y)
+        except TileNotFound:
+            abort(404)
+        except InvalidLayer:
+            abort(405)
+        except TileOutOfRange:
+            abort(405)
+
+        age = options.age  # 3600 * 24 * 3
+        headers = {
+                   'Content-Type': mimetype,
+                   'Last-Modified': date_time_string(mtime),
+                    }
+        if age > 0:
+            headers['Cache-Control'] = 'max-age=%d, public' % age
+            headers['Expires'] = date_time_string(mtime + age)
+
+        return tile_data, 200, headers
+
+    @app.route('/tile/<tag>')
+    def tile_from_lonlat(tag):
+        try:
+            lon = request.args.get('lon')
+            lat = request.args.get('lat')
+            lon, lat = float(lon), float(lat)
+        except TypeError:
+            abort(400)
+
+        try:
+            tile_data, mimetype, mtime = mason_context.mason.craft_tile_from_lonlat(tag, lon, lat)
         except TileNotFound:
             abort(404)
         except InvalidLayer:

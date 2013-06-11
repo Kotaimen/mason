@@ -131,6 +131,10 @@ class Pyramid(object):
     def projection(self):
         return self._proj
 
+    @property
+    def projector(self):
+        return self._projector
+
     # Aux Tile Methods ---------------------------------------------------------
 
     def calculate_tile_buffered_envelope(self, z, x, y):
@@ -187,7 +191,7 @@ class Pyramid(object):
 
     @staticmethod
     def from_summary(summary):
-        summary = dict(summary) # copy dict object
+        summary = dict(summary)  # copy dict object
         summary['format'] = Format.from_dict(summary['format'])
         return Pyramid(**summary)
 
