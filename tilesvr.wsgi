@@ -11,6 +11,7 @@ class Options(object):
     layers = ['/path/to/layerconfig', ]
     mode = 'hybrid'
     debug = False
+    age = 0
 
 options = Options()
 application = build_app(options)

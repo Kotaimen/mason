@@ -22,6 +22,7 @@ import multiprocessing
 from flask import Flask, abort, jsonify, current_app
 from flask import _app_ctx_stack as stack
 from werkzeug.serving import run_simple
+from multiprocessing import Process
 
 from mason import Mason, __version__ as VERSION , __author__ as AUTHOR
 from mason.tilestorage import attach_tilestorage
@@ -106,6 +107,13 @@ def parse_args(args=None):
                         to core number (%(default)s).  Note this option is ignored under
                         debug mode because process model don't support debugging.''',)
 
+    parser.add_argument('-a', '--age',
+                        dest='age',
+                        default=0,
+                        type=int,
+                        help='''Tile expiration age in seconds, which is set in
+                        http response header ,default is 0''',)
+
     parser.add_argument('-m', '--mode',
                         dest='mode',
                         default='hybrid',
@@ -136,7 +144,7 @@ def parse_args(args=None):
                      d='dryrun')
 
     options = parser.parse_args(args)
-    options.threaded = False  # option disabled
+    options.threaded = False # option disabled
     options.mode = mode2mode[options.mode]
 
 #    print options
@@ -162,12 +170,30 @@ INDEX_TEMPLATE = u'''<!DOCTYPE html>
 </html>'''
 
 
+def check_mason_config(layer_configs, mode):
+    print 'Checking Mason Config'
+    mason = Mason()
+    # Add storages
+    for layer_config in layer_configs:
+        print 'Adding layer from "%s"' % layer_config
+        layer_option = dict(mode=mode)
+        add_storage_or_renderer(mason, layer_config, layer_option)
+
+
 class MasonApp(object):
 
     def __init__(self, app, options):
         self._app = app
         self._options = options
         self._mason = None
+
+        if not options.debug:
+            p = Process(target=check_mason_config,
+                        args=(options.layers, options.mode))
+            p.start()
+            p.join()
+            if p.exitcode:
+                raise RuntimeError('Mason Configure Error!')
 
     @property
     def mason(self):
@@ -239,8 +265,16 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
             abort(405)
         except TileOutOfRange:
             abort(405)
-        headers = {'Content-Type': mimetype,
-                   'Last-Modified': date_time_string(mtime)}
+
+        age = options.age # 3600 * 24 * 3
+        headers = {
+                   'Content-Type': mimetype,
+                   'Last-Modified': date_time_string(mtime),
+                    }
+        if age > 0:
+            headers['Cache-Control'] = 'max-age=%d, public' % age
+            headers['Expires'] = date_time_string(mtime + age)
+
         return tile_data, 200, headers
 
     @app.route('/tile/*')
@@ -293,6 +327,7 @@ def main():
     use_reloader = options.reload
     if options.debug:
         app.debug = True
+        app.threaded = True
 
     if use_reloader:
         config_files = list(fn for fn in options.layers if fn.endswith('.cfg.py'))

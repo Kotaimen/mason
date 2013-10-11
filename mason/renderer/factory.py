@@ -6,23 +6,27 @@ Created on Sep 10, 2012
 @author: ray
 '''
 from .node import (MetaTileContext,
+                   MetaTileRenderNode,
                    HillShadingRenderNode,
                    ColorReliefRenderNode,
                    StorageRenderNode,
                    MapnikRenderNode,
                    RasterRenderNode,
-                   ImageMagicRenderNode)
+                   ImageMagicRenderNode,
+                   HomeBrewHillShade)
 
 
 class RenderNodeFactory(object):
 
     REGISTRY = {
+                'node.null': MetaTileRenderNode,
                 'node.hillshading': HillShadingRenderNode,
                 'node.colorrelief': ColorReliefRenderNode,
                 'node.storage': StorageRenderNode,
                 'node.mapnik': MapnikRenderNode,
                 'node.raster': RasterRenderNode,
-                'node.imagemagick': ImageMagicRenderNode
+                'node.imagemagick': ImageMagicRenderNode,
+                'node.homebrewhillshade': HomeBrewHillShade,
                 }
 
     def __call__(self, prototype, name, cache=None, **params):

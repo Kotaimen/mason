@@ -69,7 +69,7 @@ class MasonRenderer(object):
 
     def __init__(self, mason_config, mode=None):
         self._mason_cfg = mason_config
-        self._mode = mode or 'dryrun'  # default is 'dryrun'
+        self._mode = mode or 'dryrun' # default is 'dryrun'
 
         root_cfg = mason_config.get_node_cfg(self.ROOT_NODE_NAME)
         if not root_cfg:
@@ -165,6 +165,8 @@ class MasonRenderer(object):
         return Metadata.make_metadata(**metadata_cfg)
 
     def _create_renderer(self, renderer_name, pyramid, metadata):
+        if not isinstance(renderer_name, basestring):
+            raise RenderNodeConfigNotFound(renderer_name)
         renderer_cfg = self._mason_cfg.get_node_cfg(renderer_name)
         if not renderer_cfg:
             raise RenderNodeConfigNotFound(renderer_name)
@@ -200,7 +202,7 @@ class MasonRenderer(object):
         prototpye = cfg.pop('prototype', None)
         if not prototpye:
             raise InvalidStorageConfig(repr(storage_cfg))
-        
+
         format_name = cfg.pop('data_format', None)
         if format_name:
             data_format = Format.from_name(format_name)

@@ -6,7 +6,7 @@ Created on Mar 17, 2013
 @author: ray
 '''
 import time
-from ..cartographer import Mapnik, RasterDataset
+from ..cartographer import CartographerFactory
 from ..composer import ImageMagickComposer
 from ..tilestorage import attach_tilestorage
 from ..core import MetaTile, Format
@@ -71,17 +71,20 @@ class MetaTileRenderNode(RenderNode):
 
     def render(self, context):
         assert isinstance(context, MetaTileContext)
+        metatile_index = context.metatile_index
+
+        # get metatile from cache
+        if context.mode in ('hybrid', 'readonly'):
+            metatile = self._cache.get(metatile_index)
+#             print 'layer=%s, index=%s, cached=%s' % (self._name, metatile_index, bool(metatile))
+            if metatile or context.mode == 'readonly':
+                return metatile
+
         return RenderNode.render(self, context)
 
     def _render_imp(self, context, sources):
         metatile_index = context.metatile_index
         metatile_sources = sources
-
-        # get metatile from cache
-        if context.mode in ('hybrid', 'readonly'):
-            metatile = self._cache.get(metatile_index)
-            if metatile or context.mode == 'readonly':
-                return metatile
 
         # render a metatile
         metatile = self._render_metatile(metatile_index, metatile_sources)
@@ -235,7 +238,7 @@ class MapnikRenderNode(MetaTileRenderNode):
 
     def __init__(self, name, cache=None, **mapnik_cfg):
         MetaTileRenderNode.__init__(self, name, cache)
-        self._mapniker = Mapnik(**mapnik_cfg)
+        self._mapniker = CartographerFactory('mapnik', **mapnik_cfg)
 
     def _render_metatile(self, metatile_index, metatile_sources):
         assert len(metatile_sources) == 0
@@ -282,7 +285,7 @@ class RasterRenderNode(MetaTileRenderNode):
         assert len(metatile_sources) == 0
 
         dataset_cfg = self._init_config(metatile_index, self._raw_cfg)
-        self._dataset = RasterDataset(**dataset_cfg)
+        self._dataset = CartographerFactory('dataset', **dataset_cfg)
 
         envelope = metatile_index.buffered_envelope.make_tuple()
         width = height = metatile_index.buffered_tile_size
@@ -348,3 +351,70 @@ class ImageMagicRenderNode(MetaTileRenderNode):
         finally:
             data_stream.close()
         return metatile
+
+
+class HomeBrewHillShade(GDALRenderNode):
+
+    def __init__(self, name,
+                 dataset_path,
+                 zfactor=1,
+                 scale=1,
+                 altitude=45,
+                 azimuth=315,
+                 cache=None):
+        GDALRenderNode.__init__(self, name, cache)
+        self._dataset_path = dataset_path
+        self._zfactor = zfactor
+        self._scale = scale
+        self._altitude = altitude
+        self._azimuth = azimuth
+
+    def _render_metatile(self, metatile_index, metatile_sources):
+        assert len(metatile_sources) == 0
+
+        z, x, y = metatile_index.coord
+
+        zfactor = self._zfactor
+        if isinstance(zfactor, list):
+            zfactor = zfactor[z] if z < len(zfactor) else zfactor[-1]
+
+        scale = self._scale
+        if isinstance(scale, list):
+            scale = scale[z] if z < len(scale) else scale[-1]
+
+        altitude = self._altitude
+        if isinstance(altitude, list):
+            altitude = altitude[z] if z < len(altitude) else altitude[-1]
+
+        azimuth = self._azimuth
+        if isinstance(azimuth, list):
+            azimuth = azimuth[z] if z < len(azimuth) else azimuth[-1]
+
+        dataset_path = self._dataset_path
+        if isinstance(dataset_path, list):
+            dataset_path = dataset_path[z] if z < len(dataset_path) else dataset_path[-1]
+
+        self._rasterdataset = CartographerFactory('shaderelief',
+                                                  dataset_path=dataset_path,
+                                                  zfactor=zfactor,
+                                                  scale=scale,
+                                                  azimuth=azimuth,
+                                                  altitude=altitude)
+
+        envelope = metatile_index.buffered_envelope.make_tuple()
+        width = height = metatile_index.buffered_tile_size
+        size = (width, height)
+        data_stream = self._rasterdataset.render(envelope, size)
+        try:
+            data_format = Format.from_name(self._rasterdataset.output_format)
+            mtime = time.time()
+            metatile = MetaTile.from_tile_index(metatile_index,
+                                                data_stream.getvalue(),
+                                                data_format,
+                                                mtime)
+        finally:
+            data_stream.close()
+
+        return metatile
+
+
