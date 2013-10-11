@@ -144,7 +144,7 @@ def parse_args(args=None):
                      d='dryrun')
 
     options = parser.parse_args(args)
-    options.threaded = False  # option disabled
+    options.threaded = False # option disabled
     options.mode = mode2mode[options.mode]
 
 #    print options
@@ -187,13 +187,13 @@ class MasonApp(object):
         self._options = options
         self._mason = None
 
-        p = Process(target=check_mason_config,
-                    args=(options.layers, options.mode))
-        p.start()
-        p.join()
-        if p.exitcode:
-            raise RuntimeError('Mason Configure Error!')
-
+        if not options.debug:
+            p = Process(target=check_mason_config,
+                        args=(options.layers, options.mode))
+            p.start()
+            p.join()
+            if p.exitcode:
+                raise RuntimeError('Mason Configure Error!')
 
     @property
     def mason(self):
@@ -266,7 +266,7 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
         except TileOutOfRange:
             abort(405)
 
-        age = options.age  # 3600 * 24 * 3
+        age = options.age # 3600 * 24 * 3
         headers = {
                    'Content-Type': mimetype,
                    'Last-Modified': date_time_string(mtime),
@@ -327,6 +327,7 @@ def main():
     use_reloader = options.reload
     if options.debug:
         app.debug = True
+        app.threaded = True
 
     if use_reloader:
         config_files = list(fn for fn in options.layers if fn.endswith('.cfg.py'))
