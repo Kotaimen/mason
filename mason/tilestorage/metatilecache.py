@@ -40,7 +40,7 @@ class MetaTileCache(FileSystemTileStorage):
 
     @staticmethod
     def from_summary(summary, root):
-        summary = dict(summary)  # copy dict object
+        summary = dict(summary) # copy dict object
         summary['root'] = root
         summary['pyramid'] = Pyramid.from_summary(summary['pyramid'])
         summary['metadata'] = Metadata.from_dict(summary['metadata'])
@@ -76,7 +76,7 @@ class MetaTileCache(FileSystemTileStorage):
             with open(pathname, 'rb') as fp:
                 data = fp.read()
 
-        mtime = os.stat(pathname).st_mtime,
+        mtime = os.stat(pathname).st_mtime
 
         # Create tile object and return it
         return MetaTile.from_tile_index(tile_index, data,
