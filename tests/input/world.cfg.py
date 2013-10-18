@@ -3,7 +3,7 @@
 # Or render with ./tilerenderer.py ./tests/input/world.cfg.py --stride=8 
 
 source1 = dict(\
-    prototype='datasource.mapnik',
+    prototype='node.mapnik',
     cache=dict(prototype='metacache',
                root='/tmp/tile/source1',
                compress=False,
@@ -16,7 +16,7 @@ source1 = dict(\
     )
 
 source2 = dict(\
-    prototype='datasource.mapnik',
+    prototype='node.mapnik',
     cache=dict(prototype='metacache',
                root='/tmp/tile/source2',
                compress=False,
@@ -29,15 +29,15 @@ source2 = dict(\
     )
 
 composite = dict(\
-     prototype='composite.imagemagick',
+    prototype='node.imagemagick',
      cache=dict(prototype='metacache',
                 root='/tmp/tile/composite',
                 compress=False,
                 ),
      sources=('source1', 'source2'),
      command='''
-     ( $1 -virtual-pixel edge -blur 0x12 -spread 3 +noise gaussian )
-     $2 -compose hardlight -composite''',
+     ( {{source1}} -virtual-pixel edge -blur 0x12 -spread 3 +noise gaussian )
+     {{source2}} -compose hardlight -composite''',
      format='png',
      )
 
