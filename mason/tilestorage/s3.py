@@ -29,18 +29,18 @@ class S3TileStorage(TileStorage):
     def __init__(self,
                  pyramid=None,
                  metadata=None,
-                 access_key='blah',
-                 secret_key='blah',
+                 access_key=None,
+                 secret_key=None,
                  bucket_name='foobar',
-                 root_tag=None,
+                 prefix=None,
                  simple=False,
                  ):
         TileStorage.__init__(self, pyramid, metadata)
 
         self._bucket_name = bucket_name
-        if root_tag is None:
-            root_tag = metadata.tag
-        self._tag = root_tag
+        if prefix is None:
+            prefix = metadata.tag
+        self._tag = prefix
         self._ext = pyramid.format.extension
 
         self._conn = boto.connect_s3(\
@@ -114,10 +114,10 @@ class S3ClusterTileStorage(S3TileStorage):
                  stride=4,
                  servers=['localhost:11211'],
                  timeout=0,
-                 access_key='blah',
-                 secret_key='blah',
+                 access_key=None,
+                 secret_key=None,
                  bucket_name='foobar',
-                 root_tag=None,
+                 prefix=None,
                  compress=False,
                  ):
 
@@ -128,7 +128,7 @@ class S3ClusterTileStorage(S3TileStorage):
 
         S3TileStorage.__init__(self,
                                pyramid, metadata, access_key, secret_key,
-                               bucket_name, root_tag)
+                               bucket_name, prefix)
 
         self._cache = MemcachedTileStorage(pyramid,
                                            metadata,
