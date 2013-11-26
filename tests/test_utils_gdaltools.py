@@ -38,7 +38,7 @@ class TestSpatialReference(unittest.TestCase):
 
         x1, y1, z1 = (-180.0, 0.0, 0.0)
         x2, y2, z2 = c.forward(x1, y1, z1)
-        self.assertAlmostEqual(x2, -20037508.342789248, place)
+        self.assertAlmostEqual(x2, -20037508.34278923, place)
         self.assertAlmostEqual(y2, -7.081154551613622e-10, place)
         self.assertAlmostEqual(z2, 0.0, place)
 
