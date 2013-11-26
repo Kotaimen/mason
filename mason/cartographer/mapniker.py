@@ -97,16 +97,13 @@ class Mapnik(Cartographer):
                  projection='EPSG:3857',
                  scale_factor=1.0,
                  buffer_size=0,
-                 image_type='png',
-                 image_parameters=None,
+                 image_type='png32',
+                 palette=None,
                  force_reload=False,
                  ):
-        if image_type not in ['png', 'png256', 'jpg']:
-            raise TypeError('Only support PNG/PNG256/JPEG format, got "%s"' % image_type)
 
         self._scale_factor = scale_factor
         self._buffer_size = buffer_size
-        self._palette = None
 
         # check theme path
         self._theme = theme
@@ -115,52 +112,19 @@ class Mapnik(Cartographer):
 
         Cartographer.__init__(self, image_type.upper())
 
-        # convert image_type and parameter to mapnik format string
-        if image_parameters is None:
-            image_parameters = dict()
-        self._image_type = self._init_image_type(image_type, image_parameters)
+        self._image_type = image_type
+        self._palette = None
+        if palette:
+            palette_type = os.path.splitext(palette)[1][1:].lower()
+            if palette_type not in ['rgba', 'rgb', 'act']:
+                raise ValueError('Palette file should have suffix'
+                        'rgba/rgb/act to indicate its type')
+            with open(palette, 'rb') as fp:
+                self._palette = mapnik.Palette(fp.read(), palette_type)
+                
         self._proj = None
         self._force_reload = force_reload
         self._map = self._init_mapnik(projection)
-
-    def _init_image_type(self, image_type, image_parameters):
-
-        # PNG Parameters --------------------------------------------------
-        if image_type.lower() == 'png':
-            image_type = 'png'
-        elif image_type.lower() == 'jpg':  # quality
-            image_type = 'jpeg'
-            quality = image_parameters.get('quality', 85)
-            if not isinstance(quality, int):
-                raise ValueError('JPEG quality shall be an integer.')
-            if quality < 1 or quality > 100:
-                raise ValueError('JPEG quality shall be 1-100.')
-            image_type += '%d' % quality
-        # PNG256 Parameters -----------------------------------------------
-        elif image_type.lower() == 'png256':  # palette
-            palette = image_parameters.get('palette', None)
-            if palette:
-                palette_type = os.path.splitext(palette)[1][1:].lower()
-                if palette_type not in ['rgba', 'rgb', 'act']:
-                    raise ValueError('Palette file should have suffix'
-                        'rgba/rgb/act to indicate its type')
-                with open(palette, 'rb') as fp:
-                    palette_data = fp.read()
-                self._palette = mapnik.Palette(palette_data, palette_type)
-            else:
-                colors = image_parameters.get('colors', None)
-                if colors:
-                    if colors < 2 or colors > 256:
-                        raise ValueError('Invalid color numbers')
-                    image_type += ':c=%d' % colors
-            # transparency
-            # colors, if palette is specified, colors will take no effect.
-            transparency = image_parameters.get('transparency', None)
-            if transparency in [0, 1, 2]:
-                image_type += ':t=%d' % transparency
-                # JPEG Parameters -------------------------------------------------
-
-        return image_type
 
     def _init_mapnik(self, projection):
         projection = '+init=%s' % projection.lower()

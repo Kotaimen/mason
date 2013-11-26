@@ -38,8 +38,7 @@ class TestMapnikMaker(unittest.TestCase):
     def testPNG256(self):
         cartographer = create_cartographer('mapnik',
                                            theme='./input/world.xml',
-                                           image_type='png256',
-                                           image_parameters={'colors': 32})
+                                           image_type='png256')
 
         size = (512, 512)
         envelope = (0, 0, 180, 85)
@@ -51,8 +50,8 @@ class TestMapnikMaker(unittest.TestCase):
     def testPNGPalette(self):
         cartographer = create_cartographer('mapnik',
                                            theme='./input/world.xml',
-                                           image_type='png256',
-                                           image_parameters={'palette': './input/example-palette.act'})
+                                           image_type='png',
+                                           palette='./input/example-palette.act')
 
         size = (512, 512)
         envelope = (0, 0, 180, 85)
@@ -65,8 +64,7 @@ class TestMapnikMaker(unittest.TestCase):
     def testJPEG(self):
         cartographer = create_cartographer('mapnik',
                                            theme='./input/world.xml',
-                                           image_type='jpg',
-                                           image_parameters={'quality': 60})
+                                           image_type='jpeg60')
 
         size = (512, 512)
         envelope = (0, 0, 180, 85)
