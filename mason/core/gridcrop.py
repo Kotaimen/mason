@@ -133,6 +133,7 @@ def grid_crop_pil(image_data, stride, size, buffer, format):
 
 # Magic bytes for separating image byte streams
 MAGIC_NUMBER = dict(PNG=b'\x89PNG\r\n\x1a\n',
+                    PNG256=b'\x89PNG\r\n\x1a\n',
                     JPG=b'\xff\xd8',
                     TIFF=b'II*\x00',)
 
@@ -234,12 +235,17 @@ def metatile_fission(metatile):
     format = metatile.format
     # Only supports clip/crop JPG/PNG, since crop GeoTIFF/TIFF may
     # lose color depth and geo reference information
-    assert format in [Format.PNG, Format.JPG, Format.TIFF]
+    assert format in [Format.PNG256, Format.PNG, Format.JPG, Format.TIFF]
     stride = metatile.index.stride
     size = metatile.index.tile_size
     buffer = metatile.index.buffer
 
     tile_indexes = metatile.index.fission()
+    if buffer == 0 and stride == 1:
+    	return [Tile.from_tile_index(tile_indexes[0],
+                                     metatile.data,
+                                     fmt=format,
+                                     mtime=metatile.mtime)]
 
     cropped = grid_crop(metatile.data, stride, size, buffer, format)
     tiles = list()
