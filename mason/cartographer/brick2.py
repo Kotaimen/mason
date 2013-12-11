@@ -65,13 +65,13 @@ class Brick2(Cartographer):
 
 
         road = self._road_map.render(envelope, size)
-#         halo = self._halo_map.render(envelope, size)
-#         base = self._base_map.render(envelope, size)
-#         label = self._label_map.render(envelope, size)
-#         road.composite(halo, mapnik.CompositeOp.src_atop, 0.5)
-#         road.composite(base, mapnik.CompositeOp.dst_over)
-#         road.composite(label, mapnik.CompositeOp.src_over)
-#         road.demultiply()
+        halo = self._halo_map.render(envelope, size)
+        base = self._base_map.render(envelope, size)
+        label = self._label_map.render(envelope, size)
+        road.composite(halo, mapnik.CompositeOp.src_atop, 0.5)
+        road.composite(base, mapnik.CompositeOp.dst_over)
+        road.composite(label, mapnik.CompositeOp.src_over)
+        road.demultiply()
 
         data = road.tostring('png256')
         return io.BytesIO(data)
