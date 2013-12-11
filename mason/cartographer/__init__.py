@@ -23,6 +23,10 @@ try:
 except ImportError:
     ShadeRelief = None
 
+try:
+    from .brick2 import Brick2
+except ImportError:
+    Brick2 = None
 #==============================================================================
 # Cartographer Factory
 #==============================================================================
@@ -31,7 +35,8 @@ class _CartographerFactory(object):
     CLASS_REGISTRY = dict(mapnik=Mapnik,
                           postgis=PostGIS,
                           shaderelief=ShadeRelief,
-                          dataset=RasterDataset,)
+                          dataset=RasterDataset,
+                          brick2=Brick2)
 
     def __call__(self, prototype, **params):
         creator = self.CLASS_REGISTRY.get(prototype, None)
