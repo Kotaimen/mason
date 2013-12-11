@@ -53,16 +53,18 @@ class Brick2(Cartographer):
                        '%s_label_halo.xml' % theme,
                        '%s_label.xml' % theme,
                        '%s_road.xml' % theme, ]
+        buffer_sizes = [0, buffer_size, buffer_size, 16]
 
-        def mkmap(theme_name):
+        def mkmap(theme_name, buffer_size):
             return _Mapnik(theme_name, projection, scale_factor,
                            buffer_size, image_type='png', force_reload=False)
 
         self._base_map, self._halo_map, self._label_map, self._road_map = \
-            tuple(mkmap(theme_name) for theme_name in theme_names)
+            tuple(mkmap(theme_name, buffer_size) for (theme_name, buffer_size)
+                  in zip(theme_names, buffer_sizes))
+
 
     def render(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
-
 
         road = self._road_map.render(envelope, size)
         halo = self._halo_map.render(envelope, size)
