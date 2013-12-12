@@ -12,7 +12,7 @@ import mapnik
 
 from .cartographer import Cartographer
 from .mapniker import Mapnik
-
+from ..utils import Timer, human_size
 
 #===============================================================================
 # Speedup by bypassing IIO and imagemagick composing, used by Brick2 themes
@@ -32,9 +32,6 @@ class _Mapnik(Mapnik):
 
         image = mapnik.Image(*size)
         mapnik.render(self._map, image, self._scale_factor)
-
-        image.premultiply()
-
         return image
 
 
@@ -63,23 +60,18 @@ class Brick2(Cartographer):
             tuple(mkmap(theme_name, buffer_size) for (theme_name, buffer_size)
                   in zip(theme_names, buffer_sizes))
 
-
     def render(self, envelope=(-180, -85, 180, 85), size=(256, 256)):
-
         road = self._road_map.render(envelope, size)
         halo = self._halo_map.render(envelope, size)
-        base = self._base_map.render(envelope, size)
         label = self._label_map.render(envelope, size)
+        base = self._base_map.render(envelope, size)
+        road.premultiply()
+        halo.premultiply()
+        label.premultiply()
+        base.premultiply()
         road.composite(halo, mapnik.CompositeOp.src_atop, 0.5)
         road.composite(base, mapnik.CompositeOp.dst_over)
         road.composite(label, mapnik.CompositeOp.src_over)
         road.demultiply()
-
-        data = road.tostring('png256')
+        data = road.tostring('png8:c=128:m=o:t=0')
         return io.BytesIO(data)
-
-
-
-
-
-
