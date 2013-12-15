@@ -106,7 +106,7 @@ def render_worker(queue, statistics, options):
                     statistics.skipped += 1
             except Exception as e:
                 statistics.failed += 1
-                logger.exception(e)
+                logger.exception('Error while rendering #%d: %r' % (count, index))
             finally:
                 queue.task_done()
 
