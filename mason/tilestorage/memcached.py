@@ -11,7 +11,7 @@ except ImportError:
     import memcache
     def client(servers, max_size):
         return memcache.Client(servers,
-                               pickleProtocol= -1,
+                               pickleProtocol=-1,
                                server_max_value_length=max_size,
                                )
 else:
@@ -23,7 +23,7 @@ else:
                               )
 
 from .tilestorage import TileStorage, TileStorageError
-
+from ..core import Tile
 
 class MemcachedTileStorageError(TileStorageError):
     pass
@@ -81,11 +81,17 @@ class MemcachedTileStorage(TileStorage):
 
     def get(self, tile_index):
         key = self._make_key(tile_index)
-        return self._client.get(key)
+        data = self._client.get(key)
+        if data is None:
+            return None
+
+        return Tile.from_tile_index(tile_index, data,
+                                    fmt=self.pyramid.format,
+                                    mtime=None)
 
     def put(self, tile):
         key = self._make_key(tile.index)
-        self._client.set(key, tile,
+        self._client.set(key, tile.data,
                          time=self._timeout,
                          min_compress_len=self._compress)
 
@@ -97,19 +103,20 @@ class MemcachedTileStorage(TileStorage):
         key = self._make_key(tile_index)
         self._client.delete(key)
 
-    def get_multi(self, tile_indexes):
-        # Make key->tile_index map
-        key2tile = dict((self._make_key(tile_index), tile_index) for \
-                         tile_index in tile_indexes)
-        # Get key->value map
-        key2value = self._client.get_multi(key2tile.keys())
-        # Replace key with tile_index
-        return dict((key2tile[k], v) for k, v in key2value.iteritems())
+# XXX: Nobody ever uses get_multi...
+#     def get_multi(self, tile_indexes):
+#         # Make key->tile_index map
+#         key2tile = dict((self._make_key(tile_index), tile_index) for \
+#                          tile_index in tile_indexes)
+#         # Get key->value map
+#         key2value = self._client.get_multi(key2tile.keys())
+#         # Replace key with tile_index
+#         return dict((key2tile[k], v) for k, v in key2value.iteritems())
 
     def put_multi(self, tiles):
         keys = list(self._make_key(tile.index) for tile in tiles)
         # Key 2 tile mapping
-        key2tile = dict(zip(keys, tiles))
+        key2tile = dict(zip(keys, (t.data for t in tiles)))
 
         failed = self._client.set_multi(key2tile,
                                         time=self._timeout,

@@ -181,7 +181,7 @@ class FileClusterTileStorage(FileSystemTileStorage):
 
         tiles = TileCluster.fission(self._pyramid, metatile.data, metatile.mtime)
 
-        # Write back tiles to tile1 cache and return requested tile
+        # Write back tiles to tie1 cache and return requested tile
         self._cache.put_multi(tiles)
 
         # Return requested tile,

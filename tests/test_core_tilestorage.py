@@ -19,6 +19,9 @@ from mason.tilestorage.cluster import TileCluster
 # Tile storage factory
 factory = TileStorageFactory()
 
+# Writable test bucket name
+BUCKET_NAME = 'masonmaps-tiles'
+
 
 class TileStorageTestMixin(object):
 
@@ -310,13 +313,13 @@ class TestS3TileStorage(TileStorageTestMixin, unittest.TestCase):
 
     def setUp(self):
         self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
-        self.metadata = Metadata.make_metadata(tag='S3StorageTest')
+        self.metadata = Metadata.make_metadata(tag='__S3StorageTest')
         self.storage = factory('s3',
                                self.pyramid,
                                self.metadata,
                                access_key=None,
                                secret_key=None,
-                               bucket_name='tilestorage',
+                               bucket_name=BUCKET_NAME,
                                simple=False,
 #                               tag_name='foobar'
                                )
@@ -438,7 +441,7 @@ class TestS3ClusterStorage(TestFileClusterStorage):
 
     def setUp(self):
         self.pyramid = Pyramid(levels=range(21), format=Format.DATA)
-        self.metadata = Metadata.make_metadata(tag='S3ClusterStorageTest',
+        self.metadata = Metadata.make_metadata(tag='__S3ClusterStorageTest',
                                                version='2.0')
 
         self.storage = factory('s3cluster',
@@ -449,7 +452,7 @@ class TestS3ClusterStorage(TestFileClusterStorage):
                                timeout=0,
                                access_key=None,
                                secret_key=None,
-                               bucket_name='tilestorage',
+                               bucket_name=BUCKET_NAME,
                                compress=True,
                                )
 
