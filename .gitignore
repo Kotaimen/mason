@@ -26,11 +26,19 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 
-#test result
+##
+# Project specific 
+##
+
+# Test result
 tests/output/
 
-#server log files
+# Log files
 *.log
 
-#ignore all themes
+# Ignore all themes
 themes
+
+# Ignore all 3rd party fiels
+static/*.zip
+static/leaflet*
