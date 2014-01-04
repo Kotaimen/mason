@@ -8,7 +8,7 @@ import collections
 
 
 class Metadata(collections.namedtuple('_Metadata', '''tag description version
-    attribution maptype''')):
+    attribution maptype dispname ''')):
 
     def make_dict(self):
         return self._asdict()
@@ -19,6 +19,7 @@ class Metadata(collections.namedtuple('_Metadata', '''tag description version
                       version=None,
                       attribution=None,
                       maptype='basemap',
+                      dispname=None,
                       ):
         if description is None:
             description = ''
@@ -26,7 +27,11 @@ class Metadata(collections.namedtuple('_Metadata', '''tag description version
             version = '1'
         if attribution is None:
             attribution = ''
-        return Metadata(tag, description, version, attribution, maptype)
+        assert maptype in ['basemap', 'overlay']
+        if dispname is None:
+            dispname = tag
+        return Metadata(tag, description, version, attribution, 
+                        maptype, dispname)
 
     @staticmethod
     def from_dict(mapping):
