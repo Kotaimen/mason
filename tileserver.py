@@ -196,11 +196,11 @@ def build_app(options):
 
     @app.route('/')
     def index():
-        layers = mason_context.mason.get_layers()        
+        layers = mason_context.mason.get_layers()
         metadatas = list(mason_context.mason.get_metadata(layer) for layer in layers)
-        
+
         return render_template('index.html', layers=metadatas)
-                
+
     @app.route('/tile/<tag>/<int:z>/<int:x>/<int:y>.<ext>')
     def tile(tag, z, x, y, ext):
         try:
@@ -211,7 +211,7 @@ def build_app(options):
             abort(405)
 
         headers = {'Content-Type': mimetype,
-                   'Last-Modified': date_time_string(mtime),}
+                   'Last-Modified': date_time_string(mtime), }
         age = options.age
         if age > 0:
             headers['Cache-Control'] = 'max-age=%d, public' % age

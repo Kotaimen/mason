@@ -45,10 +45,11 @@ class Brick2(Cartographer):
                  projection='EPSG:3857',
                  scale_factor=1.0,
                  buffer_size=0,
+                 halo_opacity=0.5,
                  ):
 
         Cartographer.__init__(self, 'png')
-        
+        self._halo_opacity = halo_opacity
         # Assemble fixed xml theme names
         theme_names = ['%s_base.xml' % theme,
                        '%s_label_halo.xml' % theme,
@@ -78,7 +79,7 @@ class Brick2(Cartographer):
         label.premultiply()
         base.premultiply()
         # Smart haloing, see https://www.github.com/Kotaimen/maps-Brick
-        road.composite(halo, mapnik.CompositeOp.src_atop, 0.5)
+        road.composite(halo, mapnik.CompositeOp.src_atop, self._halo_opacity)
         road.composite(base, mapnik.CompositeOp.dst_over)
         road.composite(label, mapnik.CompositeOp.src_over)
         road.demultiply()
