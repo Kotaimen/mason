@@ -145,7 +145,7 @@ class FileClusterTileStorage(FileSystemTileStorage):
         summary = dict(summary)  # copy dict object
         summary['root'] = root
         summary['pyramid'] = Pyramid.from_summary(summary['pyramid'])
-        summary['metadata'] = Metadata.from_dict(summary['metadata'])
+        summary['metadata'] = Metadata.make_metadata(**summary['metadata'])
         assert summary.pop('magic') == FileClusterTileStorage.CONFIG_VERSION
         return FileClusterTileStorage(**summary)
 
