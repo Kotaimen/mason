@@ -135,18 +135,18 @@ def attach_sqlite_database(filename):
         maptype = 'basemap'
 
     pyramid = Pyramid(levels=levels,
-                    tile_size=256,
-                    buffer=0,
-                    format=format,
-                    envelope=bounds,
-                    center=(lon, lat),
-                    zoom=zoom,)
+                     tile_size=256,
+                     buffer=0,
+                     format=format,
+                     envelope=bounds,
+                     center=(lon, lat),
+                     zoom=zoom,)
 
-    metadata = Metadata(tag=tag,
-                       description=description,
-                       version=version,
-                       attribution=attribution,
-                       maptype=maptype,)
+    metadata = Metadata.make_metadata(tag=tag,
+                                      description=description,
+                                      version=version,
+                                      attribution=attribution,
+                                      maptype=maptype,)
 
     return pyramid, metadata
 
