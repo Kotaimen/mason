@@ -260,6 +260,12 @@ class MapnikRenderNode(MetaTileRenderNode):
         return metatile
 
 
+class Brick2RenderNode(MapnikRenderNode):
+
+    def __init__(self, name, cache=None, **mapnik_cfg):
+        MetaTileRenderNode.__init__(self, name, cache)
+        self._mapniker = CartographerFactory('brick2', **mapnik_cfg)
+
 #===============================================================================
 # Raster Render Node
 #===============================================================================

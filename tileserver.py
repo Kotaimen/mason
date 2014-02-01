@@ -19,10 +19,7 @@ import urllib
 
 import multiprocessing
 
-from flask import Flask, abort, jsonify, current_app
-from flask import _app_ctx_stack as stack
-from werkzeug.serving import run_simple
-from multiprocessing import Process
+from flask import Flask, abort, jsonify, current_app, render_template, redirect
 
 from mason import Mason, __version__ as VERSION , __author__ as AUTHOR
 from mason.tilestorage import attach_tilestorage
@@ -144,7 +141,7 @@ def parse_args(args=None):
                      d='dryrun')
 
     options = parser.parse_args(args)
-    options.threaded = False # option disabled
+    options.threaded = False  # option disabled
     options.mode = mode2mode[options.mode]
 
 #    print options
@@ -153,22 +150,6 @@ def parse_args(args=None):
 #===============================================================================
 # Application Object
 #===============================================================================
-
-INDEX_TEMPLATE = u'''<!DOCTYPE html>
-<html>
-  <head>
-    <title>Mason Tile Server (v%(version)s)</title>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1"/>
-    <script type="text/javascript" src="static/polymaps.js"></script>
-    <style type="text/css">
-    @import url("static/polymaps.css");
-    </style>
-  </head>
-  <body id="map">
-    <script type="text/javascript" src="tilesvr.js"></script>
-  </body>
-</html>'''
-
 
 def check_mason_config(layer_configs, mode):
     print 'Checking Mason Config'
@@ -187,13 +168,13 @@ class MasonApp(object):
         self._options = options
         self._mason = None
 
-        if not options.debug:
-            p = Process(target=check_mason_config,
-                        args=(options.layers, options.mode))
-            p.start()
-            p.join()
-            if p.exitcode:
-                raise RuntimeError('Mason Configure Error!')
+#         if not options.debug:
+#             p = Process(target=check_mason_config,
+#                         args=(options.layers, options.mode))
+#             p.start()
+#             p.join()
+#             if p.exitcode:
+#                 raise RuntimeError('Mason Configure Error!')
 
     @property
     def mason(self):
@@ -215,62 +196,23 @@ def build_app(options):
 
     @app.route('/')
     def index():
-        return INDEX_TEMPLATE % {'version': VERSION }
-
-    @app.route('/tilesvr.js')
-    def js():
-        # Use first layer as base layer
         layers = mason_context.mason.get_layers()
-        baselayer_metadata = mason_context.mason.get_metadata(layers[0])
-        min_level = min(baselayer_metadata['levels'])
-        max_level = max(baselayer_metadata['levels'])
-        lon = baselayer_metadata['center'][0]
-        lat = baselayer_metadata['center'][1]
-        zoom = baselayer_metadata['zoom']
+        metadatas = list(mason_context.mason.get_metadata(layer) for layer in layers)
 
-        script = u'''var po = org.polymaps;
-var map = po.map();
-map.container(document.getElementById("map").appendChild(po.svg("svg")))
-   .center({lat:%(lat)f, lon:%(lon)f})
-   .zoomRange([%(min_level)d, %(max_level)d])
-   .zoom(%(zoom)d);
-''' % dict(lat=lat, lon=lon, min_level=min_level, max_level=max_level, zoom=zoom)
-
-        for layer in layers:
-            metadata = mason_context.mason.get_metadata(layer)
-            ext = metadata['format']['extension'][1:]
-            tag = urllib.quote(layer)
-            script += u'''map.add(
-    po.image()
-    .url("../tile/%(tag)s/{Z}/{X}/{Y}.%(ext)s")
-    );
-        ''' % dict(tag=tag, ext=ext)
-        else:
-            script += u'''map.add(po.interact())
-           .add(po.drag())
-           .add(po.dblclick())
-           .add(po.wheel().smooth(false))
-           .add(po.compass().pan("none"))
-           .add(po.hash());'''
-
-        return script, 200, {'Content-Type': 'application/x-javascript'}
+        return render_template('index.html', layers=metadatas)
 
     @app.route('/tile/<tag>/<int:z>/<int:x>/<int:y>.<ext>')
     def tile(tag, z, x, y, ext):
         try:
             tile_data, mimetype, mtime = mason_context.mason.craft_tile(tag, z, x, y)
-        except TileNotFound:
-            abort(404)
+        except (TileNotFound, TileOutOfRange):
+            return redirect('static/404.png')
         except InvalidLayer:
             abort(405)
-        except TileOutOfRange:
-            abort(405)
 
-        age = options.age # 3600 * 24 * 3
-        headers = {
-                   'Content-Type': mimetype,
-                   'Last-Modified': date_time_string(mtime),
-                    }
+        headers = {'Content-Type': mimetype,
+                   'Last-Modified': date_time_string(mtime), }
+        age = options.age
         if age > 0:
             headers['Cache-Control'] = 'max-age=%d, public' % age
             headers['Expires'] = date_time_string(mtime + age)
@@ -291,27 +233,6 @@ map.container(document.getElementById("map").appendChild(po.svg("svg")))
         print ext
         if ext == 'json':
             return jsonify(**metadata)
-        elif ext == 'jsonp':
-            jsonp = \
-            '''grid({"attribution":"","bounds":%(envelope)s,"center":[0,0,4],
-            "geocoder":"",
-            "id":"mason",
-            "maxzoom":%(maxzoom)s,
-            "minzoom":%(minzoom)s,
-            "name":"%(tag)s",
-            "private":true,
-            "scheme":"xyz",
-            "tilejson":
-            "2.0.0",
-            "tiles":["http://localhost:8080/tile/%(tag)s/{z}/{x}/{y}.%(ext)s"],
-            "webpage":"http://tiles.mapbox.com/mapbox/map/mapbox-streets"});
-            ''' % dict(envelope=list(metadata['envelope']),
-                       maxzoom=max(metadata['levels']),
-                       minzoom=min(metadata['levels']),
-                       tag=metadata['tag'],
-                       ext=metadata['format']['extension'][1:],
-                       )
-            return jsonp
         else:
             abort(404)
 
@@ -334,13 +255,13 @@ def main():
     else:
         config_files = []
 
-    run_simple(host, int(port), app,
-               use_reloader=use_reloader,
-               use_debugger=options.debug,
-               extra_files=config_files,
-               threaded=options.threaded,
-               processes=(1 if (options.debug or options.threaded) else options.workers),
-               )
+    app.run(host, int(port), app,
+            use_reloader=use_reloader,
+            use_debugger=options.debug,
+            extra_files=config_files,
+            threaded=options.threaded,
+            processes=(1 if (options.debug or options.threaded) else options.workers),
+            )
 
 
 if __name__ == '__main__':

@@ -218,3 +218,4 @@ class Mapnik(Cartographer):
             data = image.tostring(self._image_type)
 
         return io.BytesIO(data)
+

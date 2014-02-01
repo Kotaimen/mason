@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Mason Maps Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="static/leaflet-0.7.1/leaflet.css" />
+  <script src="static/leaflet-0.7.1/leaflet.js"></script>
+  <style>
+    body {
+      padding: 0;
+      margin: 0;
+    }
+    html, body, #map {
+      height: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+  <script>
+  
+  {% for layer in layers %}
+  
+  var layer_{{layer.tag}} =
+      L.tileLayer('tile/{{layer.tag}}/{z}/{x}/{y}{{layer.format.extension}}',
+      {
+        minZoom: {{layer.levels[0]}}, 
+        maxZoom: {{layer.levels[-1]}}, 
+        tileSize: 256,
+        detectRetina: true,
+        attribution: '{{layer.attribution}}',
+      });
+  
+  {% endfor %}
+  
+  var map = L.map('map',
+    {
+      layers: [ layer_{{layers[0].tag}} ], // show first map
+    }
+  );
+
+    L.control.layers(
+      {
+          {% for layer in layers %}
+          '{{layer.dispname}}': layer_{{layer.tag}},
+          {% endfor %}
+      },
+      {
+      }
+    ).addTo(map);
+
+    map.setView(
+        [{{layers[0].center[1]}}, {{layers[0].center[0]}}], 
+        {{layers[0].zoom}});
+
+  </script>
+</body>
+</html>
