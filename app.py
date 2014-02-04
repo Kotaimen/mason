@@ -6,15 +6,14 @@
 
 from tileserver import build_app
 
-
 class Options(object):
-    layers = [
-	'path/to/cfg', 
+    layers = [ 'path/to/config'
 	]
     mode = 'hybrid'
     debug = False
     reload = False
     age = 0
+    viewer = True
 
 options = Options()
 application = build_app(options)

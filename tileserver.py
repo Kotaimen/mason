@@ -83,18 +83,25 @@ def parse_args(args=None):
                         help='''Enable debug mode, this disables "--reload" and
                         requests will be processed in single thread (default
                         is multi-processed).''',)
-
+                        
+    parser.add_argument('--disable-viewer',
+                        dest='viewer',
+                        default=True,
+                        action='store_false',
+                        help='''Disable the leaflet tile viewer, recommended for
+                        deployment.''',)
+                        
     parser.add_argument('-r', '--reload',
-                        dest='reload',
-                        default=False,
-                        action='store_true',
-                        help='''Restart server automatically on code and
-                        configuration file change.  You can enable this option
-                        in non-debug mode which is useful for testing render
-                        configurations.  For mapnik layers, this will also
-                        cause xml theme file being reloaded on each render request.
-                        (which is slow)
-                        ''',)
+                       dest='reload',
+                       default=False,
+                       action='store_true',
+                       help='''Restart server automatically on code and
+                       configuration file change.  You can enable this option
+                       in non-debug mode which is useful for testing render
+                       configurations.  For mapnik layers, this will also
+                       cause xml theme file being reloaded on each render request.
+                       (which is slow)
+                       ''',)
 
     parser.add_argument('-w', '--workers',
                         dest='workers',
@@ -104,7 +111,7 @@ def parse_args(args=None):
                         to core number (%(default)s).  Note this option is ignored under
                         debug mode because process model don't support debugging.''',)
 
-    parser.add_argument('-a', '--age',
+    parser.add_argument('--age',
                         dest='age',
                         default=0,
                         type=int,
@@ -168,14 +175,6 @@ class MasonApp(object):
         self._options = options
         self._mason = None
 
-#         if not options.debug:
-#             p = Process(target=check_mason_config,
-#                         args=(options.layers, options.mode))
-#             p.start()
-#             p.join()
-#             if p.exitcode:
-#                 raise RuntimeError('Mason Configure Error!')
-
     @property
     def mason(self):
         if self._mason is None:
@@ -193,13 +192,14 @@ class MasonApp(object):
 def build_app(options):
     app = Flask(__name__)
     mason_context = MasonApp(app, options)
+    
+    if options.viewer:
+        @app.route('/')
+        def index():
+            layers = mason_context.mason.get_layers()
+            metadatas = list(mason_context.mason.get_metadata(layer) for layer in layers)
 
-    @app.route('/')
-    def index():
-        layers = mason_context.mason.get_layers()
-        metadatas = list(mason_context.mason.get_metadata(layer) for layer in layers)
-
-        return render_template('index.html', layers=metadatas)
+            return render_template('index.html', layers=metadatas)
 
     @app.route('/tile/<tag>/<int:z>/<int:x>/<int:y>.<ext>')
     def tile(tag, z, x, y, ext):

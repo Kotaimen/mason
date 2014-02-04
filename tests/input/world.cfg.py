@@ -42,7 +42,9 @@ composite = dict(\
      )
 
 ROOT = dict(\
-    metadata=dict(tag='world'),
+    metadata=dict(tag='world',
+                  dispname='Test World',
+                  ),
     pyramid=dict(levels=range(0, 9),
                  zoom=4,
                  center=(121.5, 31),
