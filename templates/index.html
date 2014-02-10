@@ -23,7 +23,7 @@
   
   {% for layer in layers %}
   
-  var layer_{{layer.tag}} =
+  var layer_{{layer.uid}} =
       L.tileLayer('tile/{{layer.tag}}/{z}/{x}/{y}{{layer.format.extension}}',
       {
         minZoom: {{layer.levels[0]}}, 
@@ -37,14 +37,14 @@
   
   var map = L.map('map',
     {
-      layers: [ layer_{{layers[0].tag}} ], // show first map
+      layers: [ layer_{{layers[0].uid}} ], // show first map
     }
   );
 
     L.control.layers(
       {
           {% for layer in layers %}
-          '{{layer.dispname}}': layer_{{layer.tag}},
+          '{{layer.dispname}}': layer_{{layer.uid}},
           {% endfor %}
       },
       {

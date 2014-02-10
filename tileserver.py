@@ -83,14 +83,14 @@ def parse_args(args=None):
                         help='''Enable debug mode, this disables "--reload" and
                         requests will be processed in single thread (default
                         is multi-processed).''',)
-                        
+
     parser.add_argument('--disable-viewer',
                         dest='viewer',
                         default=True,
                         action='store_false',
                         help='''Disable the leaflet tile viewer, recommended for
                         deployment.''',)
-                        
+
     parser.add_argument('-r', '--reload',
                        dest='reload',
                        default=False,
@@ -192,13 +192,14 @@ class MasonApp(object):
 def build_app(options):
     app = Flask(__name__)
     mason_context = MasonApp(app, options)
-    
+
     if options.viewer:
         @app.route('/')
         def index():
             layers = mason_context.mason.get_layers()
             metadatas = list(mason_context.mason.get_metadata(layer) for layer in layers)
-
+            for n, metadata in enumerate(metadatas):
+                metadata['uid'] = n
             return render_template('index.html', layers=metadatas)
 
     @app.route('/tile/<tag>/<int:z>/<int:x>/<int:y>.<ext>')
