@@ -101,7 +101,7 @@ class Mapnik(Cartographer):
                  image_parameters=None,
                  force_reload=False,
                  ):
-        if image_type not in ['png', 'png256', 'jpg']:
+        if image_type not in ['png', 'png256', 'jpg', 'png32']:
             raise TypeError('Only support PNG/PNG256/JPEG format, got "%s"' % image_type)
 
         self._scale_factor = scale_factor
@@ -128,6 +128,8 @@ class Mapnik(Cartographer):
         # PNG Parameters --------------------------------------------------
         if image_type.lower() == 'png':
             image_type = 'png'
+        if image_type.lower() == 'png32':
+            image_type = 'png32'
         elif image_type.lower() == 'jpg':  # quality
             image_type = 'jpeg'
             quality = image_parameters.get('quality', 85)

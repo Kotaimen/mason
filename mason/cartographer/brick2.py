@@ -48,7 +48,7 @@ class Brick2(Cartographer):
                  halo_opacity=0.5,
                  ):
 
-        Cartographer.__init__(self, 'png')
+        Cartographer.__init__(self, 'png32')
         self._halo_opacity = halo_opacity
         # Assemble fixed xml theme names
         theme_names = ['%s_base.xml' % theme,
@@ -56,12 +56,12 @@ class Brick2(Cartographer):
                        '%s_label.xml' % theme,
                        '%s_road.xml' % theme, ]
         # Only need buffer on labels               
-        buffer_sizes = [0, buffer_size, buffer_size, 16]
+        buffer_sizes = [0, buffer_size, buffer_size, 0]
         
         # Build a Mapnik cartographer for each theme
         def mkmap(theme_name, buffer_size):
             return _Mapnik(theme_name, projection, scale_factor,
-                           buffer_size, image_type='png', force_reload=False)
+                           buffer_size, image_type='png32', force_reload=False)
                            
         self._base_map, self._halo_map, self._label_map, self._road_map = \
             tuple(mkmap(theme_name, buffer_size) for (theme_name, buffer_size)

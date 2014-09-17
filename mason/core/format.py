@@ -95,6 +95,10 @@ KNOWN_FORMATS = {
 }
 
 
+KNOWN_FORMATS['PNG32'] = KNOWN_FORMATS['PNG']
+KNOWN_FORMATS['PNG8'] = KNOWN_FORMATS['PNG256']
+
+
 class Format(object):
 
     @staticmethod
@@ -137,6 +141,7 @@ class Format(object):
     # Known Formats ------------------------------------------------------------
 
     PNG = KNOWN_FORMATS['PNG']
+    PNG32 = KNOWN_FORMATS['PNG']
     ZIP = KNOWN_FORMATS['ZIP']
     TIFF = KNOWN_FORMATS['TIFF']
     PNG256 = KNOWN_FORMATS['PNG256']
