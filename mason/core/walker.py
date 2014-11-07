@@ -11,7 +11,6 @@ import csv
 
 
 class PyramidWalker(object):
-
     def __init__(self, pyramid, levels=None, stride=1, envelope=None):
         self._pyramid = pyramid
         if levels is not None:
@@ -44,7 +43,6 @@ class PyramidWalker(object):
 
 
 class TileListPyramidWalker(object):
-
     def __init__(self, pyramid, tilelist_file,
                  levels=None, stride=1, envelope=None):
         self._tilelist_file = tilelist_file
@@ -52,7 +50,7 @@ class TileListPyramidWalker(object):
         if levels is not None:
             self._levels = levels
         else:
-            self._levels = pyramid.levels
+            self._levels = None
         if envelope is not None:
             self._envelope = Envelope.from_tuple(envelope)
         else:
@@ -66,15 +64,24 @@ class TileListPyramidWalker(object):
         stride_diff = len(bin(stride)) - 3
 
         with open(self._tilelist_file, 'rb') as fp:
-
             reader = csv.reader(fp)
             for row in reader:
                 tile_z, tile_x, tile_y = tuple(map(int, row))
-                for z in self._levels:
-                    z_diff = z - tile_z
-                    if z_diff < stride_diff:
-                        # Skip this level if its smaller than min allowed layer
-                        continue
-                    for x in xrange(tile_x * (2 ** z_diff), (tile_x + 1) * (2 ** z_diff), stride):
-                        for y in xrange(tile_y * (2 ** z_diff), (tile_y + 1) * (2 ** z_diff), stride):
-                            yield self._pyramid.create_metatile_index(z, x, y, stride)
+
+                if self._levels is not None:
+                    for z in self._levels:
+                        z_diff = z - tile_z
+                        if z_diff < stride_diff:
+                            # Skip this level if its smaller than min allowed layer
+                            continue
+                        for x in xrange(tile_x * (2 ** z_diff),
+                                        (tile_x + 1) * (2 ** z_diff), stride):
+                            for y in xrange(tile_y * (2 ** z_diff),
+                                            (tile_y + 1) * (2 ** z_diff),
+                                            stride):
+                                yield self._pyramid.create_metatile_index(z, x,
+                                                                          y,
+                                                                          stride)
+                else:
+                    yield self._pyramid.create_metatile_index(tile_z, tile_x,
+                                                              tile_y, stride)
