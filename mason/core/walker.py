@@ -68,7 +68,7 @@ class TileListPyramidWalker(object):
             for row in reader:
                 tile_z, tile_x, tile_y = tuple(map(int, row))
 
-                if self._levels is not None:
+                if self._levels:
                     for z in self._levels:
                         z_diff = z - tile_z
                         if z_diff < stride_diff:

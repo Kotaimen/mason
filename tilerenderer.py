@@ -285,7 +285,7 @@ def verify_config(options):
     renderer = create_render_tree_from_config(options.config, render_option)
 
     if not options.levels:
-        options.levels = renderer.pyramid.levels
+        options.levels = [] #renderer.pyramid.levels
     else:
         levels = []
         for level in options.levels.split(','):
